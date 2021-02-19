@@ -36,10 +36,15 @@ def get_param_text(name: str, desc: str, offset: int, length: int) -> str:
     for bit in range(0,length):
         mask = clear_bit(mask, start_mask-bit) 
 
+    f_mask = 0x0
+    for bit in range(0,length):
+        f_mask = (f_mask | 0x01 << bit)
+
+
     string =  "    // Sets {}\n".format(desc)
-    string += "    void set_{}({} value){{ raw = (raw & 0x{:{fill}16x}) | (value & 0x{:x}) << {}; }}\n".format(name, get_data_type(length), mask, length, 64-length-offset, fill='0')
+    string += "    void set_{}({} value){{ raw = (raw & 0x{:{fill}16x}) | ((uint64_t)value & 0x{:x}) << {}; }}\n".format(name, get_data_type(length), mask, f_mask, 64-length-offset, fill='0')
     string += "    // Gets {}\n".format(desc)
-    string += "    {} get_{}() {{ return raw >> {} & 0x{:x}; }}\n".format(get_data_type(length), name, offset, length)
+    string += "    {} get_{}() {{ return raw >> {} & 0x{:x}; }}\n".format(get_data_type(length), name, offset, f_mask)
     return string
 
 
@@ -82,13 +87,15 @@ for entry in entries:
     res += "\n"
 
 # Export frame function
-res +=  "    void export_frame(CAN_FRAME &f) {\n"
-res +=  "        f.id = {}_ID;\n".format(frame_name.rstrip('h'))
-res +=  "        f.length = 8;\n"
-res +=  "        f.priority = 4;\n"
-res +=  "        f.rtr = false;\n"
-res +=  "        f.extended = false;\n"
-res +=  "        memcpy(&f.data.int64, &raw, 8);\n"
+res += "    void export_frame(CAN_FRAME &f) {\n"
+res += "        f.id = {}_ID;\n".format(frame_name.rstrip('h'))
+res += "        f.length = 8;\n"
+res += "        f.priority = 4;\n"
+res += "        f.rtr = false;\n"
+res += "        f.extended = false;\n"
+res += "        for (int i = 0; i < 7; i++) {\n"
+res += "            f.data.bytes[i] = bytes[7-i];\n"
+res += "        }\n"
 res += "    }\n"
 
 res += "}} {};\n".format(frame_name.rstrip('h'))

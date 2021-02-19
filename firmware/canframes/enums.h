@@ -1,20 +1,23 @@
+#ifndef GS_ENUMS_H
+#define GS_ENUMS_H
+
 enum GEAR {
-    N = 0,
-    D1 = 1,
-    D2 = 2,
-    D3 = 3,
-    D4 = 4,
-    D5 = 5,
-    D6 = 6,
-    D7 = 7,
-    D_CVT = 8,
-    R_CVT = 9,
-    R3 = 10,
-    R = 11,
-    R2 = 12,
-    P = 13,
-    NO_FORCE = 14,
-    SNV = 15
+    G_N = 0,
+    G_D1 = 1,
+    G_D2 = 2,
+    G_D3 = 3,
+    G_D4 = 4,
+    G_D5 = 5,
+    G_D6 = 6,
+    G_D7 = 7,
+    G_D_CVT = 8,
+    G_R_CVT = 9,
+    G_R3 = 10,
+    G_R = 11,
+    G_R2 = 12,
+    G_P = 13,
+    G_NO_FORCE = 14,
+    G_SNV = 15
 };
 
 enum FPC {
@@ -31,30 +34,30 @@ enum ErrorCheck {
     NotDefined = 3
 };
 
-enum GearVariant {
-    NAG_LARGE, // NAG - Large gear
-    NAG_SMALL, // NAG - Small gear
-    NAG2_GROSS2, // NAG2 - Large gear
-    NAG2_KLEIN2 // NAG2 - Small gear
+enum  GearVariant {
+    NAG_LARGE = 0, // NAG - Large gear
+    NAG_SMALL = 1, // NAG - Small gear
+    NAG2_GROSS2 = 2, // NAG2 - Large gear
+    NAG2_KLEIN2 = 3 // NAG2 - Small gear
 };
 
 // Speed step
 enum FSC {
-    Blank = 32, // Blank gear
-    Speed1 = 49, // Speed step 1
-    Speed2 = 50, // Speed step 2
-    Speed3 = 51, // Speed step 3
-    Speed4 = 52, // Speed step 4
-    Speed5 = 53, // Speed step 5
-    Speed6 = 54, // Speed step 6
-    Speed7 = 55, // Speed step 7
-    A = 65, // Speed level 'A'
-    D = 68, // Speed step 'D'
-    F = 70, // Error mark 'F'
-    N = 78, // Speed step 'N'
-    P = 80, // Speed step 'P'
-    R = 82, // Speed step 'R'
-    Passive = 255, // Signal not avaliable
+    SS_Blank = 32, // Blank gear
+    SS_Speed1 = 49, // Speed step 1
+    SS_Speed2 = 50, // Speed step 2
+    SS_Speed3 = 51, // Speed step 3
+    SS_Speed4 = 52, // Speed step 4
+    SS_Speed5 = 53, // Speed step 5
+    SS_Speed6 = 54, // Speed step 6
+    SS_Speed7 = 55, // Speed step 7
+    SS_A = 65, // Speed level 'A'
+    SS_D = 68, // Speed step 'D'
+    SS_F = 70, // Error mark 'F'
+    SS_N = 78, // Speed step 'N'
+    SS_P = 80, // Speed step 'P'
+    SS_R = 82, // Speed step 'R'
+    SS_Passive = 255, // Signal not avaliable
 };
 
 enum GearSelectorPos {
@@ -117,3 +120,5 @@ enum DrivingProgram {
 
     PASSIVE = 255, // Passive value (Signal not avaliable)
 };
+
+#endif
