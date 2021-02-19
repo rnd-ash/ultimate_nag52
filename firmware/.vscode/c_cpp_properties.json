@@ -1,0 +1,22 @@
+{
+    "configurations": [
+        {
+            "name": "Linux",
+            "includePath": [
+                "/home/ashcon/.arduino15/packages/esp32/tools/**",
+                "/home/ashcon/Arduino/libraries/**",
+                "/home/ashcon/Arduino/libraries/esp32_can/**",
+                "/home/ashcon/.arduino15/packages/esp32/hardware/esp32/1.0.4/**"
+            ],
+            "forcedInclude": [],
+            "defines": [
+                "USBCON"
+            ],
+            "intelliSenseMode": "linux-gcc-x64",
+            "compilerPath": "/usr/bin/clang",
+            "cStandard": "c17",
+            "cppStandard": "c++14"
+        }
+    ],
+    "version": 4
+}
