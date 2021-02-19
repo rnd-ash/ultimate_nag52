@@ -1,4 +1,5 @@
 import sys
+import os
 
 file_name = sys.argv[1]
 frame_name = sys.argv[2]
@@ -40,7 +41,7 @@ def get_param_text(name: str, desc: str, offset: int, length: int) -> str:
     for bit in range(0,length):
         f_mask = (f_mask | 0x01 << bit)
 
-
+    string = ""
     string =  "    // Sets {}\n".format(desc)
     string += "    void set_{}({} value){{ raw = (raw & 0x{:{fill}16x}) | ((uint64_t)value & 0x{:x}) << {}; }}\n".format(name, get_data_type(length), mask, f_mask, 64-length-offset, fill='0')
     string += "    // Gets {}\n".format(desc)
@@ -68,6 +69,8 @@ if located_frame == False:
 res = ""
 print("Found {} entries for {}".format(len(entries), frame_name))
 
+res += "#ifndef {}\n".format(frame_name.upper())
+res += "#define {}\n\n".format(frame_name.upper())
 res += "#include <stdint.h>\n"
 res += "#include <can_common.h>\n"
 res += "\n"
@@ -75,7 +78,7 @@ res += "#define {}_ID {}\n".format(frame_name.rstrip('h'), frame_id)
 res += "\n"
 res += "typedef union {\n"
 res += "    uint8_t bytes[8];\n"
-res += "    uint64_t raw;\n"
+res += "    uint64_t raw;\n\n"
 
 for entry in entries:
     name = entry.split(": ")[1].split(",")[0]
@@ -87,6 +90,14 @@ for entry in entries:
     res += "\n"
 
 # Export frame function
+res += "    void import_frame(CAN_FRAME &f) {\n"
+res += "        if (f.id == {}_ID) {{\n".format(frame_name.rstrip('h'))
+res += "            for (int i = 0; i < f.length; i++) {\n"
+res += "                bytes[7-i] = f.data.bytes[i];\n"
+res += "            }\n"
+res += "        }\n"
+res += "    }\n"
+res +="\n"
 res += "    void export_frame(CAN_FRAME &f) {\n"
 res += "        f.id = {}_ID;\n".format(frame_name.rstrip('h'))
 res += "        f.length = 8;\n"
@@ -97,7 +108,15 @@ res += "        for (int i = 0; i < 7; i++) {\n"
 res += "            f.data.bytes[i] = bytes[7-i];\n"
 res += "        }\n"
 res += "    }\n"
-
 res += "}} {};\n".format(frame_name.rstrip('h'))
+res += "\n#endif {}\n".format(frame_name.upper()) # endif
 
-print(res)
+ecu_name = frame_name.rstrip('h').split("_")[0]
+
+path = "canframes/{}/".format(ecu_name)
+if not os.path.exists(path):
+    os.makedirs(path)
+
+write_file = open("canframes/{}/{}.h".format(ecu_name,frame_name.rstrip('h')), 'w')
+write_file.write(res)
+print("Parse complete")

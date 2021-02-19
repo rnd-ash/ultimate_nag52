@@ -1,10 +1,10 @@
 #include <esp32_can.h>
 #include "A0.h"
 #include <can_common.h>
-#include "canframes/GS_218.h"
-#include "canframes/enums.h"
-#include "canframes/GS_338.h"
-#include "canframes/GS_418.h"
+#include "canframes/GS/GS_218.h"
+#include "canframes/GS/enums.h"
+#include "canframes/GS/GS_338.h"
+#include "canframes/GS/GS_418.h"
 
 CAN_FRAME f;
 
@@ -29,7 +29,6 @@ uint8_t bs_300[8] = {0x08, 0x08, 0x00, 0x00, 0x00, 0x00, 0x7F, 0xFF};
 uint8_t bs_328[8] = {0xFF, 0xFF, 0x85, 0x00, 0x00, 0x03, 0x95, 0x0B};
 
 // EZS
-uint8_t ezs_0h[6] = {0xFF, 0x00, 0x02, 0x00, 0x00, 0x00};
 uint8_t ezs_a5[8] = {0x02, 0x00, 0x24, 0x06, 0x2D, 0x18, 0x18, 0x1A};
 
 void setup() {
@@ -39,7 +38,9 @@ void setup() {
     CAN0.begin(500000);
 
     gs418.raw = 0x504D7404DD00C000;
-    gs418.set_FPC(DrivingProgram::A_MGZSN);
+    gs418.set_WHST(GearSelectorPos::D);
+    gs418.set_GIC(GEAR::G_D1);
+    gs418.set_GZC(GEAR::G_D1);
     //gs218.raw = 0x0000DD4923003060;
 }
 
@@ -51,15 +52,55 @@ void copy_frame(uint8_t* src, int len) {
 
 unsigned long last_time = millis();
 unsigned long b_time = millis();
+unsigned long change_time = millis();
+
+DrivingProgram progs[5] = {
+    DrivingProgram::A,
+    DrivingProgram::C,
+    DrivingProgram::F,
+    DrivingProgram::S,
+    DrivingProgram::W,
+};
+
+FSC steps[16] = {
+    FSC::SS_P,
+    FSC::SS_R,
+    FSC::SS_N,
+    FSC::SS_D,
+    FSC::SS_D,
+    FSC::SS_Speed1,
+    FSC::SS_Speed2,
+    FSC::SS_Speed3,
+    FSC::SS_Speed4,
+    FSC::SS_Speed5,
+    FSC::SS_Speed6,
+    FSC::SS_Speed7,
+    FSC::SS_F,
+    FSC::SS_F,
+    FSC::SS_A,
+    FSC::SS_A,
+};
+
+int fsc_idx = 0;
+int idx = 0;
 void loop() {
+    if (millis() - change_time >= 333) {
+        change_time = millis();
+        gs418.set_FSC(steps[fsc_idx]);
+        fsc_idx++;
+        if (fsc_idx > 16) {
+            fsc_idx = 0;
+            gs418.set_FPC(progs[idx]);
+            idx++;
+            if (idx >= 5) {
+                idx = 0;
+            }
+        }
+        
+    }
     if (millis() - b_time >= 100) {
         b_time = millis();
         // Custom ezs frame
-        f.id = 0x0000;
-        f.length = 6;
-        copy_frame(ezs_0h, 6);
-        CAN0.sendFrame(f);
-
         f.id = 0x001F;
         f.length = 8;
         copy_frame(ezs_a5, 8);

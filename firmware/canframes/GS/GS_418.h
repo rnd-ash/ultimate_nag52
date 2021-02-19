@@ -8,9 +8,9 @@ typedef union {
     uint8_t bytes[8];
     uint64_t raw;
     // Sets speed step
-    void set_FSC(uint8_t value){ raw = (raw & 0x00ffffffffffffff) | ((uint64_t)value & 0xff) << 56; }
+    void set_FSC(FSC value){ raw = (raw & 0x00ffffffffffffff) | ((uint64_t)value & 0xff) << 56; }
     // Gets speed step
-    uint8_t get_FSC() { return raw >> 0 & 0xff; }
+    FSC get_FSC() { return (FSC)(raw >> 0 & 0xff); }
 
     // Sets driving program
     void set_FPC(DrivingProgram value){ raw = (raw & 0xff00ffffffffffff) | ((uint64_t)value & 0xff) << 48; }
