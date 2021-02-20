@@ -3,100 +3,75 @@
 
 #include <cstdint>
 #include <string>
+#include "../ecus/abstract_ecu.h"
+#include "esp32_forwarder.h"
+#include <thread>
 
-// From CAN_COMMON (Collin80)
-class BitRef
-{
-public:
-    BitRef& operator=( bool x )
-    {
-        *byteRef = (*byteRef & ~(1 << bitPos));
-        if (x) *byteRef = *byteRef | (1 << bitPos);
-        return *this;
-    }
-    //BitRef& operator=( const BitRef& x );
+// Engine frames
+#include <MS_210.h>
+#include <MS_212.h>
+#include <MS_268.h>
+#include <MS_2F3.h>
+#include <MS_308.h>
+#include <MS_312.h>
+#include <MS_608.h>
 
-    operator bool() const
-    {
-        if (*byteRef & (1 << bitPos)) return true;
-        return false;
-    }
+// GS frames
+#include <GS_218.h>
+#include <GS_338.h>
+#include <GS_418.h>
+
+// ABS/ESP frames
+#include <BS_200.h>
+#include <BS_208.h>
+#include <BS_270.h>
+#include <BS_300.h>
+#include <BS_328.h>
+
+// Engine frames
+extern MS_210 ms210;
+extern MS_212 ms212;
+extern MS_268 ms268;
+extern MS_2F3 ms2F3;
+extern MS_308 ms308;
+extern MS_308 ms312;
+extern MS_608 ms608;
+
+// GS frames
+extern GS_218 gs218;
+extern GS_338 gs338;
+extern GS_418 gs418;
+
+// ABS/ESP frames
+extern BS_200 bs200;
+extern BS_208 bs208;
+extern BS_270 bs270;
+extern BS_300 bs300;
+extern BS_328 bs328;
+
+
+#define TX_FRAME(f) \
+{                    \
+f.export_frame(tx); \
+this->bcast_frame(&tx); \
+std::this_thread::sleep_for(std::chrono::microseconds(100)); \
+}
+
+class CAN_SIMULATOR {
 public:
-    BitRef(uint8_t *ref, int pos)
-    {
-        byteRef = ref;
-        bitPos = pos;
-    }
+    CAN_SIMULATOR(char* port_name);
+    void init(std::vector<abstract_ecu*> ecu_list);
+    void can_sim_thread();
+    void ecu_sim_thread();
+    void terminate();
 private:
-    uint8_t *byteRef;
-    int bitPos;
-};
-
-
-typedef union {
-    uint64_t uint64{};
-    uint32_t uint32[2];
-    uint16_t uint16[4];
-    uint8_t  uint8[8];
-    int64_t int64;
-    int32_t int32[2];
-    int16_t int16[4];
-    int8_t  int8[8];
-
-    //deprecated names used by older code
-    uint64_t value;
-    struct {
-        uint32_t low;
-        uint32_t high;
-    };
-    struct {
-        uint16_t s0;
-        uint16_t s1;
-        uint16_t s2;
-        uint16_t s3;
-    };
-    uint8_t bytes[8];
-    uint8_t byte[8]; //alternate name so you can omit the s if you feel it makes more sense
-    struct {
-        uint8_t bitField[8];
-        bool operator[]( int pos ) const
-        {
-            if (pos < 0 || pos > 63) return 0;
-            int bitFieldIdx = pos / 8;
-            return (bitField[bitFieldIdx] >> pos) & 1;
-        }
-        BitRef operator[]( int pos )
-        {
-            if (pos < 0 || pos > 63) return BitRef((uint8_t *)&bitField[0], 0);
-            uint8_t *ptr = (uint8_t *)&bitField[0];
-            return BitRef(ptr + (pos / 8), pos & 7);
-        }
-    } bit;
-} BytesUnion;
-
-
-class CAN_FRAME
-{
-public:
-    CAN_FRAME() {
-        id = 0;
-        fid = 0;
-        rtr = 0;
-        priority = 15;
-        extended = false;
-        timestamp = 0;
-        length = 0;
-        data.value = 0;
-    }
-
-    BytesUnion data;      // 64 bits - lots of ways to access it.
-    uint32_t id{};        // 29 bit if ide set, 11 bit otherwise
-    uint32_t fid{};       // family ID - used internally to library
-    uint32_t timestamp{}; // CAN timer value when mailbox message was received.
-    uint8_t rtr{};        // Remote Transmission Request (1 = RTR, 0 = data frame)
-    uint8_t priority{};   // Priority but only important for TX frames and then only for special uses (0-31)
-    uint8_t extended{};   // Extended ID flag
-    uint8_t length{};     // Number of data bytes
+    std::vector<abstract_ecu*> ecus;
+    bool send_to_esp = false;
+    esp32_forwarder esp32;
+    bool thread_exec;
+    void bcast_frame(CAN_FRAME *f);
+    std::thread sim_thread;
+    std::thread can_thread;
 };
 
 // Misc functions to help with printing data!

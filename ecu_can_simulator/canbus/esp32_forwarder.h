@@ -5,7 +5,7 @@
 #ifndef ECU_CAN_SIMULATOR_ESP32_FORWARDER_H
 #define ECU_CAN_SIMULATOR_ESP32_FORWARDER_H
 
-#include "can_sim.h"
+#include "can_frame.h"
 #include <time.h>
 /**
  * This class handles serial communication with an optional Arduino device running the 'can_forwarder'
@@ -14,12 +14,14 @@
  */
 class esp32_forwarder {
 public:
+    esp32_forwarder();
     esp32_forwarder(char* port);
     void send_frame(CAN_FRAME *f);
     void close_port();
     bool is_port_open() const;
 private:
     int fd;
+    uint8_t write_buf[11] = {0x00};
     struct timeval timeout;
 };
 

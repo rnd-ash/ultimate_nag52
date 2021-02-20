@@ -39,11 +39,19 @@
 			</Target>
 			<Target title="ecu_can_simulator">
 				<Option output="/home/ashcon/code/ultimate_nag52/ecu_can_simulator/cmake-build-debug/ecu_can_simulator" prefix_auto="0" extension_auto="0"/>
-				<Option working_dir="/home/ashcon/code/ultimate_nag52/ecu_can_simulator/cmake-build-debug"/>
+				<Option working_dir=""/>
 				<Option object_output="./"/>
 				<Option type="1"/>
 				<Option compiler="gcc"/>
 				<Compiler>
+					<Add directory="/home/ashcon/code/ultimate_nag52/ecu_can_simulator/../canframes/ART"/>
+					<Add directory="/home/ashcon/code/ultimate_nag52/ecu_can_simulator/../canframes/BS"/>
+					<Add directory="/home/ashcon/code/ultimate_nag52/ecu_can_simulator/../canframes/EWM"/>
+					<Add directory="/home/ashcon/code/ultimate_nag52/ecu_can_simulator/../canframes/GS"/>
+					<Add directory="/home/ashcon/code/ultimate_nag52/ecu_can_simulator/../canframes/MS"/>
+					<Add directory="/home/ashcon/code/ultimate_nag52/ecu_can_simulator/../canframes/PSM"/>
+					<Add directory="/home/ashcon/code/ultimate_nag52/ecu_can_simulator/../canframes/SBW"/>
+					<Add directory="/home/ashcon/code/ultimate_nag52/ecu_can_simulator/../canframes/EZS"/>
 					<Add directory="/usr/lib/gcc/x86_64-pc-linux-gnu/10.2.0/../../../../include/c++/10.2.0"/>
 					<Add directory="/usr/lib/gcc/x86_64-pc-linux-gnu/10.2.0/../../../../include/c++/10.2.0/x86_64-pc-linux-gnu"/>
 					<Add directory="/usr/lib/gcc/x86_64-pc-linux-gnu/10.2.0/../../../../include/c++/10.2.0/backward"/>
@@ -61,11 +69,19 @@
 			</Target>
 			<Target title="ecu_can_simulator/fast">
 				<Option output="/home/ashcon/code/ultimate_nag52/ecu_can_simulator/cmake-build-debug/ecu_can_simulator" prefix_auto="0" extension_auto="0"/>
-				<Option working_dir="/home/ashcon/code/ultimate_nag52/ecu_can_simulator/cmake-build-debug"/>
+				<Option working_dir=""/>
 				<Option object_output="./"/>
 				<Option type="1"/>
 				<Option compiler="gcc"/>
 				<Compiler>
+					<Add directory="/home/ashcon/code/ultimate_nag52/ecu_can_simulator/../canframes/ART"/>
+					<Add directory="/home/ashcon/code/ultimate_nag52/ecu_can_simulator/../canframes/BS"/>
+					<Add directory="/home/ashcon/code/ultimate_nag52/ecu_can_simulator/../canframes/EWM"/>
+					<Add directory="/home/ashcon/code/ultimate_nag52/ecu_can_simulator/../canframes/GS"/>
+					<Add directory="/home/ashcon/code/ultimate_nag52/ecu_can_simulator/../canframes/MS"/>
+					<Add directory="/home/ashcon/code/ultimate_nag52/ecu_can_simulator/../canframes/PSM"/>
+					<Add directory="/home/ashcon/code/ultimate_nag52/ecu_can_simulator/../canframes/SBW"/>
+					<Add directory="/home/ashcon/code/ultimate_nag52/ecu_can_simulator/../canframes/EZS"/>
 					<Add directory="/usr/lib/gcc/x86_64-pc-linux-gnu/10.2.0/../../../../include/c++/10.2.0"/>
 					<Add directory="/usr/lib/gcc/x86_64-pc-linux-gnu/10.2.0/../../../../include/c++/10.2.0/x86_64-pc-linux-gnu"/>
 					<Add directory="/usr/lib/gcc/x86_64-pc-linux-gnu/10.2.0/../../../../include/c++/10.2.0/backward"/>
@@ -82,6 +98,9 @@
 				</MakeCommands>
 			</Target>
 		</Build>
+		<Unit filename="/home/ashcon/code/ultimate_nag52/ecu_can_simulator/canbus/can_frame.h">
+			<Option target="ecu_can_simulator"/>
+		</Unit>
 		<Unit filename="/home/ashcon/code/ultimate_nag52/ecu_can_simulator/canbus/can_sim.cpp">
 			<Option target="ecu_can_simulator"/>
 		</Unit>
@@ -100,10 +119,22 @@
 		<Unit filename="/home/ashcon/code/ultimate_nag52/ecu_can_simulator/ecus/abstract_ecu.h">
 			<Option target="ecu_can_simulator"/>
 		</Unit>
-		<Unit filename="/home/ashcon/code/ultimate_nag52/ecu_can_simulator/ecus/gs/nag52_emulator.cpp">
+		<Unit filename="/home/ashcon/code/ultimate_nag52/ecu_can_simulator/ecus/bs/abs_esp.cpp">
 			<Option target="ecu_can_simulator"/>
 		</Unit>
-		<Unit filename="/home/ashcon/code/ultimate_nag52/ecu_can_simulator/ecus/gs/nag52_emulator.h">
+		<Unit filename="/home/ashcon/code/ultimate_nag52/ecu_can_simulator/ecus/bs/abs_esp.h">
+			<Option target="ecu_can_simulator"/>
+		</Unit>
+		<Unit filename="/home/ashcon/code/ultimate_nag52/ecu_can_simulator/ecus/ewm/ewm.cpp">
+			<Option target="ecu_can_simulator"/>
+		</Unit>
+		<Unit filename="/home/ashcon/code/ultimate_nag52/ecu_can_simulator/ecus/ewm/ewm.h">
+			<Option target="ecu_can_simulator"/>
+		</Unit>
+		<Unit filename="/home/ashcon/code/ultimate_nag52/ecu_can_simulator/ecus/gs/nag52.cpp">
+			<Option target="ecu_can_simulator"/>
+		</Unit>
+		<Unit filename="/home/ashcon/code/ultimate_nag52/ecu_can_simulator/ecus/gs/nag52.h">
 			<Option target="ecu_can_simulator"/>
 		</Unit>
 		<Unit filename="/home/ashcon/code/ultimate_nag52/ecu_can_simulator/ecus/ms/engine.cpp">

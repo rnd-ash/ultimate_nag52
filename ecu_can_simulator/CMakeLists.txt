@@ -1,6 +1,29 @@
-# cmake_minimum_required(VERSION <specify CMake version here>)
+cmake_minimum_required(VERSION 3.19)
 project(ecu_can_simulator)
 
 set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_FLAGS -pthread)
 
-add_executable(ecu_can_simulator main.cpp ecus/abstract_ecu.cpp ecus/abstract_ecu.h ecus/ms/engine.cpp ecus/ms/engine.h canbus/can_sim.h canbus/esp32_forwarder.cpp canbus/esp32_forwarder.h canbus/can_sim.cpp ecus/gs/nag52_emulator.cpp ecus/gs/nag52_emulator.h)
+include_directories("../canframes/ART")
+include_directories("../canframes/BS")
+include_directories("../canframes/EWM")
+include_directories("../canframes/GS")
+include_directories("../canframes/MS")
+include_directories("../canframes/PSM")
+include_directories("../canframes/SBW")
+include_directories("../canframes/EZS")
+
+include_directories("../canframes/GS")
+add_executable(ecu_can_simulator
+        main.cpp
+        ecus/abstract_ecu.cpp
+        ecus/abstract_ecu.h
+        ecus/ms/engine.cpp
+        ecus/ms/engine.h
+        ecus/gs/nag52.cpp
+        ecus/gs/nag52.h
+        canbus/can_sim.h
+        canbus/esp32_forwarder.cpp
+        canbus/esp32_forwarder.h
+        canbus/can_sim.cpp
+        canbus/can_frame.h ecus/ewm/ewm.cpp ecus/ewm/ewm.h ecus/bs/abs_esp.cpp ecus/bs/abs_esp.h)

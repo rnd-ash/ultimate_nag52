@@ -223,32 +223,86 @@ ecus/abstract_ecu.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/ecu_can_simulator.dir/build.make CMakeFiles/ecu_can_simulator.dir/ecus/abstract_ecu.cpp.s
 .PHONY : ecus/abstract_ecu.cpp.s
 
-ecus/gs/nag52_emulator.o: ecus/gs/nag52_emulator.cpp.o
+ecus/bs/abs_esp.o: ecus/bs/abs_esp.cpp.o
 
-.PHONY : ecus/gs/nag52_emulator.o
+.PHONY : ecus/bs/abs_esp.o
 
 # target to build an object file
-ecus/gs/nag52_emulator.cpp.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/ecu_can_simulator.dir/build.make CMakeFiles/ecu_can_simulator.dir/ecus/gs/nag52_emulator.cpp.o
-.PHONY : ecus/gs/nag52_emulator.cpp.o
+ecus/bs/abs_esp.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/ecu_can_simulator.dir/build.make CMakeFiles/ecu_can_simulator.dir/ecus/bs/abs_esp.cpp.o
+.PHONY : ecus/bs/abs_esp.cpp.o
 
-ecus/gs/nag52_emulator.i: ecus/gs/nag52_emulator.cpp.i
+ecus/bs/abs_esp.i: ecus/bs/abs_esp.cpp.i
 
-.PHONY : ecus/gs/nag52_emulator.i
+.PHONY : ecus/bs/abs_esp.i
 
 # target to preprocess a source file
-ecus/gs/nag52_emulator.cpp.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/ecu_can_simulator.dir/build.make CMakeFiles/ecu_can_simulator.dir/ecus/gs/nag52_emulator.cpp.i
-.PHONY : ecus/gs/nag52_emulator.cpp.i
+ecus/bs/abs_esp.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/ecu_can_simulator.dir/build.make CMakeFiles/ecu_can_simulator.dir/ecus/bs/abs_esp.cpp.i
+.PHONY : ecus/bs/abs_esp.cpp.i
 
-ecus/gs/nag52_emulator.s: ecus/gs/nag52_emulator.cpp.s
+ecus/bs/abs_esp.s: ecus/bs/abs_esp.cpp.s
 
-.PHONY : ecus/gs/nag52_emulator.s
+.PHONY : ecus/bs/abs_esp.s
 
 # target to generate assembly for a file
-ecus/gs/nag52_emulator.cpp.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/ecu_can_simulator.dir/build.make CMakeFiles/ecu_can_simulator.dir/ecus/gs/nag52_emulator.cpp.s
-.PHONY : ecus/gs/nag52_emulator.cpp.s
+ecus/bs/abs_esp.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/ecu_can_simulator.dir/build.make CMakeFiles/ecu_can_simulator.dir/ecus/bs/abs_esp.cpp.s
+.PHONY : ecus/bs/abs_esp.cpp.s
+
+ecus/ewm/ewm.o: ecus/ewm/ewm.cpp.o
+
+.PHONY : ecus/ewm/ewm.o
+
+# target to build an object file
+ecus/ewm/ewm.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/ecu_can_simulator.dir/build.make CMakeFiles/ecu_can_simulator.dir/ecus/ewm/ewm.cpp.o
+.PHONY : ecus/ewm/ewm.cpp.o
+
+ecus/ewm/ewm.i: ecus/ewm/ewm.cpp.i
+
+.PHONY : ecus/ewm/ewm.i
+
+# target to preprocess a source file
+ecus/ewm/ewm.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/ecu_can_simulator.dir/build.make CMakeFiles/ecu_can_simulator.dir/ecus/ewm/ewm.cpp.i
+.PHONY : ecus/ewm/ewm.cpp.i
+
+ecus/ewm/ewm.s: ecus/ewm/ewm.cpp.s
+
+.PHONY : ecus/ewm/ewm.s
+
+# target to generate assembly for a file
+ecus/ewm/ewm.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/ecu_can_simulator.dir/build.make CMakeFiles/ecu_can_simulator.dir/ecus/ewm/ewm.cpp.s
+.PHONY : ecus/ewm/ewm.cpp.s
+
+ecus/gs/nag52.o: ecus/gs/nag52.cpp.o
+
+.PHONY : ecus/gs/nag52.o
+
+# target to build an object file
+ecus/gs/nag52.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/ecu_can_simulator.dir/build.make CMakeFiles/ecu_can_simulator.dir/ecus/gs/nag52.cpp.o
+.PHONY : ecus/gs/nag52.cpp.o
+
+ecus/gs/nag52.i: ecus/gs/nag52.cpp.i
+
+.PHONY : ecus/gs/nag52.i
+
+# target to preprocess a source file
+ecus/gs/nag52.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/ecu_can_simulator.dir/build.make CMakeFiles/ecu_can_simulator.dir/ecus/gs/nag52.cpp.i
+.PHONY : ecus/gs/nag52.cpp.i
+
+ecus/gs/nag52.s: ecus/gs/nag52.cpp.s
+
+.PHONY : ecus/gs/nag52.s
+
+# target to generate assembly for a file
+ecus/gs/nag52.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/ecu_can_simulator.dir/build.make CMakeFiles/ecu_can_simulator.dir/ecus/gs/nag52.cpp.s
+.PHONY : ecus/gs/nag52.cpp.s
 
 ecus/ms/engine.o: ecus/ms/engine.cpp.o
 
@@ -322,9 +376,15 @@ help:
 	@echo "... ecus/abstract_ecu.o"
 	@echo "... ecus/abstract_ecu.i"
 	@echo "... ecus/abstract_ecu.s"
-	@echo "... ecus/gs/nag52_emulator.o"
-	@echo "... ecus/gs/nag52_emulator.i"
-	@echo "... ecus/gs/nag52_emulator.s"
+	@echo "... ecus/bs/abs_esp.o"
+	@echo "... ecus/bs/abs_esp.i"
+	@echo "... ecus/bs/abs_esp.s"
+	@echo "... ecus/ewm/ewm.o"
+	@echo "... ecus/ewm/ewm.i"
+	@echo "... ecus/ewm/ewm.s"
+	@echo "... ecus/gs/nag52.o"
+	@echo "... ecus/gs/nag52.i"
+	@echo "... ecus/gs/nag52.s"
 	@echo "... ecus/ms/engine.o"
 	@echo "... ecus/ms/engine.i"
 	@echo "... ecus/ms/engine.s"

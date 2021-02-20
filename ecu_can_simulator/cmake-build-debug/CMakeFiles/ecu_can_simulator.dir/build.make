@@ -115,9 +115,22 @@ CMakeFiles/ecu_can_simulator.dir/ecus/ms/engine.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/ecu_can_simulator.dir/ecus/ms/engine.cpp.s"
 	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/ashcon/code/ultimate_nag52/ecu_can_simulator/ecus/ms/engine.cpp -o CMakeFiles/ecu_can_simulator.dir/ecus/ms/engine.cpp.s
 
+CMakeFiles/ecu_can_simulator.dir/ecus/gs/nag52.cpp.o: CMakeFiles/ecu_can_simulator.dir/flags.make
+CMakeFiles/ecu_can_simulator.dir/ecus/gs/nag52.cpp.o: ../ecus/gs/nag52.cpp
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/ashcon/code/ultimate_nag52/ecu_can_simulator/cmake-build-debug/CMakeFiles --progress-num=$(CMAKE_PROGRESS_4) "Building CXX object CMakeFiles/ecu_can_simulator.dir/ecus/gs/nag52.cpp.o"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/ecu_can_simulator.dir/ecus/gs/nag52.cpp.o -c /home/ashcon/code/ultimate_nag52/ecu_can_simulator/ecus/gs/nag52.cpp
+
+CMakeFiles/ecu_can_simulator.dir/ecus/gs/nag52.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/ecu_can_simulator.dir/ecus/gs/nag52.cpp.i"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/ashcon/code/ultimate_nag52/ecu_can_simulator/ecus/gs/nag52.cpp > CMakeFiles/ecu_can_simulator.dir/ecus/gs/nag52.cpp.i
+
+CMakeFiles/ecu_can_simulator.dir/ecus/gs/nag52.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/ecu_can_simulator.dir/ecus/gs/nag52.cpp.s"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/ashcon/code/ultimate_nag52/ecu_can_simulator/ecus/gs/nag52.cpp -o CMakeFiles/ecu_can_simulator.dir/ecus/gs/nag52.cpp.s
+
 CMakeFiles/ecu_can_simulator.dir/canbus/esp32_forwarder.cpp.o: CMakeFiles/ecu_can_simulator.dir/flags.make
 CMakeFiles/ecu_can_simulator.dir/canbus/esp32_forwarder.cpp.o: ../canbus/esp32_forwarder.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/ashcon/code/ultimate_nag52/ecu_can_simulator/cmake-build-debug/CMakeFiles --progress-num=$(CMAKE_PROGRESS_4) "Building CXX object CMakeFiles/ecu_can_simulator.dir/canbus/esp32_forwarder.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/ashcon/code/ultimate_nag52/ecu_can_simulator/cmake-build-debug/CMakeFiles --progress-num=$(CMAKE_PROGRESS_5) "Building CXX object CMakeFiles/ecu_can_simulator.dir/canbus/esp32_forwarder.cpp.o"
 	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/ecu_can_simulator.dir/canbus/esp32_forwarder.cpp.o -c /home/ashcon/code/ultimate_nag52/ecu_can_simulator/canbus/esp32_forwarder.cpp
 
 CMakeFiles/ecu_can_simulator.dir/canbus/esp32_forwarder.cpp.i: cmake_force
@@ -130,7 +143,7 @@ CMakeFiles/ecu_can_simulator.dir/canbus/esp32_forwarder.cpp.s: cmake_force
 
 CMakeFiles/ecu_can_simulator.dir/canbus/can_sim.cpp.o: CMakeFiles/ecu_can_simulator.dir/flags.make
 CMakeFiles/ecu_can_simulator.dir/canbus/can_sim.cpp.o: ../canbus/can_sim.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/ashcon/code/ultimate_nag52/ecu_can_simulator/cmake-build-debug/CMakeFiles --progress-num=$(CMAKE_PROGRESS_5) "Building CXX object CMakeFiles/ecu_can_simulator.dir/canbus/can_sim.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/ashcon/code/ultimate_nag52/ecu_can_simulator/cmake-build-debug/CMakeFiles --progress-num=$(CMAKE_PROGRESS_6) "Building CXX object CMakeFiles/ecu_can_simulator.dir/canbus/can_sim.cpp.o"
 	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/ecu_can_simulator.dir/canbus/can_sim.cpp.o -c /home/ashcon/code/ultimate_nag52/ecu_can_simulator/canbus/can_sim.cpp
 
 CMakeFiles/ecu_can_simulator.dir/canbus/can_sim.cpp.i: cmake_force
@@ -141,27 +154,42 @@ CMakeFiles/ecu_can_simulator.dir/canbus/can_sim.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/ecu_can_simulator.dir/canbus/can_sim.cpp.s"
 	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/ashcon/code/ultimate_nag52/ecu_can_simulator/canbus/can_sim.cpp -o CMakeFiles/ecu_can_simulator.dir/canbus/can_sim.cpp.s
 
-CMakeFiles/ecu_can_simulator.dir/ecus/gs/nag52_emulator.cpp.o: CMakeFiles/ecu_can_simulator.dir/flags.make
-CMakeFiles/ecu_can_simulator.dir/ecus/gs/nag52_emulator.cpp.o: ../ecus/gs/nag52_emulator.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/ashcon/code/ultimate_nag52/ecu_can_simulator/cmake-build-debug/CMakeFiles --progress-num=$(CMAKE_PROGRESS_6) "Building CXX object CMakeFiles/ecu_can_simulator.dir/ecus/gs/nag52_emulator.cpp.o"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/ecu_can_simulator.dir/ecus/gs/nag52_emulator.cpp.o -c /home/ashcon/code/ultimate_nag52/ecu_can_simulator/ecus/gs/nag52_emulator.cpp
+CMakeFiles/ecu_can_simulator.dir/ecus/ewm/ewm.cpp.o: CMakeFiles/ecu_can_simulator.dir/flags.make
+CMakeFiles/ecu_can_simulator.dir/ecus/ewm/ewm.cpp.o: ../ecus/ewm/ewm.cpp
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/ashcon/code/ultimate_nag52/ecu_can_simulator/cmake-build-debug/CMakeFiles --progress-num=$(CMAKE_PROGRESS_7) "Building CXX object CMakeFiles/ecu_can_simulator.dir/ecus/ewm/ewm.cpp.o"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/ecu_can_simulator.dir/ecus/ewm/ewm.cpp.o -c /home/ashcon/code/ultimate_nag52/ecu_can_simulator/ecus/ewm/ewm.cpp
 
-CMakeFiles/ecu_can_simulator.dir/ecus/gs/nag52_emulator.cpp.i: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/ecu_can_simulator.dir/ecus/gs/nag52_emulator.cpp.i"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/ashcon/code/ultimate_nag52/ecu_can_simulator/ecus/gs/nag52_emulator.cpp > CMakeFiles/ecu_can_simulator.dir/ecus/gs/nag52_emulator.cpp.i
+CMakeFiles/ecu_can_simulator.dir/ecus/ewm/ewm.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/ecu_can_simulator.dir/ecus/ewm/ewm.cpp.i"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/ashcon/code/ultimate_nag52/ecu_can_simulator/ecus/ewm/ewm.cpp > CMakeFiles/ecu_can_simulator.dir/ecus/ewm/ewm.cpp.i
 
-CMakeFiles/ecu_can_simulator.dir/ecus/gs/nag52_emulator.cpp.s: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/ecu_can_simulator.dir/ecus/gs/nag52_emulator.cpp.s"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/ashcon/code/ultimate_nag52/ecu_can_simulator/ecus/gs/nag52_emulator.cpp -o CMakeFiles/ecu_can_simulator.dir/ecus/gs/nag52_emulator.cpp.s
+CMakeFiles/ecu_can_simulator.dir/ecus/ewm/ewm.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/ecu_can_simulator.dir/ecus/ewm/ewm.cpp.s"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/ashcon/code/ultimate_nag52/ecu_can_simulator/ecus/ewm/ewm.cpp -o CMakeFiles/ecu_can_simulator.dir/ecus/ewm/ewm.cpp.s
+
+CMakeFiles/ecu_can_simulator.dir/ecus/bs/abs_esp.cpp.o: CMakeFiles/ecu_can_simulator.dir/flags.make
+CMakeFiles/ecu_can_simulator.dir/ecus/bs/abs_esp.cpp.o: ../ecus/bs/abs_esp.cpp
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/ashcon/code/ultimate_nag52/ecu_can_simulator/cmake-build-debug/CMakeFiles --progress-num=$(CMAKE_PROGRESS_8) "Building CXX object CMakeFiles/ecu_can_simulator.dir/ecus/bs/abs_esp.cpp.o"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/ecu_can_simulator.dir/ecus/bs/abs_esp.cpp.o -c /home/ashcon/code/ultimate_nag52/ecu_can_simulator/ecus/bs/abs_esp.cpp
+
+CMakeFiles/ecu_can_simulator.dir/ecus/bs/abs_esp.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/ecu_can_simulator.dir/ecus/bs/abs_esp.cpp.i"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/ashcon/code/ultimate_nag52/ecu_can_simulator/ecus/bs/abs_esp.cpp > CMakeFiles/ecu_can_simulator.dir/ecus/bs/abs_esp.cpp.i
+
+CMakeFiles/ecu_can_simulator.dir/ecus/bs/abs_esp.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/ecu_can_simulator.dir/ecus/bs/abs_esp.cpp.s"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/ashcon/code/ultimate_nag52/ecu_can_simulator/ecus/bs/abs_esp.cpp -o CMakeFiles/ecu_can_simulator.dir/ecus/bs/abs_esp.cpp.s
 
 # Object files for target ecu_can_simulator
 ecu_can_simulator_OBJECTS = \
 "CMakeFiles/ecu_can_simulator.dir/main.cpp.o" \
 "CMakeFiles/ecu_can_simulator.dir/ecus/abstract_ecu.cpp.o" \
 "CMakeFiles/ecu_can_simulator.dir/ecus/ms/engine.cpp.o" \
+"CMakeFiles/ecu_can_simulator.dir/ecus/gs/nag52.cpp.o" \
 "CMakeFiles/ecu_can_simulator.dir/canbus/esp32_forwarder.cpp.o" \
 "CMakeFiles/ecu_can_simulator.dir/canbus/can_sim.cpp.o" \
-"CMakeFiles/ecu_can_simulator.dir/ecus/gs/nag52_emulator.cpp.o"
+"CMakeFiles/ecu_can_simulator.dir/ecus/ewm/ewm.cpp.o" \
+"CMakeFiles/ecu_can_simulator.dir/ecus/bs/abs_esp.cpp.o"
 
 # External object files for target ecu_can_simulator
 ecu_can_simulator_EXTERNAL_OBJECTS =
@@ -169,12 +197,14 @@ ecu_can_simulator_EXTERNAL_OBJECTS =
 ecu_can_simulator: CMakeFiles/ecu_can_simulator.dir/main.cpp.o
 ecu_can_simulator: CMakeFiles/ecu_can_simulator.dir/ecus/abstract_ecu.cpp.o
 ecu_can_simulator: CMakeFiles/ecu_can_simulator.dir/ecus/ms/engine.cpp.o
+ecu_can_simulator: CMakeFiles/ecu_can_simulator.dir/ecus/gs/nag52.cpp.o
 ecu_can_simulator: CMakeFiles/ecu_can_simulator.dir/canbus/esp32_forwarder.cpp.o
 ecu_can_simulator: CMakeFiles/ecu_can_simulator.dir/canbus/can_sim.cpp.o
-ecu_can_simulator: CMakeFiles/ecu_can_simulator.dir/ecus/gs/nag52_emulator.cpp.o
+ecu_can_simulator: CMakeFiles/ecu_can_simulator.dir/ecus/ewm/ewm.cpp.o
+ecu_can_simulator: CMakeFiles/ecu_can_simulator.dir/ecus/bs/abs_esp.cpp.o
 ecu_can_simulator: CMakeFiles/ecu_can_simulator.dir/build.make
 ecu_can_simulator: CMakeFiles/ecu_can_simulator.dir/link.txt
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --bold --progress-dir=/home/ashcon/code/ultimate_nag52/ecu_can_simulator/cmake-build-debug/CMakeFiles --progress-num=$(CMAKE_PROGRESS_7) "Linking CXX executable ecu_can_simulator"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --bold --progress-dir=/home/ashcon/code/ultimate_nag52/ecu_can_simulator/cmake-build-debug/CMakeFiles --progress-num=$(CMAKE_PROGRESS_9) "Linking CXX executable ecu_can_simulator"
 	$(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/ecu_can_simulator.dir/link.txt --verbose=$(VERBOSE)
 
 # Rule to build all files generated by this target.

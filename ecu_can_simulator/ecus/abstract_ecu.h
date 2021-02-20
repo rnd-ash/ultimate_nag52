@@ -7,14 +7,16 @@
 
 
 #include <vector>
+#include "../canbus/can_frame.h"
 
 class abstract_ecu {
 public:
-    void setup();
-    std::vector<int> listen_addresses; // What should the ECU listen to on CANBUS?
-    int bcast_frequency; // How many times per second should this ECU send all its frames?
-protected:
+    virtual void setup() = 0;
 
+    /**
+     * Called every 10ms (Update current ECUs state!)
+     */
+    virtual void simulate_tick() = 0;
 };
 
 
