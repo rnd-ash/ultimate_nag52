@@ -5,9 +5,8 @@
             "includePath": [
                 "/home/ashcon/.arduino15/packages/esp32/tools/**",
                 "/home/ashcon/Arduino/libraries/**",
-                "/home/ashcon/Arduino/libraries/esp32_can/**",
-                "/home/ashcon/.arduino15/packages/esp32/hardware/esp32/1.0.4/**",
-                "/usr/bin/libraries/**"
+                "/usr/bin/libraries/**",
+                "/home/ashcon/.arduino15/packages/esp32/hardware/esp32/1.0.4/**"
             ],
             "forcedInclude": [],
             "defines": [

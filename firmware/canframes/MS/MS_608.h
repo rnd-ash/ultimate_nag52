@@ -2,7 +2,10 @@
 #define MS_608H
 
 #include <stdint.h>
+
+#ifdef FW_MODE
 #include <can_common.h>
+#endif
 
 #define MS_608_ID 0x0608
 

@@ -2,7 +2,10 @@
 #define ART_258H
 
 #include <stdint.h>
+
+#ifdef FW_MODE
 #include <can_common.h>
+#endif
 
 #define ART_258_ID 0x0258
 

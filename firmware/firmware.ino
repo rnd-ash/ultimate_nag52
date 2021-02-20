@@ -5,24 +5,32 @@
 #include "canframes/GS/enums.h"
 #include "canframes/GS/GS_338.h"
 #include "canframes/GS/GS_418.h"
+#include "canframes/MS/MS_308.h"
+#include "canframes/MS/MS_210.h"
+#include "canframes/BS/BS_200.h"
+
+#define FW_MODE // DO NOT REMOVE
 
 CAN_FRAME f;
 
 GS_218 gs218;
 GS_418 gs418;
 GS_338 gs338;
-
+MS_308 ms308;
+MS_210 ms210;
+BS_200 bs200;
 // Engine
-uint8_t ms_210[8] = {0x00, 0x00, 0x48, 0x40, 0x00, 0x00, 0x80, 0x00};
+
+//uint8_t ms_210[8] = {0x00, 0x00, 0x48, 0x40, 0x00, 0x00, 0x80, 0x00};
 uint8_t ms_212[8] = {0x03, 0x0C, 0x28, 0xB9, 0x28, 0xB9, 0xA8, 0xB9};
 uint8_t ms_2f3[8] = {0xFF, 0x00, 0x00, 0x00, 0x00, 0xFF, 0x00, 0x00};
-uint8_t ms_308[8] = {0x00, 0x04, 0x73, 0x00, 0x00, 0x68, 0xC3, 0x3A};
+//uint8_t ms_308[8] = {0x00, 0x04, 0x73, 0x00, 0x00, 0x68, 0xC3, 0x3A};
 uint8_t ms_312[8] = {0x07, 0x68, 0x07, 0x7C, 0x0A, 0x45, 0x07, 0x4A};
 uint8_t ms_608[8] = {0x6F, 0x43, 0x06, 0x2D, 0xFA, 0x00, 0x8C, 0x00};
 uint8_t ezs_240[8]= {0x00, 0x22, 0x00, 0x00, 0x00, 0x02, 0xFF, 0x00};
 
 // ABS/ESP
-uint8_t bs_200[8] = {0x10, 0x44, 0x01, 0xA5, 0x01, 0xAC, 0x01, 0xA7};
+//uint8_t bs_200[8] = {0x10, 0x44, 0x01, 0xAD, 0x01, 0xAD, 0x01, 0xA7};
 uint8_t bs_208[8] = {0x00, 0x20, 0x00, 0x00, 0x01, 0xA9, 0x01, 0xAE};
 uint8_t bs_270[8] = {0x6F, 0x96, 0x06, 0xFF, 0xFF, 0x00, 0x00, 0xFF};
 uint8_t bs_300[8] = {0x08, 0x08, 0x00, 0x00, 0x00, 0x00, 0x7F, 0xFF};
@@ -38,9 +46,16 @@ void setup() {
     CAN0.begin(500000);
 
     gs418.raw = 0x504D7404DD00C000;
+    ms210.raw = 0x0000484000008000;
+    bs200.raw = 0x104401AD01AD01A7;
+
+    bs200.set_DVL(1000);
+    bs200.set_DVR(1000);
     gs418.set_WHST(GearSelectorPos::D);
     gs418.set_GIC(GEAR::G_D1);
     gs418.set_GZC(GEAR::G_D1);
+    
+    ms210.set_V_DSPL_PGB(true);
     //gs218.raw = 0x0000DD4923003060;
 }
 
@@ -81,9 +96,23 @@ FSC steps[16] = {
     FSC::SS_A,
 };
 
+int rpm = 1000;
+
 int fsc_idx = 0;
 int idx = 0;
+int wheel_rpm = 0;
+
+unsigned long spd = millis();
 void loop() {
+    if (millis() - spd >= 2) {
+        spd = millis();
+        bs200.set_DVL(wheel_rpm);
+        bs200.set_DVR(wheel_rpm);
+        wheel_rpm += 1;
+        if (wheel_rpm > 3000) {
+            wheel_rpm = 0;
+        }
+    }
     if (millis() - change_time >= 333) {
         change_time = millis();
         gs418.set_FSC(steps[fsc_idx]);
@@ -108,6 +137,12 @@ void loop() {
     }
 
     if (millis() - last_time >= 10) {
+        if (rpm == 4000) {
+            rpm = 1200;
+        }
+        rpm += 5;
+        ms308.set_NMOT(rpm);
+
         last_time = millis();
 
         gs218.export_frame(f);
@@ -119,12 +154,12 @@ void loop() {
         gs418.export_frame(f);
         CAN0.sendFrame(f);
 
-        f.length = 8;
-
         // Engine
 
-        f.id = 0x210;
-        copy_frame(ms_210, 8);
+        ms308.export_frame(f);
+        CAN0.sendFrame(f);
+
+        ms210.export_frame(f);
         CAN0.sendFrame(f);
 
         f.id = 0x212;
@@ -133,10 +168,6 @@ void loop() {
 
         f.id = 0x02f3;
          copy_frame(ms_2f3, 8);
-        CAN0.sendFrame(f);
-
-        f.id = 0x0308;
-         copy_frame(ms_308, 8);
         CAN0.sendFrame(f);
 
         f.id = 0x0312;
@@ -154,17 +185,16 @@ void loop() {
 
         // ABS
 
-        f.id = 0x0200;
-        copy_frame(bs_200, 8);
+        bs200.export_frame(f);
         CAN0.sendFrame(f);
-
-        f.id = 0x0208;
-        copy_frame(bs_208, 8);
-        CAN0.sendFrame(f);
-
-        f.id = 0x0270;
-        copy_frame(bs_270, 8);
-        CAN0.sendFrame(f);
+//
+        //f.id = 0x0208;
+        //copy_frame(bs_208, 8);
+        //CAN0.sendFrame(f);
+//
+        //f.id = 0x0270;
+        //copy_frame(bs_270, 8);
+        //CAN0.sendFrame(f);
 
         f.id = 0x0300;
         copy_frame(bs_300, 8);

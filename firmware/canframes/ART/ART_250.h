@@ -2,7 +2,10 @@
 #define ART_250H
 
 #include <stdint.h>
+
+#ifdef FW_MODE
 #include <can_common.h>
+#endif
 
 #define ART_250_ID 0x0250
 

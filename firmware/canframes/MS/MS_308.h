@@ -2,7 +2,10 @@
 #define MS_308H
 
 #include <stdint.h>
+
+#ifdef FW_MODE
 #include <can_common.h>
+#endif
 
 #define MS_308_ID 0x0308
 

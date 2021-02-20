@@ -1,0 +1,4 @@
+/usr/bin/cmake -DCMAKE_BUILD_TYPE=Debug -G "CodeBlocks - Unix Makefiles" /home/ashcon/code/ultimate_nag52/ecu_can_simulator
+-- Configuring done
+-- Generating done
+-- Build files have been written to: /home/ashcon/code/ultimate_nag52/ecu_can_simulator/cmake-build-debug
