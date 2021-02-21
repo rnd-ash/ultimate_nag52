@@ -7,6 +7,7 @@ file(REMOVE_RECURSE
   "CMakeFiles/ecu_can_simulator.dir/ecus/gs/nag52.cpp.o"
   "CMakeFiles/ecu_can_simulator.dir/ecus/ms/engine.cpp.o"
   "CMakeFiles/ecu_can_simulator.dir/main.cpp.o"
+  "CMakeFiles/ecu_can_simulator.dir/v_kombi/virtual_kombi.cpp.o"
   "ecu_can_simulator"
   "ecu_can_simulator.pdb"
 )

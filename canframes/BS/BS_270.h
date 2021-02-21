@@ -2,6 +2,7 @@
 #define BS_270H
 
 #include <stdint.h>
+
 #ifdef FW_MODE
 #include <can_common.h>
 #endif
@@ -15,22 +16,22 @@ typedef union {
     // Sets Pulse ring counter, rear left wheel (48 per revolution)
     void set_RIZ_HL(uint8_t value){ raw = (raw & 0x00ffffffffffffff) | ((uint64_t)value & 0xff) << 56; }
     // Gets Pulse ring counter, rear left wheel (48 per revolution)
-    uint8_t get_RIZ_HL() { return raw >> 0 & 0xff; }
+    uint8_t get_RIZ_HL() { return raw >> 56 & 0xff; }
 
     // Sets Pulse ring counter, rear right wheel (48 per revolution)
     void set_RIZ_HR(uint8_t value){ raw = (raw & 0xff00ffffffffffff) | ((uint64_t)value & 0xff) << 48; }
     // Gets Pulse ring counter, rear right wheel (48 per revolution)
-    uint8_t get_RIZ_HR() { return raw >> 8 & 0xff; }
+    uint8_t get_RIZ_HR() { return raw >> 48 & 0xff; }
 
     // Sets Flat roll warning status
     void set_PRW_ST(uint8_t value){ raw = (raw & 0xfffff8ffffffffff) | ((uint64_t)value & 0x7) << 40; }
     // Gets Flat roll warning status
-    uint8_t get_PRW_ST() { return raw >> 21 & 0x7; }
+    uint8_t get_PRW_ST() { return raw >> 40 & 0x7; }
 
     // Sets Warning messages flat roll warner
     void set_PRW_WARN(uint8_t value){ raw = (raw & 0xffff0fffffffffff) | ((uint64_t)value & 0xf) << 44; }
     // Gets Warning messages flat roll warner
-    uint8_t get_PRW_WARN() { return raw >> 16 & 0xf; }
+    uint8_t get_PRW_WARN() { return raw >> 44 & 0xf; }
 
     void import_frame(CAN_FRAME &f) {
         if (f.id == BS_270_ID) {
@@ -52,4 +53,4 @@ typedef union {
     }
 } BS_270;
 
-#endif BS_270H
+#endif

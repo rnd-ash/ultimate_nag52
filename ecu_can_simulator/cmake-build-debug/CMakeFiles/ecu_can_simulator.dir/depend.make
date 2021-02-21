@@ -149,4 +149,8 @@ CMakeFiles/ecu_can_simulator.dir/main.cpp.o: ../ecus/bs/abs_esp.h
 CMakeFiles/ecu_can_simulator.dir/main.cpp.o: ../ecus/gs/nag52.h
 CMakeFiles/ecu_can_simulator.dir/main.cpp.o: ../ecus/ms/engine.h
 CMakeFiles/ecu_can_simulator.dir/main.cpp.o: ../main.cpp
+CMakeFiles/ecu_can_simulator.dir/main.cpp.o: ../v_kombi/virtual_kombi.h
+
+CMakeFiles/ecu_can_simulator.dir/v_kombi/virtual_kombi.cpp.o: ../v_kombi/virtual_kombi.cpp
+CMakeFiles/ecu_can_simulator.dir/v_kombi/virtual_kombi.cpp.o: ../v_kombi/virtual_kombi.h
 

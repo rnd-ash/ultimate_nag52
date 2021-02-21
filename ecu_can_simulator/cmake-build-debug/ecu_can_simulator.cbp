@@ -5,7 +5,7 @@
 		<Option title="ecu_can_simulator"/>
 		<Option makefile_is_custom="1"/>
 		<Option compiler="gcc"/>
-		<Option virtualFolders="CMake Files\;"/>
+		<Option virtualFolders="CMake Files\;CMake Files\..\;CMake Files\..\..\;CMake Files\..\..\..\;CMake Files\..\..\..\..\;CMake Files\..\..\..\..\..\;CMake Files\..\..\..\..\..\usr\;CMake Files\..\..\..\..\..\usr\lib64\;CMake Files\..\..\..\..\..\usr\lib64\cmake\;CMake Files\..\..\..\..\..\usr\lib64\cmake\SDL2\;"/>
 		<Build>
 			<Target title="all">
 				<Option working_dir="/home/ashcon/code/ultimate_nag52/ecu_can_simulator/cmake-build-debug"/>
@@ -146,8 +146,26 @@
 		<Unit filename="/home/ashcon/code/ultimate_nag52/ecu_can_simulator/main.cpp">
 			<Option target="ecu_can_simulator"/>
 		</Unit>
+		<Unit filename="/home/ashcon/code/ultimate_nag52/ecu_can_simulator/v_kombi/virtual_kombi.cpp">
+			<Option target="ecu_can_simulator"/>
+		</Unit>
+		<Unit filename="/home/ashcon/code/ultimate_nag52/ecu_can_simulator/v_kombi/virtual_kombi.h">
+			<Option target="ecu_can_simulator"/>
+		</Unit>
 		<Unit filename="/home/ashcon/code/ultimate_nag52/ecu_can_simulator/CMakeLists.txt">
 			<Option virtualFolder="CMake Files\"/>
+		</Unit>
+		<Unit filename="/home/ashcon/code/ultimate_nag52/ecu_can_simulator/../../../../../usr/lib64/cmake/SDL2/SDL2Config.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\usr\lib64\cmake\SDL2\"/>
+		</Unit>
+		<Unit filename="/home/ashcon/code/ultimate_nag52/ecu_can_simulator/../../../../../usr/lib64/cmake/SDL2/SDL2ConfigVersion.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\usr\lib64\cmake\SDL2\"/>
+		</Unit>
+		<Unit filename="/home/ashcon/code/ultimate_nag52/ecu_can_simulator/../../../../../usr/lib64/cmake/SDL2/SDL2Targets-noconfig.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\usr\lib64\cmake\SDL2\"/>
+		</Unit>
+		<Unit filename="/home/ashcon/code/ultimate_nag52/ecu_can_simulator/../../../../../usr/lib64/cmake/SDL2/SDL2Targets.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\usr\lib64\cmake\SDL2\"/>
 		</Unit>
 	</Project>
 </CodeBlocks_project_file>

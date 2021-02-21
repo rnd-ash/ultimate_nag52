@@ -57,6 +57,11 @@ this->bcast_frame(&tx); \
 std::this_thread::sleep_for(std::chrono::microseconds(100)); \
 }
 
+#define CLEAR_FRAME(f) \
+{                    \
+f.raw = 0x0000000000000000; \
+}
+
 class CAN_SIMULATOR {
 public:
     CAN_SIMULATOR(char* port_name);

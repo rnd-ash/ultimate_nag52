@@ -67,7 +67,6 @@ esp32_forwarder::esp32_forwarder(char *port) {
 
 void esp32_forwarder::send_frame(CAN_FRAME *f) {
     // We can reduce the number of bytes a bit by using 2 bytes for CANID since W203 network doesn't use extended CAN!
-    printf("OUT -> %s\n", fmt_frame(f).c_str());
     this->write_buf[0] = (uint8_t)(f->id >> 8) & 0xFF;
     this->write_buf[1] = (uint8_t)(f->id & 0xFF);
     this->write_buf[2] = (uint8_t)f->length & 0xFF;

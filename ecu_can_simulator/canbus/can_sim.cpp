@@ -56,15 +56,6 @@ void CAN_SIMULATOR::can_sim_thread() {
     CAN_FRAME tx;
     ezsa5.raw = 0x020024062D18181A;
 
-    // Testing variant coding options from EZS_A5 frame
-    ezsa5.set_LL_RL(1); // Left hand drive, 2 is RHD
-    ezsa5.set_LAND(6); // Set to gulf state.
-    ezsa5.set_KSG_VH(true); // Manual transmission - Yes
-    ezsa5.set_NAG_VH(false); // Auto transmission - No
-    ezsa5.set_ART_VH(true); // Art available
-    ezsa5.set_PTS_VH(true); // Enable parktronics
-    ezsa5.set_KG_VH(true); // Enable keyless go system
-
     int ticks = 0;
     while(this->thread_exec) {
         ticks++;
@@ -109,6 +100,21 @@ void CAN_SIMULATOR::terminate() {
     if (this->send_to_esp) {
         this->esp32.close_port();
     }
+    CLEAR_FRAME(ms210)
+    CLEAR_FRAME(ms212)
+    CLEAR_FRAME(ms268)
+    CLEAR_FRAME(ms2F3)
+    CLEAR_FRAME(ms308)
+    CLEAR_FRAME(ms312)
+    CLEAR_FRAME(ms608)
+    CLEAR_FRAME(gs218)
+    CLEAR_FRAME(gs338)
+    CLEAR_FRAME(gs418)
+    CLEAR_FRAME(bs200)
+    CLEAR_FRAME(bs208)
+    CLEAR_FRAME(bs270)
+    CLEAR_FRAME(bs300)
+    CLEAR_FRAME(bs328)
 }
 
 void CAN_SIMULATOR::bcast_frame(CAN_FRAME *f) {

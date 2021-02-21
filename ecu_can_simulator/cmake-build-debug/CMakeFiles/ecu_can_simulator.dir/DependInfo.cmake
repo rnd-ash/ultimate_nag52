@@ -12,6 +12,7 @@ set(CMAKE_DEPENDS_CHECK_CXX
   "/home/ashcon/code/ultimate_nag52/ecu_can_simulator/ecus/gs/nag52.cpp" "/home/ashcon/code/ultimate_nag52/ecu_can_simulator/cmake-build-debug/CMakeFiles/ecu_can_simulator.dir/ecus/gs/nag52.cpp.o"
   "/home/ashcon/code/ultimate_nag52/ecu_can_simulator/ecus/ms/engine.cpp" "/home/ashcon/code/ultimate_nag52/ecu_can_simulator/cmake-build-debug/CMakeFiles/ecu_can_simulator.dir/ecus/ms/engine.cpp.o"
   "/home/ashcon/code/ultimate_nag52/ecu_can_simulator/main.cpp" "/home/ashcon/code/ultimate_nag52/ecu_can_simulator/cmake-build-debug/CMakeFiles/ecu_can_simulator.dir/main.cpp.o"
+  "/home/ashcon/code/ultimate_nag52/ecu_can_simulator/v_kombi/virtual_kombi.cpp" "/home/ashcon/code/ultimate_nag52/ecu_can_simulator/cmake-build-debug/CMakeFiles/ecu_can_simulator.dir/v_kombi/virtual_kombi.cpp.o"
   )
 set(CMAKE_CXX_COMPILER_ID "GNU")
 

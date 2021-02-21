@@ -9,6 +9,8 @@
 #include "../../canbus/can_sim.h"
 #include "../abstract_ecu.h"
 
+#define WHEEL_DIAMETER =
+
 class abs_esp : public abstract_ecu {
 
     void simulate_tick();

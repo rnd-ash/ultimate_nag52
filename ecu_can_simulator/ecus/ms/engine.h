@@ -22,7 +22,8 @@ private:
     uint8_t target_gear_upper;
     bool active_aux_heater;
     bool active_downshift;
-    uint8_t pedal_percentage; // Accelerator position (0-100%)
+    bool pedal_press = false;
+    double pedal_percentage; // Accelerator position (0-100%)
     bool glow_plug_active;
     bool idle_stable;
     bool vmax_warning;
@@ -32,6 +33,8 @@ private:
     CAN_FRAME frame_list[7];
 
     void simulate_tick();
+    void press_pedal();
+    void release_pedal();
 };
 
 

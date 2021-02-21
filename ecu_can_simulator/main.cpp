@@ -3,12 +3,10 @@
 #include "ecus/ms/engine.h"
 #include "ecus/bs/abs_esp.h"
 #include "ecus/gs/nag52.h"
-#include "MS_308.h"
-#include "MS_608.h"
 #include <thread>
-int main() {
+#include "v_kombi/virtual_kombi.h"
+int main(int argc, char *argv[]) {
     CAN_SIMULATOR sim((char*)"/dev/ttyUSB0");
-
     std::vector<abstract_ecu*> ecu_list;
     engine eng = engine();
     abs_esp brake_monitor = abs_esp();
@@ -20,7 +18,6 @@ int main() {
     ecu_list.push_back(&brake_monitor);
     ecu_list.push_back(&nag);
     sim.init(ecu_list);
-    std::this_thread::sleep_for(std::chrono::seconds(10));
-    sim.terminate();
+    virtual_kombi().start(&sim);
     return 0;
 }

@@ -2,6 +2,7 @@
 #define MS_2F3H
 
 #include <stdint.h>
+
 #ifdef FW_MODE
 #include <can_common.h>
 #endif
@@ -15,12 +16,12 @@ typedef union {
     // Sets Gear step shift recommendation "Actual"
     void set_FSC_IST(uint8_t value){ raw = (raw & 0x00ffffffffffffff) | ((uint64_t)value & 0xff) << 56; }
     // Gets Gear step shift recommendation "Actual"
-    uint8_t get_FSC_IST() { return raw >> 0 & 0xff; }
+    uint8_t get_FSC_IST() { return raw >> 56 & 0xff; }
 
     // Sets Gear step shift recommendation "target"
     void set_FSC_SOLL(uint8_t value){ raw = (raw & 0xffffffffff00ffff) | ((uint64_t)value & 0xff) << 16; }
     // Gets Gear step shift recommendation "target"
-    uint8_t get_FSC_SOLL() { return raw >> 40 & 0xff; }
+    uint8_t get_FSC_SOLL() { return raw >> 16 & 0xff; }
 
     void import_frame(CAN_FRAME &f) {
         if (f.id == MS_2F3_ID) {

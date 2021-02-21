@@ -358,6 +358,33 @@ main.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/ecu_can_simulator.dir/build.make CMakeFiles/ecu_can_simulator.dir/main.cpp.s
 .PHONY : main.cpp.s
 
+v_kombi/virtual_kombi.o: v_kombi/virtual_kombi.cpp.o
+
+.PHONY : v_kombi/virtual_kombi.o
+
+# target to build an object file
+v_kombi/virtual_kombi.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/ecu_can_simulator.dir/build.make CMakeFiles/ecu_can_simulator.dir/v_kombi/virtual_kombi.cpp.o
+.PHONY : v_kombi/virtual_kombi.cpp.o
+
+v_kombi/virtual_kombi.i: v_kombi/virtual_kombi.cpp.i
+
+.PHONY : v_kombi/virtual_kombi.i
+
+# target to preprocess a source file
+v_kombi/virtual_kombi.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/ecu_can_simulator.dir/build.make CMakeFiles/ecu_can_simulator.dir/v_kombi/virtual_kombi.cpp.i
+.PHONY : v_kombi/virtual_kombi.cpp.i
+
+v_kombi/virtual_kombi.s: v_kombi/virtual_kombi.cpp.s
+
+.PHONY : v_kombi/virtual_kombi.s
+
+# target to generate assembly for a file
+v_kombi/virtual_kombi.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/ecu_can_simulator.dir/build.make CMakeFiles/ecu_can_simulator.dir/v_kombi/virtual_kombi.cpp.s
+.PHONY : v_kombi/virtual_kombi.cpp.s
+
 # Help Target
 help:
 	@echo "The following are some of the valid targets for this Makefile:"
@@ -391,6 +418,9 @@ help:
 	@echo "... main.o"
 	@echo "... main.i"
 	@echo "... main.s"
+	@echo "... v_kombi/virtual_kombi.o"
+	@echo "... v_kombi/virtual_kombi.i"
+	@echo "... v_kombi/virtual_kombi.s"
 .PHONY : help
 
 

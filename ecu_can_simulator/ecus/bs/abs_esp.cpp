@@ -12,8 +12,10 @@ void abs_esp::setup() {
     bs300.raw = 0x0808000000007FFF;
     bs328.raw = 0xFFFF85000003950B;
 
-    bs200.set_DVL(2500);
-    bs200.set_DVR(2500);
+    bs200.set_DVL(2000);
+    bs200.set_DVR(2000);
+    bs208.set_DHL(2000);
+    bs208.set_DHR(2000);
 }
 
 void abs_esp::simulate_tick() {

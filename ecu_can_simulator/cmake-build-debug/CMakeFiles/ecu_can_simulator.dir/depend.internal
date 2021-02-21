@@ -150,3 +150,7 @@ CMakeFiles/ecu_can_simulator.dir/main.cpp.o
  /home/ashcon/code/ultimate_nag52/ecu_can_simulator/ecus/gs/nag52.h
  /home/ashcon/code/ultimate_nag52/ecu_can_simulator/ecus/ms/engine.h
  /home/ashcon/code/ultimate_nag52/ecu_can_simulator/main.cpp
+ /home/ashcon/code/ultimate_nag52/ecu_can_simulator/v_kombi/virtual_kombi.h
+CMakeFiles/ecu_can_simulator.dir/v_kombi/virtual_kombi.cpp.o
+ /home/ashcon/code/ultimate_nag52/ecu_can_simulator/v_kombi/virtual_kombi.cpp
+ /home/ashcon/code/ultimate_nag52/ecu_can_simulator/v_kombi/virtual_kombi.h

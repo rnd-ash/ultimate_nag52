@@ -45,7 +45,7 @@ def get_param_text(name: str, desc: str, offset: int, length: int) -> str:
     string =  "    // Sets {}\n".format(desc)
     string += "    void set_{}({} value){{ raw = (raw & 0x{:{fill}16x}) | ((uint64_t)value & 0x{:x}) << {}; }}\n".format(name, get_data_type(length), mask, f_mask, 64-length-offset, fill='0')
     string += "    // Gets {}\n".format(desc)
-    string += "    {} get_{}() {{ return raw >> {} & 0x{:x}; }}\n".format(get_data_type(length), name, offset, f_mask)
+    string += "    {} get_{}() {{ return raw >> {} & 0x{:x}; }}\n".format(get_data_type(length), name, 64-length-offset, f_mask)
     return string
 
 
@@ -72,7 +72,10 @@ print("Found {} entries for {}".format(len(entries), frame_name))
 res += "#ifndef {}\n".format(frame_name.upper())
 res += "#define {}\n\n".format(frame_name.upper())
 res += "#include <stdint.h>\n"
+res += "\n"
+res += "#ifdef FW_MODE\n"
 res += "#include <can_common.h>\n"
+res += "#endif\n"
 res += "\n"
 res += "#define {}_ID {}\n".format(frame_name.rstrip('h'), frame_id)
 res += "\n"
@@ -109,7 +112,7 @@ res += "            f.data.bytes[i] = bytes[7-i];\n"
 res += "        }\n"
 res += "    }\n"
 res += "}} {};\n".format(frame_name.rstrip('h'))
-res += "\n#endif {}\n".format(frame_name.upper()) # endif
+res += "\n#endif\n"
 
 ecu_name = frame_name.rstrip('h').split("_")[0]
 

@@ -1,1 +1,8 @@
 cmake-build-debug/**
+CMakeFiles/**
+Makefile
+*.cbp
+ecu_can_simulator
+CMakeCache.txt
+cmake_install.cmake
+Testing/**
