@@ -17,51 +17,50 @@ struct kombiPart {
 };
 
 // TODO - Note to self, should move needle animations to another thread :)
-#define NEEDLE_ROT_SPEED 0.03 // per frame
+#define NEEDLE_ROT_SPEED 1 // 100 of these per second
 
-struct Needle {
+class Needle {
 public:
+    Needle();
+    Needle(kombiPart img, SDL_Point rot_pos, int min_angle, int max_angle, int min_value, int max_value);
+    void set_value(int raw);
+    void update_motor();
+    void render(SDL_Renderer *r);
+private:
     kombiPart img;
     SDL_Point rotation;
     double min_angle;
     int min_value_raw;
     double max_angle;
     int max_value_raw;
-    double curr_rotation_deg;
-    double target_rotation_deg;
-    void set_value(int raw) {
-        if (raw >= max_value_raw) {
-            target_rotation_deg = max_angle;
-        } else if (raw <= min_value_raw) {
-            target_rotation_deg = min_angle;
-        } else {
-            // Get number of degrees per raw value
-            double tmp = (max_angle-min_angle) / ((double)max_value_raw-(double)min_value_raw);
-            target_rotation_deg = min_angle + ((raw-min_value_raw)*tmp);
-        }
-    }
-    void update_animation() {
-        double delta = abs(target_rotation_deg- curr_rotation_deg);
-        if (curr_rotation_deg <= target_rotation_deg) {
-            curr_rotation_deg += std::fmin(NEEDLE_ROT_SPEED, delta);
-        } else if (curr_rotation_deg >= target_rotation_deg) {
-            curr_rotation_deg -= std::fmin(NEEDLE_ROT_SPEED, delta);
-        }
-
-
-
-    }
+    double curr_angle;
+    double target_angle;
+    double curr_shown_value;
+    double d_rot;
+    double d2_rot;
+    double last_angle;
+    bool speedup;
+    bool slowdown;
+    int target_raw;
 };
 
 class virtual_kombi {
 public:
-    void start(CAN_SIMULATOR *simulator);
+    virtual_kombi(CAN_SIMULATOR *simulator);
     void update();
+
+    void loop();
+
 private:
     kombiPart load_texture(char* path, char* name);
-    [[noreturn]] void draw_ic();
+
     void draw_kombi_part(kombiPart* p);
     void draw_kombi_needle(Needle* needle);
+    void update_loop();
+
+    void animate_needles();
+
+    std::thread updater_thread;
     CAN_SIMULATOR* sim;
 
     SDL_Window *window;

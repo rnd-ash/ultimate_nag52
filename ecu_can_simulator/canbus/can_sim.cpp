@@ -33,6 +33,8 @@ BS_300 bs300;
 BS_328 bs328;
 EZS_A5 ezsa5; // For variant testing!
 
+ART_258 art258;
+
 std::string fmt_frame(CAN_FRAME *f) {
     char buf[150] = {0x00};
     int pos = sprintf(buf, "0x%04X - [", f->id);
@@ -55,6 +57,24 @@ void CAN_SIMULATOR::can_sim_thread() {
     printf("CAN sender thread starting!\n");
     CAN_FRAME tx;
     ezsa5.raw = 0x020024062D18181A;
+    art258.raw =0x0000000000000000;
+    art258.set_ART_ERR(0);
+    art258.set_ART_INFO(true);
+    //art258.set_ART_WT(true);
+    art258.set_S_OBJ(true);
+    art258.set_ART_SEG_EIN(true);
+    //art258.set_ART_EIN(true);
+    art258.set_ASSIST_FKT_AKT(3);
+    art258.set_ASSIST_ANZ_V2(13);
+    art258.set_V_ART(50);
+    art258.set_ART_DSPL_EIN(true);
+    art258.set_OBJ_ERK(true);
+    art258.set_ABST_R_OBJ(10); // In yards
+    art258.set_V_ZIEL(10);
+    art258.set_ART_ABW_AKT(true);
+    art258.set_AAS_LED_BL(true);
+    art258.set_OBJ_AGB(true);
+    art258.set_CAS_ERR_ANZ_V2(1);
 
     int ticks = 0;
     while(this->thread_exec) {
@@ -80,6 +100,8 @@ void CAN_SIMULATOR::can_sim_thread() {
         TX_FRAME(bs270)
         TX_FRAME(bs300)
         TX_FRAME(bs328)
+        TX_FRAME(art258)
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
 }
 

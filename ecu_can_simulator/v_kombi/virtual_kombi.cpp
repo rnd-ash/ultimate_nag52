@@ -9,7 +9,7 @@
 #define WIN_WIDTH 1366
 #define WIN_HEIGHT 768
 
-void virtual_kombi::start(CAN_SIMULATOR* simulator) {
+virtual_kombi::virtual_kombi(CAN_SIMULATOR *simulator) {
     this->sim = simulator;
     SDL_Init(SDL_INIT_VIDEO);
     this->window = SDL_CreateWindow(
@@ -21,6 +21,8 @@ void virtual_kombi::start(CAN_SIMULATOR* simulator) {
         0
     );
     this->renderer = SDL_CreateRenderer(this->window, -1, SDL_RENDERER_ACCELERATED);
+    SDL_GL_SetSwapInterval(1);
+
     this->bg_left = this->load_texture((char*)"v_kombi/img/bg_left.png", (char*)"BG_LEFT");
     this->bg_left.loc = SDL_Rect { // x y w h
             100,
@@ -86,19 +88,17 @@ void virtual_kombi::start(CAN_SIMULATOR* simulator) {
             (int)(img_needle_temp.w/2.5),
                     (int)(img_needle_temp.h/2.5)
     };
-    this->engine_temp = Needle {
+    this->engine_temp = Needle(
         img_needle_temp,
         SDL_Point {
                 (int)(48/2.5),
                         (int)(70/2.5)
         },
         90.0,
-        40, // *C
         180.0,
-        130, // *C
-        90.0, // Same as minimum angle,
-        90.0
-    };
+        40,
+        130 // *C
+    );
 
     // Needle for speed (MPH)
     kombiPart img_needle_spd = this->load_texture((char*)"v_kombi/img/needle_large.png", (char*)"NEEDLE_SPD");
@@ -108,19 +108,17 @@ void virtual_kombi::start(CAN_SIMULATOR* simulator) {
             (int)(img_needle_spd.w/2.75),
             (int)(img_needle_spd.h/2.75)
     };
-    this->speed = Needle {
+    this->speed = Needle(
             img_needle_spd,
             SDL_Point {
                     (int)(100.5/2.75),
                     (int)(150/2.75)
             },
             45.0,
-            0, // MPH
             315.0,
-            160, // MPH
-            30.0, // Same as minimum angle,
-            30.0
-    };
+            0,
+            160 // MPH
+    );
 
     // Needle for engine RPM
     kombiPart img_needle_rpm = this->load_texture((char*)"v_kombi/img/needle_large.png", (char*)"NEEDLE_RPM");
@@ -130,19 +128,17 @@ void virtual_kombi::start(CAN_SIMULATOR* simulator) {
             (int)(img_needle_rpm.w/2.75),
             (int)(img_needle_rpm.h/2.75)
     };
-    this->tachometer = Needle {
+    this->tachometer = Needle(
             img_needle_rpm,
             SDL_Point {
                     (int)(100.5/2.75),
                     (int)(150/2.75)
             },
             45.0,
-            0, // RPM
             315.0,
-            5000, // RPM
-            30.0, // Same as minimum angle,
-            30.0
-    };
+            0, // RPM
+            5000 // RPM
+    );
 
     kombiPart img_needle_fuel = this->load_texture((char*)"v_kombi/img/needle_small.png", (char*)"NEEDLE_TEMP");
     img_needle_fuel.loc = SDL_Rect { // x y w h
@@ -151,26 +147,25 @@ void virtual_kombi::start(CAN_SIMULATOR* simulator) {
             (int)(img_needle_fuel.w/2.5),
             (int)(img_needle_fuel.h/2.5)
     };
-    this->fuel = Needle {
+    this->fuel = Needle(
             img_needle_fuel,
             SDL_Point {
                     (int)(48/2.5),
                     (int)(70/2.5)
             },
             270.0,
-            0, // %
             180.0,
-            100, // %
-            270.0,
-            270.0
-    };
+            0, // %
+            100 // %
+    );
 
 
     // Set default needle values!
     engine_temp.set_value(-40);
     speed.set_value(0);
-    // Set position
-    this->draw_ic();
+
+    // Launch simulation thread
+    this->updater_thread = std::thread(&virtual_kombi::update_loop, this);
 }
 
 void virtual_kombi::draw_kombi_part(kombiPart* p) {
@@ -180,7 +175,7 @@ void virtual_kombi::draw_kombi_part(kombiPart* p) {
 }
 
 bool quit = false;
-void virtual_kombi::draw_ic() {
+void virtual_kombi::loop() {
    while (!quit) {
         this->update();
         //SDL_SetRenderDrawColor(this->renderer, 0, 128, 128, 1);
@@ -231,30 +226,13 @@ kombiPart virtual_kombi::load_texture(char *path, char *name) {
 }
 
 void virtual_kombi::draw_kombi_needle(Needle *needle) {
-    needle->update_animation();
-    SDL_RenderCopyEx(this->renderer, needle->img.tex, nullptr, &needle->img.loc, needle->curr_rotation_deg, &needle->rotation, SDL_FLIP_NONE);
+    needle->render(this->renderer);
 }
 
 
 SDL_Event e;
 bool test_press = false;
 void virtual_kombi::update() {
-
-    // Kombi uses front wheel RPM (DVL + DVR) to calculate speed of vehicle)
-    double avg_rpm = (bs200.get_DVL()/2.0 + bs200.get_DVR()/2.0) / 2.0;
-
-    // https://www.tyresizecalculator.com/tyre-wheel-calculators/tire-size-calculator-tire-dimensions
-    // My W203 has 245/40 R17 wheels
-
-#define WHEEL_CIRCUMFERENCE_M 2.000
-
-    double m_per_s = WHEEL_CIRCUMFERENCE_M * (double)avg_rpm / 60.0; // <- Revolution per sec
-    int spd_mph = m_per_s * 2.23694;
-
-    this->speed.set_value(spd_mph); // MPH
-    this->tachometer.set_value(ms308.get_NMOT());
-    this->engine_temp.set_value(ms608.get_T_MOT() - 40);
-    this->fuel.set_value(100); // TODO fuel reading - Assume full tank
 
     // Handle key presses in window
     SDL_PollEvent(&e);
@@ -268,7 +246,40 @@ void virtual_kombi::update() {
     }
 
     if (ms308.get_NMOT() > 700 && !test_press) {
-        ms308.set_NMOT(ms308.get_NMOT()-1);
+        ms308.set_NMOT(700);
     }
+}
 
+void virtual_kombi::update_loop() {
+
+    while(!quit) {
+        this->animate_needles(); // Update IC needles etc...
+        // Kombi uses front wheel RPM (DVL + DVR) to calculate speed of vehicle)
+        double avg_rpm = (bs200.get_DVL() / 2.0 + bs200.get_DVR() / 2.0) / 2.0;
+
+        // https://www.tyresizecalculator.com/tyre-wheel-calculators/tire-size-calculator-tire-dimensions
+        // My W203 has 245/40 R17 wheels
+
+#define WHEEL_CIRCUMFERENCE_M 2.000 // In Meters
+
+        double m_per_s = WHEEL_CIRCUMFERENCE_M * (double) avg_rpm / 60.0; // <- Revolution per sec
+        int spd_mph = m_per_s * 2.23694;
+
+        this->speed.set_value(spd_mph); // MPH
+        this->tachometer.set_value(ms308.get_NMOT());
+        this->engine_temp.set_value(ms608.get_T_MOT() - 40);
+        this->fuel.set_value(50); // TODO fuel reading - Assume half tank
+
+        this->abs_light.is_active = bs200.get_ABS_KL();
+        this->esp_light.is_active = bs200.get_ESP_INFO_DL() | bs200.get_ESP_INFO_BL();
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    }
+}
+
+void virtual_kombi::animate_needles() {
+    this->speed.update_motor();
+    this->fuel.update_motor();
+    this->tachometer.update_motor();
+    this->engine_temp.update_motor();
 }

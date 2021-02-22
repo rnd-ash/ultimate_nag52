@@ -18,6 +18,6 @@ int main(int argc, char *argv[]) {
     ecu_list.push_back(&brake_monitor);
     ecu_list.push_back(&nag);
     sim.init(ecu_list);
-    virtual_kombi().start(&sim);
+    virtual_kombi(&sim).loop();
     return 0;
 }

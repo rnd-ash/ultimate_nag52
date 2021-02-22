@@ -28,6 +28,9 @@
 #include <BS_300.h>
 #include <BS_328.h>
 
+// For cruise control
+#include <ART_258.h>
+
 // Engine frames
 extern MS_210 ms210;
 extern MS_212 ms212;
@@ -48,6 +51,8 @@ extern BS_208 bs208;
 extern BS_270 bs270;
 extern BS_300 bs300;
 extern BS_328 bs328;
+
+extern ART_258 art258;
 
 
 #define TX_FRAME(f) \
