@@ -7,6 +7,7 @@
 
 #include <SDL2/SDL.h>
 #include "../canbus/can_sim.h"
+#include "kombi_lcd.h"
 
 struct kombiPart {
     SDL_Texture *tex;
@@ -80,6 +81,10 @@ private:
     kombiPart esp_light;
     kombiPart srs_light;
     kombiPart beam_light;
+
+    kombi_lcd* lcd = nullptr;
+
+
 };
 
 #endif //ECU_CAN_SIMULATOR_VIRTUAL_KOMBI_H

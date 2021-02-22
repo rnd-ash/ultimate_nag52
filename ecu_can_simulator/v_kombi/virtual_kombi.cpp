@@ -21,6 +21,7 @@ virtual_kombi::virtual_kombi(CAN_SIMULATOR *simulator) {
         0
     );
     this->renderer = SDL_CreateRenderer(this->window, -1, SDL_RENDERER_ACCELERATED);
+    this->lcd = new kombi_lcd(this->renderer);
     SDL_GL_SetSwapInterval(1);
 
     this->bg_left = this->load_texture((char*)"v_kombi/img/bg_left.png", (char*)"BG_LEFT");
@@ -174,6 +175,13 @@ void virtual_kombi::draw_kombi_part(kombiPart* p) {
     }
 }
 
+SDL_Rect lcd_rect{
+    630,
+    120,
+    (int)(IC_WIDTH_MM*4.5),
+            (int)((IC_HEIGHT_BOT_MM+IC_HEIGHT_TOP_MM)*4.5),
+};
+
 bool quit = false;
 void virtual_kombi::loop() {
    while (!quit) {
@@ -190,6 +198,9 @@ void virtual_kombi::loop() {
         draw_kombi_part(&this->brake_light);
         draw_kombi_part(&this->srs_light);
         draw_kombi_part(&this->beam_light);
+
+        // Draw LCD
+        SDL_RenderCopy(this->renderer, this->lcd->get_texture(), nullptr, &lcd_rect);
 
         // Needles get drawn last (As they go over other elements in the img)
         draw_kombi_needle(&this->engine_temp);
@@ -253,6 +264,9 @@ void virtual_kombi::update() {
 void virtual_kombi::update_loop() {
 
     while(!quit) {
+        // Clear IC
+        this->lcd->clear_screen();
+
         this->animate_needles(); // Update IC needles etc...
         // Kombi uses front wheel RPM (DVL + DVR) to calculate speed of vehicle)
         double avg_rpm = (bs200.get_DVL() / 2.0 + bs200.get_DVR() / 2.0) / 2.0;
@@ -264,14 +278,18 @@ void virtual_kombi::update_loop() {
 
         double m_per_s = WHEEL_CIRCUMFERENCE_M * (double) avg_rpm / 60.0; // <- Revolution per sec
         int spd_mph = m_per_s * 2.23694;
+        int spd_kmh = m_per_s * 3.6;
 
         this->speed.set_value(spd_mph); // MPH
+        this->lcd->draw_spd_kmh(spd_kmh);
         this->tachometer.set_value(ms308.get_NMOT());
         this->engine_temp.set_value(ms608.get_T_MOT() - 40);
         this->fuel.set_value(50); // TODO fuel reading - Assume half tank
 
         this->abs_light.is_active = bs200.get_ABS_KL();
         this->esp_light.is_active = bs200.get_ESP_INFO_DL() | bs200.get_ESP_INFO_BL();
+
+        this->lcd->set_red(true);
 
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }

@@ -29,5 +29,5 @@ add_executable(ecu_can_simulator
         canbus/esp32_forwarder.cpp
         canbus/esp32_forwarder.h
         canbus/can_sim.cpp
-        canbus/can_frame.h ecus/ewm/ewm.cpp ecus/ewm/ewm.h ecus/bs/abs_esp.cpp ecus/bs/abs_esp.h v_kombi/virtual_kombi.cpp v_kombi/virtual_kombi.h v_kombi/kombi_lcd.cpp v_kombi/kombi_lcd.h v_kombi/Needle.cpp)
+        canbus/can_frame.h ecus/ewm/ewm.cpp ecus/ewm/ewm.h ecus/bs/abs_esp.cpp ecus/bs/abs_esp.h v_kombi/virtual_kombi.cpp v_kombi/virtual_kombi.h v_kombi/kombi_lcd.cpp v_kombi/kombi_lcd.h v_kombi/Needle.cpp v_kombi/lcd_symbols.h)
 target_link_libraries(ecu_can_simulator ${SDL2_LIBRARY} )
