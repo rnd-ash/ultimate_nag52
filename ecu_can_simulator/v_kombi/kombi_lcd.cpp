@@ -17,6 +17,10 @@ kombi_lcd::kombi_lcd(SDL_Renderer* r) {
         i = false;
     }
     this->use_warning_colour = false;
+    this->std = ascii_table(r, (char*)"v_kombi/img/lcd/ascii_small_std.png", 5, 7);
+    this->std_bold = ascii_table(r, (char*)"v_kombi/img/lcd/ascii_big_std.png", 7, 10);
+    this->large = ascii_table(r, (char*)"v_kombi/img/lcd/ascii_big_std.png", 7, 10);
+    this->large_bold = ascii_table(r, (char*)"v_kombi/img/lcd/ascii_big_std.png", 7, 10);
 }
 
 SDL_Texture *kombi_lcd::get_texture() {
@@ -46,64 +50,48 @@ void kombi_lcd::set_red(bool is_red) {
     this->use_warning_colour = is_red;
 }
 
-int kombi_lcd::draw_char_large(char x, int x_pos, int y_pos) {
-    switch (x) {
-        case '0':
-            this->draw_pict(ZERO_LARGE, x_pos, y_pos);
-            return ZERO_LARGE.w;
-        case '1':
-            this->draw_pict(ONE_LARGE, x_pos, y_pos);
-            return ONE_LARGE.w;
-        case '2':
-            this->draw_pict(TWO_LARGE, x_pos, y_pos);
-            return TWO_LARGE.w;
-        case 'k':
-            this->draw_pict(K_LOW_LARGE, x_pos, y_pos);
-            return K_LOW_LARGE.w;
-        case 'm':
-            this->draw_pict(M_LOW_LARGE, x_pos, y_pos);
-            return M_LOW_LARGE.w;
-        case 'h':
-            this->draw_pict(H_LOW_LARGE, x_pos, y_pos);
-            return H_LOW_LARGE.w;
-        case '/':
-            this->draw_pict(SLASH_LARGE, x_pos, y_pos);
-            return SLASH_LARGE.w;
-        case ' ':
-            return 2;
-        default:
-            return 0;
-    }
-}
-
 void kombi_lcd::draw_spd_kmh(int spd) {
-    char buf[10];
-    int count = sprintf(buf, "%d km/h", spd);
-    int x_pos = (IC_WIDTH_PX-10);
-    for (int i = count-1; i >= 0; i--) {
-        // Draw speed backwards
-        x_pos -= (this->draw_char_large(buf[i], x_pos, IC_HEIGHT_TOP_PX + 20) + 1);
+    char buf[3];
+    sprintf(buf, "%d", spd);
+
+    int start = IC_WIDTH_PX/2 + 1;
+    for (const char &x : "km/h") {
+        start += this->draw_char_large(x, start, 10*12, false, false) + 1;
+    }
+
+    // Note to self - drawing speed is strange as each char occupies 7 pixels regardless of the text's actual width!
+    start = IC_WIDTH_PX/2 -1 - 7*(strlen(buf)) - 2;
+    for (const char &x : buf) {
+        this->draw_char_large(x, start, 10*12, false, false);
+        start += 7 + 1;
+    }
+    if (this->show_cc) {
+        // TODO cruise control display bar
+
+    } else {
+        this->draw_time();
     }
 }
 
-template<int W, int H>
-void kombi_lcd::draw_pict(const ic_pict<W, H> &pict, int start_x, int bottom_y) {
-    for (int y = pict.h-1; y >= 0; y--) {
-        // Draw from bottom up, so text is always on the same y level as its base!
-        int y_pos = bottom_y - (pict.h - y); // position in LCD
-        if (y >= 0 && y < IC_WIDTH_PX) {
-            for (int x = 0; x < pict.w; x++) {
-                int x_pos = start_x + x;// position in LCD
-                if (x_pos > 0 && x_pos < IC_HEIGHT_TOP_PX+IC_HEIGHT_BOT_PX) {
-                    bool state = false;
-                    if (pict.buf[(pict.w*y)+x]) {
-                        state = true;
-                    }
-                    this->px_states[(IC_WIDTH_PX*y_pos)+x_pos] = state;
-                }
-            }
-        }
+void kombi_lcd::draw_time() {
+    char buf[2];
+    int h = 12;
+    int m = 13;
+
+    // draw colon in center
+    this->draw_char_large(':', (IC_WIDTH_PX/2)-1, 11*12, false, false);
+    int h_start = IC_WIDTH_PX/2+1;
+    sprintf(buf, "%02d", h); // Tmp time
+    for (const char &x : buf) {
+        h_start += this->draw_char_large(x, h_start, 11*12, false, false) + 1;
     }
+    sprintf(buf, "%02d", m); // Tmp time
+    h_start = IC_WIDTH_PX/2-1 - get_ascii_size(buf, &this->large) -3;
+    sprintf(buf, "%02d", h); // Tmp time
+    for (const char &x : buf) {
+        h_start += this->draw_char_large(x, h_start, 11*12, false, false) + 1;
+    }
+    //this->draw_text_large(buf, 11, Justification::CENTER, false, false);
 }
 
 void kombi_lcd::clear_screen() {
@@ -111,3 +99,93 @@ void kombi_lcd::clear_screen() {
         px_state = false;
     }
 }
+
+int kombi_lcd::draw_char_small(char x, int x_pos, int y_pos, bool is_bold, bool is_highlighted) {
+    if (is_bold) {
+        return draw_ascii(x, &this->std_bold, x_pos, y_pos, is_highlighted);
+    } else {
+        return draw_ascii(x, &this->std, x_pos, y_pos, is_highlighted);
+    }
+}
+
+
+int kombi_lcd::draw_char_large(char x, int x_pos, int y_pos, bool is_bold, bool is_highlighted) {
+    if (is_bold) {
+        return draw_ascii(x, &this->large_bold, x_pos, y_pos, is_highlighted);
+    } else {
+        return draw_ascii(x, &this->large, x_pos, y_pos, is_highlighted);
+    }
+}
+
+int kombi_lcd::draw_ascii(char c, ascii_table *t, int x_left, int y_bottom, bool is_highlighted) {
+    lcd_char* l = t->get_buffer(c);
+    if (l == nullptr) {
+        return 0;
+    }
+
+    // y_pos - bottom of the row
+    // x_pos - left of the image
+    for (int y = l->h-1; y >= 0; y--) {
+
+        // Draw from bottom up, so text is always on the same y level as its base!
+        int y_pos = y_bottom - (l->h - y); // position in LCD
+        if (y_pos >= 0 && y_pos < IC_HEIGHT_TOP_PX+IC_HEIGHT_BOT_PX) {
+            for (int x = 0; x < l->w; x++) {
+                int x_pos = x_left + x;// position in LCD
+                if (x_pos >= 0 && x_pos < IC_WIDTH_PX) {
+                    bool state = l->buf[(l->w*y)+x];
+                    if (is_highlighted) { // Highlight so invert the state
+                        state =!state;
+                    }
+                    //printf("(%d, %d) - (%d %d) - %d\n", x_pos, y_pos, x, y, state);
+                    if(state) {
+                        this->px_states[(IC_WIDTH_PX * y_pos) + x_pos] = state;
+                    }
+                }
+            }
+        }
+    }
+    //printf(" %c - %d\n", c, l->w);
+    return l->draw_width;
+}
+
+void kombi_lcd::draw_text_small(char *txt, int row, Justification j, bool is_bold, bool is_highlighted) {
+    // Small text is always 9 px
+    int start_y = row * 12;
+    int w = 1;
+    int len = strlen(txt);
+    if (j == Justification::CENTER) {
+        w = (int)((double)(IC_WIDTH_PX/2.0) - ((double)get_ascii_size(txt, &this->std)/2.0));
+    }
+    for (int i = 0; i < len; i++) {
+        w += draw_char_small(txt[i], w, start_y, is_bold, is_highlighted) + 1;
+        if (w >= IC_WIDTH_PX) {
+            return;
+        }
+    }
+}
+
+void kombi_lcd::draw_text_large(char *txt, int row, Justification j, bool is_bold, bool is_highlighted) {
+    int start = 1;
+    if (j == Justification::CENTER) {
+        start = (int)((double)(IC_WIDTH_PX/2.0) - (double)get_ascii_size(txt, &this->large)/2.0);
+    }
+    int len = strlen(txt);
+    for (int i = 0; i < len; i++) {
+        start += draw_char_large(txt[i], start, row*12, is_bold, is_highlighted) + 1;
+    }
+}
+
+int kombi_lcd::get_ascii_size(char* txt, ascii_table* t) {
+    int total = 0;
+    int len = strlen(txt);
+    for(int i = 0; i < len; i++) {
+        total += t->get_buffer(txt[i])->draw_width;
+    }
+    return total + strlen(txt)-1; // add the end so we add the pixel spacing between chars
+}
+
+void kombi_lcd::toggle_cc_display(bool state) {
+    this->show_cc = state;
+}
+

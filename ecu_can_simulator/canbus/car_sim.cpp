@@ -2,38 +2,15 @@
 // Created by ashcon on 2/20/21.
 //
 
-#include "can_sim.h"
-#include "can_frame.h"
+#include "car_sim.h"
+#include "../ecus/can_frame.h"
 #include "esp32_forwarder.h"
 
 #include <utility>
 #include <cstring>
 
 #include "EZS_A5.h"
-
-// Engine frames
-MS_210 ms210;
-MS_212 ms212;
-MS_268 ms268;
-MS_2F3 ms2F3;
-MS_308 ms308;
-MS_308 ms312;
-MS_608 ms608;
-
-// GS frames
-GS_218 gs218;
-GS_338 gs338;
-GS_418 gs418;
-
-// ABS/ESP frames
-BS_200 bs200;
-BS_208 bs208;
-BS_270 bs270;
-BS_300 bs300;
-BS_328 bs328;
 EZS_A5 ezsa5; // For variant testing!
-
-ART_258 art258;
 
 std::string fmt_frame(CAN_FRAME *f) {
     char buf[150] = {0x00};
@@ -45,36 +22,49 @@ std::string fmt_frame(CAN_FRAME *f) {
     return std::string(buf);
 }
 
-void CAN_SIMULATOR::init(std::vector<abstract_ecu*> ecu_list) {
-    this->ecus = std::move(ecu_list);
+void CAR_SIMULATOR::init() {
+    this->esp_ecu = new class abs_esp();
+    this->nag52_ecu = new class nag52();
+    this->eng_ecu = new class engine();
+    this->ewm_ecu = new class ewm();
+
+    this->ecus.push_back((abstract_ecu*)this->esp_ecu);
+    this->ecus.push_back((abstract_ecu*)this->nag52_ecu);
+    this->ecus.push_back((abstract_ecu*)this->eng_ecu);
+    this->ecus.push_back((abstract_ecu*)this->ewm_ecu);
+
+    for (auto x : this->ecus){
+        x->setup();
+    }
+
     printf("Init with %lu ecus!\n", ecus.size());
     this->thread_exec = true;
-    this->can_thread = std::thread(&CAN_SIMULATOR::can_sim_thread, this);
-    this->sim_thread = std::thread(&CAN_SIMULATOR::ecu_sim_thread, this);
+    this->can_thread = std::thread(&CAR_SIMULATOR::can_sim_thread, this);
+    this->sim_thread = std::thread(&CAR_SIMULATOR::ecu_sim_thread, this);
 }
 
-void CAN_SIMULATOR::can_sim_thread() {
+void CAR_SIMULATOR::can_sim_thread() {
     printf("CAN sender thread starting!\n");
     CAN_FRAME tx;
     ezsa5.raw = 0x020024062D18181A;
     art258.raw =0x0000000000000000;
-    art258.set_ART_ERR(0);
-    art258.set_ART_INFO(true);
-    //art258.set_ART_WT(true);
-    art258.set_S_OBJ(true);
-    art258.set_ART_SEG_EIN(true);
-    //art258.set_ART_EIN(true);
-    art258.set_ASSIST_FKT_AKT(3);
-    art258.set_ASSIST_ANZ_V2(13);
-    art258.set_V_ART(50);
-    art258.set_ART_DSPL_EIN(true);
-    art258.set_OBJ_ERK(true);
-    art258.set_ABST_R_OBJ(10); // In yards
-    art258.set_V_ZIEL(10);
-    art258.set_ART_ABW_AKT(true);
-    art258.set_AAS_LED_BL(true);
-    art258.set_OBJ_AGB(true);
-    art258.set_CAS_ERR_ANZ_V2(1);
+    //art258.set_ART_ERR(0);
+    //art258.set_ART_INFO(true);
+    ////art258.set_ART_WT(true);
+    //art258.set_S_OBJ(true);
+    //art258.set_ART_SEG_EIN(true);
+    ////art258.set_ART_EIN(true);
+    //art258.set_ASSIST_FKT_AKT(3);
+    //art258.set_ASSIST_ANZ_V2(13);
+    //art258.set_V_ART(50);
+    //art258.set_ART_DSPL_EIN(true);
+    //art258.set_OBJ_ERK(true);
+    ////art258.set_ABST_R_OBJ(100); // In yards
+    //art258.set_V_ZIEL(10);
+    //art258.set_ART_ABW_AKT(true);
+    //art258.set_AAS_LED_BL(true);
+    //art258.set_OBJ_AGB(true);
+    //art258.set_CAS_ERR_ANZ_V2(1);
 
     int ticks = 0;
     while(this->thread_exec) {
@@ -101,11 +91,13 @@ void CAN_SIMULATOR::can_sim_thread() {
         TX_FRAME(bs300)
         TX_FRAME(bs328)
         TX_FRAME(art258)
+        TX_FRAME(ewm230)
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        art258.set_ABST_R_OBJ(art258.get_ABST_R_OBJ() -1); // In yards
     }
 }
 
-void CAN_SIMULATOR::ecu_sim_thread() {
+void CAR_SIMULATOR::ecu_sim_thread() {
     printf("ECU Simulator thread starting!\n");
     while(this->thread_exec) {
         for (auto ecu: this->ecus) {
@@ -115,7 +107,7 @@ void CAN_SIMULATOR::ecu_sim_thread() {
     }
 }
 
-void CAN_SIMULATOR::terminate() {
+void CAR_SIMULATOR::terminate() {
     this->thread_exec = false;
     this->can_thread.join();
     this->sim_thread.join();
@@ -139,13 +131,13 @@ void CAN_SIMULATOR::terminate() {
     CLEAR_FRAME(bs328)
 }
 
-void CAN_SIMULATOR::bcast_frame(CAN_FRAME *f) {
+void CAR_SIMULATOR::bcast_frame(CAN_FRAME *f) {
     if (this->send_to_esp) {
         this->esp32.send_frame(f);
     }
 }
 
-CAN_SIMULATOR::CAN_SIMULATOR(char *port_name) {
+CAR_SIMULATOR::CAR_SIMULATOR(char *port_name) {
     if (port_name != nullptr) {
         this->esp32 = esp32_forwarder(port_name);
         if (this->esp32.is_port_open()) {
@@ -154,4 +146,20 @@ CAN_SIMULATOR::CAN_SIMULATOR(char *port_name) {
     } else {
         this->send_to_esp = false;
     }
+}
+
+abs_esp* CAR_SIMULATOR::get_abs() {
+    return this->esp_ecu;
+}
+
+ewm* CAR_SIMULATOR::get_ewm() {
+    return this->ewm_ecu;
+}
+
+engine* CAR_SIMULATOR::get_engine() {
+    return this->eng_ecu;
+}
+
+nag52* CAR_SIMULATOR::get_nag52() {
+    return this->nag52_ecu;
 }

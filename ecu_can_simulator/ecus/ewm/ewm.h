@@ -5,9 +5,11 @@
 #ifndef ECU_CAN_SIMULATOR_EWM_H
 #define ECU_CAN_SIMULATOR_EWM_H
 #include "../abstract_ecu.h"
-#include "EWM_230.h"
+#include "../extern_frames.h"
 
-enum MOVE_DIR {
+#include <EWM_230.h>
+
+enum class MOVE_DIR {
     UP,
     DOWN,
     LEFT,
@@ -34,11 +36,11 @@ public:
     void release_btn();
 private:
     int sim_ticks = 0;
-    EWM_230 ewm230;
     WHC selector_position = WHC::GS_P;
     bool drive_prog_btn = false;
     void simulate_tick();
     MOVE_DIR selector_move_dir;
+    bool btn_press = false;
 };
 
 #endif //ECU_CAN_SIMULATOR_EWM_H

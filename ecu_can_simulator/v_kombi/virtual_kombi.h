@@ -6,7 +6,7 @@
 #define ECU_CAN_SIMULATOR_VIRTUAL_KOMBI_H
 
 #include <SDL2/SDL.h>
-#include "../canbus/can_sim.h"
+#include "../canbus/car_sim.h"
 #include "kombi_lcd.h"
 
 struct kombiPart {
@@ -47,7 +47,7 @@ private:
 
 class virtual_kombi {
 public:
-    virtual_kombi(CAN_SIMULATOR *simulator);
+    virtual_kombi(CAR_SIMULATOR *simulator);
     void update();
 
     void loop();
@@ -62,7 +62,7 @@ private:
     void animate_needles();
 
     std::thread updater_thread;
-    CAN_SIMULATOR* sim;
+    CAR_SIMULATOR* sim;
 
     SDL_Window *window;
     SDL_Renderer *renderer;

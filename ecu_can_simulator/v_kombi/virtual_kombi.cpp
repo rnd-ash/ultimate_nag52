@@ -9,7 +9,7 @@
 #define WIN_WIDTH 1366
 #define WIN_HEIGHT 768
 
-virtual_kombi::virtual_kombi(CAN_SIMULATOR *simulator) {
+virtual_kombi::virtual_kombi(CAR_SIMULATOR *simulator) {
     this->sim = simulator;
     SDL_Init(SDL_INIT_VIDEO);
     this->window = SDL_CreateWindow(
@@ -175,11 +175,11 @@ void virtual_kombi::draw_kombi_part(kombiPart* p) {
     }
 }
 
-SDL_Rect lcd_rect{
-    630,
+SDL_Rect lcd_rect{ // 2.45
+    632,
     120,
-    (int)(IC_WIDTH_MM*4.5),
-            (int)((IC_HEIGHT_BOT_MM+IC_HEIGHT_TOP_MM)*4.5),
+    (int)(IC_WIDTH_PX*2.45),
+            (int)((IC_HEIGHT_BOT_PX+IC_HEIGHT_TOP_PX)*2.45),
 };
 
 bool quit = false;
@@ -250,14 +250,32 @@ void virtual_kombi::update() {
     if (e.type == SDL_QUIT) {
         quit = true;
     } else if (e.type == SDL_KEYDOWN) {
-        ms308.set_NMOT(ms308.get_NMOT()+20);
-        test_press = true;
+        switch (e.key.keysym.sym) {
+            case SDLK_e:
+                bs200.set_DVL(bs200.get_DVL() + 10);
+                bs200.set_DVR(bs200.get_DVL() + 10);
+                break;
+            case SDLK_q:
+                bs200.set_DVL(bs200.get_DVL() - 10);
+                bs200.set_DVR(bs200.get_DVR() - 10);
+                break;
+            case SDLK_w:
+                sim->get_engine()->press_pedal();
+                break;
+            case SDLK_s:
+                // TODO
+                break;
+            default:
+                break;
+        }
     } else if (e.type == SDL_KEYUP) {
-        test_press = false;
-    }
-
-    if (ms308.get_NMOT() > 700 && !test_press) {
-        ms308.set_NMOT(700);
+        switch (e.key.keysym.sym) {
+            case SDLK_w:
+                sim->get_engine()->release_pedal();
+                break;
+            default:
+                break;
+        }
     }
 }
 
@@ -266,6 +284,11 @@ void virtual_kombi::update_loop() {
     while(!quit) {
         // Clear IC
         this->lcd->clear_screen();
+        this->lcd->draw_text_small("Settings", 1, Justification::CENTER, false, false);
+        this->lcd->draw_text_small("To reset:", 2, Justification::CENTER, false, false);
+        this->lcd->draw_text_small("Press reset", 3, Justification::CENTER, false, false);
+        this->lcd->draw_text_small("button", 4, Justification::CENTER, false, false);
+        this->lcd->draw_text_small("for 3 seconds", 5, Justification::CENTER, false, false);
 
         this->animate_needles(); // Update IC needles etc...
         // Kombi uses front wheel RPM (DVL + DVR) to calculate speed of vehicle)
@@ -288,8 +311,6 @@ void virtual_kombi::update_loop() {
 
         this->abs_light.is_active = bs200.get_ABS_KL();
         this->esp_light.is_active = bs200.get_ESP_INFO_DL() | bs200.get_ESP_INFO_BL();
-
-        this->lcd->set_red(true);
 
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }

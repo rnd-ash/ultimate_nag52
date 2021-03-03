@@ -6,7 +6,7 @@
 #define ECU_CAN_SIMULATOR_NAG52_H
 
 #include "../abstract_ecu.h"
-#include "../../canbus/can_sim.h"
+#include "../extern_frames.h"
 
 // W5A580 - Max torque 580Nm
 // W5A330 - Max torque 330Nm
@@ -66,6 +66,8 @@ class nag52 : public abstract_ecu {
 public:
     void setup();
     void simulate_tick();
+private:
+    DriveProgramMode prog;
 };
 
 

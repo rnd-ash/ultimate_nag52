@@ -6,8 +6,8 @@
 #define ECU_CAN_SIMULATOR_ABS_ESP_H
 
 #include <cstdint>
-#include "../../canbus/can_sim.h"
 #include "../abstract_ecu.h"
+#include "../extern_frames.h"
 
 #define WHEEL_DIAMETER =
 

@@ -5,7 +5,7 @@
 #ifndef ECU_CAN_SIMULATOR_ESP32_FORWARDER_H
 #define ECU_CAN_SIMULATOR_ESP32_FORWARDER_H
 
-#include "can_frame.h"
+#include "../ecus/can_frame.h"
 #include <time.h>
 /**
  * This class handles serial communication with an optional Arduino device running the 'can_forwarder'

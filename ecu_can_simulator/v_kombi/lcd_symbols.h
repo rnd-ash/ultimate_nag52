@@ -5,134 +5,27 @@
 #ifndef ECU_CAN_SIMULATOR_LCD_SYMBOLS_H
 #define ECU_CAN_SIMULATOR_LCD_SYMBOLS_H
 
-template<int H, int W>
-struct ic_pict {
-    int h = H;
-    int w = W;
-    bool buf[H*W] = {false};
+#include <SDL2/SDL.h>
+#include <SDL2/SDL_image.h>
+
+struct lcd_char {
+    int h;
+    int w;
+    int draw_width;
+    bool* buf;
 };
 
-const ic_pict<10, 7> ZERO_LARGE {
-        10,
-        7,
-        {
-            0,0,1,1,1,0,0,
-            0,1,0,0,0,1,0,
-            1,0,0,0,0,0,1,
-            1,0,0,0,0,0,1,
-            1,0,0,0,0,0,1,
-            1,0,0,0,0,0,1,
-            1,0,0,0,0,0,1,
-            1,0,0,0,0,0,1,
-            0,1,0,0,0,1,0,
-            0,0,1,1,1,0,0,
-
-        }
+class ascii_table {
+public:
+    ascii_table(SDL_Renderer* r, char* path, int char_width, int char_height);
+    ascii_table();
+    ~ascii_table();
+    lcd_char* get_buffer(char c);
+private:
+    lcd_char* state_buffer;
+    int char_width = 0;
+    int char_height = 0;
+    uint32_t* bytes = nullptr;
 };
-
-const ic_pict<10, 5> ONE_LARGE {
-        10,
-        5,
-        {
-                0,0,1,0,0,
-                1,1,1,0,0,
-                0,0,1,0,0,
-                0,0,1,0,0,
-                0,0,1,0,0,
-                0,0,1,0,0,
-                0,0,1,0,0,
-                0,0,1,0,0,
-                0,0,1,0,0,
-                0,0,1,0,0,
-
-        }
-};
-
-const ic_pict<10, 7> TWO_LARGE {
-        10,
-        7,
-        {
-                0,1,1,1,1,1,0,
-                1,0,0,0,0,0,1,
-                0,0,0,0,0,0,1,
-                0,0,0,0,0,0,1,
-                0,0,0,0,0,1,0,
-                0,0,0,0,1,0,0,
-                0,0,0,1,0,0,0,
-                0,0,1,0,0,0,0,
-                0,1,0,0,0,0,0,
-                1,1,1,1,1,1,1,
-
-        }
-};
-
-const ic_pict<10, 5> K_LOW_LARGE {
-        10,
-        5,
-        {
-                1,0,0,0,0,
-                1,0,0,0,0,
-                1,0,0,0,0,
-                1,0,0,0,1,
-                1,0,0,1,0,
-                1,0,1,0,0,
-                1,1,0,0,0,
-                1,0,1,0,0,
-                1,0,0,1,0,
-                1,0,0,0,1,
-
-        }
-};
-
-const ic_pict<7, 7> M_LOW_LARGE {
-        7,
-        7,
-        {
-                0,1,1,0,1,1,0,
-                1,0,0,1,0,0,1,
-                1,0,0,1,0,0,1,
-                1,0,0,1,0,0,1,
-                1,0,0,1,0,0,1,
-                1,0,0,1,0,0,1,
-                1,0,0,1,0,0,1,
-        }
-};
-
-const ic_pict<10, 5> SLASH_LARGE {
-        10,
-        5,
-        {
-                0,0,0,0,1,
-                0,0,0,0,1,
-                0,0,0,1,0,
-                0,0,0,1,0,
-                0,0,1,0,0,
-                0,0,1,0,0,
-                0,1,0,0,0,
-                0,1,0,0,0,
-                1,0,0,0,0,
-                1,0,0,0,0,
-
-        }
-};
-
-const ic_pict<10, 5> H_LOW_LARGE {
-        10,
-        5,
-        {
-                1,0,0,0,0,
-                1,0,0,0,0,
-                1,0,0,0,0,
-                1,0,1,1,0,
-                1,1,0,0,1,
-                1,0,0,0,1,
-                1,0,0,0,1,
-                1,0,0,0,1,
-                1,0,0,0,1,
-                1,0,0,0,1,
-
-        }
-};
-
 
 #endif //ECU_CAN_SIMULATOR_LCD_SYMBOLS_H

@@ -20,9 +20,9 @@ typedef union {
     uint8_t get_FSC() { return raw >> 56 & 0xff; }
 
     // Sets driving program
-    void set_FPC(uint8_t value){ raw = (raw & 0xff00ffffffffffff) | ((uint64_t)value & 0xff) << 48; }
+    void set_FPC(FPC value){ raw = (raw & 0xff00ffffffffffff) | ((uint64_t)value & 0xff) << 48; }
     // Gets driving program
-    uint8_t get_FPC() { return raw >> 48 & 0xff; }
+    FPC get_FPC() { return (FPC)(raw >> 48 & 0xff); }
 
     // Sets transmission oil temperature
     void set_T_GET(uint8_t value){ raw = (raw & 0xffff00ffffffffff) | ((uint64_t)value & 0xff) << 40; }
@@ -40,9 +40,9 @@ typedef union {
     bool get_ESV_BRE() { return raw >> 33 & 0x1; }
 
     // Sets gear mechanism variant
-    void set_MECH(uint8_t value){ raw = (raw & 0xfffffff3ffffffff) | ((uint64_t)value & 0x3) << 34; }
+    void set_MECH(GearVariant value){ raw = (raw & 0xfffffff3ffffffff) | ((uint64_t)value & 0x3) << 34; }
     // Gets gear mechanism variant
-    uint8_t get_MECH() { return raw >> 34 & 0x3; }
+    GearVariant get_MECH() { return (GearVariant)(raw >> 34 & 0x3); }
 
     // Sets continuously variable transmission [1], multi-step transmission [0]
     void set_CVT(bool value){ raw = (raw & 0xffffffefffffffff) | ((uint64_t)value & 0x1) << 36; }
@@ -65,14 +65,14 @@ typedef union {
     bool get_ALL_WHEEL() { return raw >> 39 & 0x1; }
 
     // Sets actual gear
-    void set_GIC(uint8_t value){ raw = (raw & 0xfffffffff0ffffff) | ((uint64_t)value & 0xf) << 24; }
+    void set_GIC(GEAR value){ raw = (raw & 0xfffffffff0ffffff) | ((uint64_t)value & 0xf) << 24; }
     // Gets actual gear
-    uint8_t get_GIC() { return raw >> 24 & 0xf; }
+    GEAR get_GIC() { return (GEAR)(raw >> 24 & 0xf); }
 
     // Sets target gear
-    void set_GZC(uint8_t value){ raw = (raw & 0xffffffff0fffffff) | ((uint64_t)value & 0xf) << 28; }
+    void set_GZC(GEAR value){ raw = (raw & 0xffffffff0fffffff) | ((uint64_t)value & 0xf) << 28; }
     // Gets target gear
-    uint8_t get_GZC() { return raw >> 28 & 0xf; }
+    GEAR get_GZC() { return (GEAR)(raw >> 28 & 0xf); }
 
     // Sets torque loss (FFh at KSG)
     void set_M_VERL(uint8_t value){ raw = (raw & 0xffffffffff00ffff) | ((uint64_t)value & 0xff) << 16; }

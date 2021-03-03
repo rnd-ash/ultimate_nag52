@@ -5,8 +5,10 @@
 #ifndef ECU_CAN_SIMULATOR_ENGINE_H
 #define ECU_CAN_SIMULATOR_ENGINE_H
 
+
+
 #include <cstdint>
-#include "../../canbus/can_sim.h"
+#include "../extern_frames.h"
 #include "../abstract_ecu.h"
 
 // Change these as you wish - These are configured here for my OM646 Engine
@@ -16,8 +18,12 @@
 class engine : public abstract_ecu {
 public:
     void setup();
+    void simulate_tick();
+    void press_pedal();
+    void release_pedal();
 private:
-    short curr_rpm;
+    float d_rpm;
+    float curr_rpm;
     uint8_t target_gear_lower;
     uint8_t target_gear_upper;
     bool active_aux_heater;
@@ -31,10 +37,6 @@ private:
     bool kickdown;
     bool speed_limit_enabled;
     CAN_FRAME frame_list[7];
-
-    void simulate_tick();
-    void press_pedal();
-    void release_pedal();
 };
 
 

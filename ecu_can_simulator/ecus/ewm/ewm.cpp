@@ -5,14 +5,18 @@
 #include "ewm.h"
 
 void ewm::setup() {
-    this->ewm230.raw = 0x0000000000000000;
+    ewm230.raw = 0x0000000000000000;
     this->drive_prog_btn = false;
     this->selector_position = GS_P; // Park to start with
 }
 
 void ewm::simulate_tick() {
-    this->ewm230.set_WHC(this->selector_position);
-    this->ewm230.set_FPT(this->drive_prog_btn);
+    ewm230.set_WHC(this->selector_position);
+    ewm230.set_FPT(this->drive_prog_btn);
+
+    ewm230.set_KD(false); // Always - W203 EWM does not monitor kickdown
+    ewm230.set_W_S(false); // Always - W203 EWM does not monitor this button, only if it is pressed
+
 
     this->sim_ticks ++;
     if (this->sim_ticks >= 50) {
