@@ -20,9 +20,9 @@ typedef union {
     uint8_t get_FSC() { return raw >> 56 & 0xff; }
 
     // Sets driving program
-    void set_FPC(FPC value){ raw = (raw & 0xff00ffffffffffff) | ((uint64_t)value & 0xff) << 48; }
+    void set_FPC(uint8_t value){ raw = (raw & 0xff00ffffffffffff) | ((uint64_t)value & 0xff) << 48; }
     // Gets driving program
-    FPC get_FPC() { return (FPC)(raw >> 48 & 0xff); }
+    DrivingProgram get_FPC() { return (DrivingProgram)(raw >> 48 & 0xff); }
 
     // Sets transmission oil temperature
     void set_T_GET(uint8_t value){ raw = (raw & 0xffff00ffffffffff) | ((uint64_t)value & 0xff) << 40; }

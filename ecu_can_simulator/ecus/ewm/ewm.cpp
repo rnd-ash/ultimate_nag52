@@ -2,6 +2,7 @@
 // Created by ashcon on 2/20/21.
 //
 
+#include <cstdio>
 #include "ewm.h"
 
 void ewm::setup() {
@@ -13,7 +14,6 @@ void ewm::setup() {
 void ewm::simulate_tick() {
     ewm230.set_WHC(this->selector_position);
     ewm230.set_FPT(this->drive_prog_btn);
-
     ewm230.set_KD(false); // Always - W203 EWM does not monitor kickdown
     ewm230.set_W_S(false); // Always - W203 EWM does not monitor this button, only if it is pressed
 
@@ -22,6 +22,7 @@ void ewm::simulate_tick() {
     if (this->sim_ticks >= 50) {
         this->sim_ticks = 0;
         // Move the selector position based on the force being applied to it by the user
+        printf("Selector position: %d\n", this->selector_position);
         if (selector_move_dir == MOVE_DIR::UP) {
             switch(this->selector_position) {
                 case GS_D:
@@ -34,7 +35,7 @@ void ewm::simulate_tick() {
                     this->selector_position = WHC::GS_P_R;
                     break;
                 case GS_N_D:
-                    this->selector_position = WHC::GS_D;
+                    this->selector_position = WHC::GS_N;
                     break;
                 case GS_R_N:
                     this->selector_position = WHC::GS_R;
@@ -45,7 +46,7 @@ void ewm::simulate_tick() {
                 case GS_P:
                 case GS_PLUS:
                 case GS_MINUS:
-                case GS_SNV:
+                case GS_SNV: // 0xFF
                     break;
             }
         } else if (selector_move_dir == MOVE_DIR::DOWN) {

@@ -242,6 +242,7 @@ void virtual_kombi::draw_kombi_needle(Needle *needle) {
 
 
 SDL_Event e;
+bool move_applied = false;
 bool test_press = false;
 void virtual_kombi::update() {
 
@@ -265,6 +266,21 @@ void virtual_kombi::update() {
             case SDLK_s:
                 // TODO
                 break;
+            case SDLK_f:
+                sim->get_ewm()->press_btn();
+                break;
+            case SDLK_i:
+                if(!move_applied) { move_applied = true; sim->get_ewm()->apply_force(MOVE_DIR::UP); }
+                break;
+            case SDLK_k:
+                if(!move_applied) { move_applied = true; sim->get_ewm()->apply_force(MOVE_DIR::DOWN); }
+                break;
+            case SDLK_j:
+                if(!move_applied) { move_applied = true; sim->get_ewm()->apply_force(MOVE_DIR::LEFT); }
+                break;
+            case SDLK_l:
+                if(!move_applied) { move_applied = true; sim->get_ewm()->apply_force(MOVE_DIR::RIGHT); }
+                break;
             default:
                 break;
         }
@@ -272,6 +288,16 @@ void virtual_kombi::update() {
         switch (e.key.keysym.sym) {
             case SDLK_w:
                 sim->get_engine()->release_pedal();
+                break;
+            case SDLK_f:
+                sim->get_ewm()->release_btn();
+                break;
+            case SDLK_i:
+            case SDLK_k:
+            case SDLK_j:
+            case SDLK_l:
+                move_applied = false;
+                sim->get_ewm()->apply_force(MOVE_DIR::NONE);
                 break;
             default:
                 break;
@@ -284,11 +310,14 @@ void virtual_kombi::update_loop() {
     while(!quit) {
         // Clear IC
         this->lcd->clear_screen();
-        this->lcd->draw_text_small("Settings", 1, Justification::CENTER, false, false);
-        this->lcd->draw_text_small("To reset:", 2, Justification::CENTER, false, false);
-        this->lcd->draw_text_small("Press reset", 3, Justification::CENTER, false, false);
-        this->lcd->draw_text_small("button", 4, Justification::CENTER, false, false);
-        this->lcd->draw_text_small("for 3 seconds", 5, Justification::CENTER, false, false);
+        //this->lcd->draw_text_small("Settings", 1, Justification::CENTER, false, false);
+        //this->lcd->draw_text_small("To reset:", 2, Justification::CENTER, false, false);
+        //this->lcd->draw_text_small("Press reset", 3, Justification::CENTER, false, false);
+        //this->lcd->draw_text_small("button", 4, Justification::CENTER, false, false);
+        //this->lcd->draw_text_small("for 3 seconds", 5, Justification::CENTER, false, false);
+
+        this->lcd->draw_text_large("IS-Test", 3, Justification::CENTER, false, false);
+        this->lcd->draw_text_large("WSA NIO", 4, Justification::CENTER, false, false);
 
         this->animate_needles(); // Update IC needles etc...
         // Kombi uses front wheel RPM (DVL + DVR) to calculate speed of vehicle)
@@ -308,6 +337,69 @@ void virtual_kombi::update_loop() {
         this->tachometer.set_value(ms308.get_NMOT());
         this->engine_temp.set_value(ms608.get_T_MOT() - 40);
         this->fuel.set_value(50); // TODO fuel reading - Assume half tank
+
+        switch (gs418.get_FSC()) {
+            /*
+             * RAW: 32 - Blank ("") / BLANK
+			RAW: 49 - speed step "1" / ONE
+			RAW: 50 - speed step "2" / TWO
+			RAW: 51 - speed step "3" / THREE
+			RAW: 52 - speed step "4" / ​​FOUR
+			RAW: 53 - speed step "5" / FUENF
+			RAW: 54 - speed step "6" / SIX
+			RAW: 55 - speed step "7" / SEVEN
+			RAW: 65 - speed level "A" / A
+			RAW: 68 - speed step "D" / D
+			RAW: 70 - "F" / F error mark
+			RAW: 78 - speed step "N" / N
+			RAW: 80 - speed step "P" / P
+			RAW: 82 - speed step "R" / R
+			RAW: 255 - Passive value / SNV
+             */
+            case 49:
+                this->lcd->draw_gear_display(false, false, false, true, '1');
+                break;
+            case 50:
+                this->lcd->draw_gear_display(false, false, false, true, '2');
+                break;
+            case 51:
+                this->lcd->draw_gear_display(false, false, false, true, '3');
+                break;
+            case 52:
+                this->lcd->draw_gear_display(false, false, false, true, '4');
+                break;
+            case 53:
+                this->lcd->draw_gear_display(false, false, false, true, '5');
+                break;
+            case 54:
+                this->lcd->draw_gear_display(false, false, false, true, '6');
+                break;
+            case 55:
+                this->lcd->draw_gear_display(false, false, false, true, '7');
+                break;
+            case 65:
+                this->lcd->draw_gear_display(false, false, false, true, 'A');
+                break;
+            case 68:
+                this->lcd->draw_gear_display(false, false, false, true, 'D');
+                break;
+            case 70:
+                this->lcd->draw_gear_display(false, false, false, true, 'F');
+                break;
+            case 78: // N
+                this->lcd->draw_gear_display(false, false, true, false, 'D');
+                break;
+            case 80: // P
+                this->lcd->draw_gear_display(true, false, false, false, 'D');
+                break;
+            case 82: // R
+                this->lcd->draw_gear_display(false, true, false, false, 'D');
+                break;
+
+            case 32:
+            default:
+                break;
+        }
 
         this->abs_light.is_active = bs200.get_ABS_KL();
         this->esp_light.is_active = bs200.get_ESP_INFO_DL() | bs200.get_ESP_INFO_BL();

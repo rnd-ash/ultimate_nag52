@@ -48,6 +48,9 @@ void CAR_SIMULATOR::can_sim_thread() {
     CAN_FRAME tx;
     ezsa5.raw = 0x020024062D18181A;
     art258.raw =0x0000000000000000;
+
+    ezsa5.set_NAG_VH(true);
+    ezsa5.set_KSG_VH(false);
     //art258.set_ART_ERR(0);
     //art258.set_ART_INFO(true);
     ////art258.set_ART_WT(true);
@@ -93,7 +96,6 @@ void CAR_SIMULATOR::can_sim_thread() {
         TX_FRAME(art258)
         TX_FRAME(ewm230)
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
-        art258.set_ABST_R_OBJ(art258.get_ABST_R_OBJ() -1); // In yards
     }
 }
 

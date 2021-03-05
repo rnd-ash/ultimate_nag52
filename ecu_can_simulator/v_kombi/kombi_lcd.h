@@ -33,8 +33,8 @@ enum Justification {
     RIGHT
 };
 
-class kombi_lcd {
 
+class kombi_lcd {
 public:
     kombi_lcd(SDL_Renderer* r);
     SDL_Texture* get_texture();
@@ -45,8 +45,11 @@ public:
     void draw_text_small(char* txt, int row, Justification j, bool is_bold, bool is_highlighted);
     void draw_text_large(char* txt, int row, Justification j, bool is_bold, bool is_highlighted);
     void toggle_cc_display(bool state);
+    void draw_gear_display(bool p, bool r, bool n, bool d, char custom_d);
 private:
     bool show_cc = false;
+
+    void draw_box(int x, int y, int h, int w, bool filled);
     int draw_char_large(char x, int x_pos, int y_pos, bool is_bold, bool is_highlighted);
     int draw_char_small(char x, int x_pos, int y_pos, bool is_bold, bool is_highlighted);
     int draw_ascii(char c, ascii_table* t, int x_left, int y_bottom, bool is_highlighted);

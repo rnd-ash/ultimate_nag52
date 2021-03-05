@@ -66,8 +66,29 @@ class nag52 : public abstract_ecu {
 public:
     void setup();
     void simulate_tick();
+
+
+
+    float get_current_ratio();
 private:
+    bool limp_mode = false;
+
+    float curr_gear_ratio = 0.0;
     DriveProgramMode prog;
+
+    float n1 = 0;
+    float n3 = 0;
+
+    uint8_t tcc = 0; // Torque converter solenoid
+    uint8_t mpc = 0; // Modulating pressure solenoid
+    uint8_t spc = 0; // Shift pressure solenoid
+
+    uint8_t one_two = 0; // 1-2/4-5
+    uint8_t two_three = 0; // 2-3
+    uint8_t three_four = 0; // 3-4
+
+    void handle_btn_press();
+    bool handle_press = false;
 };
 
 

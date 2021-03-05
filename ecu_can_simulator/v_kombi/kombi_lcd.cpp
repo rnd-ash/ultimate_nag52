@@ -20,7 +20,7 @@ kombi_lcd::kombi_lcd(SDL_Renderer* r) {
     this->std = ascii_table(r, (char*)"v_kombi/img/lcd/ascii_small_std.png", 5, 7);
     this->std_bold = ascii_table(r, (char*)"v_kombi/img/lcd/ascii_big_std.png", 7, 10);
     this->large = ascii_table(r, (char*)"v_kombi/img/lcd/ascii_big_std.png", 7, 10);
-    this->large_bold = ascii_table(r, (char*)"v_kombi/img/lcd/ascii_big_std.png", 7, 10);
+    this->large_bold = ascii_table(r, (char*)"v_kombi/img/lcd/ascii_big_bold.png", 7, 10);
 }
 
 SDL_Texture *kombi_lcd::get_texture() {
@@ -138,7 +138,7 @@ int kombi_lcd::draw_ascii(char c, ascii_table *t, int x_left, int y_bottom, bool
                         state =!state;
                     }
                     //printf("(%d, %d) - (%d %d) - %d\n", x_pos, y_pos, x, y, state);
-                    if(state) {
+                    if (state != this->px_states[(IC_WIDTH_PX * y_pos) + x_pos]) {
                         this->px_states[(IC_WIDTH_PX * y_pos) + x_pos] = state;
                     }
                 }
@@ -187,5 +187,44 @@ int kombi_lcd::get_ascii_size(char* txt, ascii_table* t) {
 
 void kombi_lcd::toggle_cc_display(bool state) {
     this->show_cc = state;
+}
+
+#define WIDTH_CHAR 12
+void kombi_lcd::draw_gear_display(bool p, bool r, bool n, bool d, char custom_d) {
+
+    if (p) {
+        this->draw_box(4, IC_HEIGHT_TOP_PX + IC_HEIGHT_BOT_PX - 20, 14, 9, true);
+    }
+    this->draw_ascii('P', &this->large_bold, 5, IC_HEIGHT_TOP_PX+IC_HEIGHT_BOT_PX - 8, p);
+
+    if (r) {
+        this->draw_box(4+WIDTH_CHAR, IC_HEIGHT_TOP_PX + IC_HEIGHT_BOT_PX - 20, 14, 9, true);
+    }
+    this->draw_ascii('R', &this->large_bold, 5 + WIDTH_CHAR, IC_HEIGHT_TOP_PX + IC_HEIGHT_BOT_PX - 8, r);
+
+    if (n) {
+        this->draw_box(4+2*WIDTH_CHAR, IC_HEIGHT_TOP_PX + IC_HEIGHT_BOT_PX - 20, 14, 9, true);
+    }
+    this->draw_ascii('N', &this->large_bold, 5 + (2 * WIDTH_CHAR), IC_HEIGHT_TOP_PX + IC_HEIGHT_BOT_PX - 8, n);
+
+    if (d) {
+        this->draw_box(4+3*WIDTH_CHAR, IC_HEIGHT_TOP_PX + IC_HEIGHT_BOT_PX - 20, 14, 9, true);
+    }
+    this->draw_ascii(custom_d, &this->large_bold, 5+(3*WIDTH_CHAR), IC_HEIGHT_TOP_PX+IC_HEIGHT_BOT_PX - 8, d);
+}
+
+// (x,y) - Top left of box
+void kombi_lcd::draw_box(int x, int y, int h, int w, bool filled) {
+    // y_pos - bottom of the row
+    // x_pos - left of the image
+    for (int y_pos = y; y_pos < y + h; y_pos++) {
+        if (y_pos >= 0 && y_pos < IC_HEIGHT_TOP_PX+IC_HEIGHT_BOT_PX) {
+            for (int x_pos = x; x_pos < x + w; x_pos++) {
+                if (x_pos >= 0 && x_pos < IC_WIDTH_PX) {
+                    this->px_states[(IC_WIDTH_PX * y_pos) + x_pos] = true; //  TODO - OUTLINED  BOX
+                }
+            }
+        }
+    }
 }
 

@@ -24,6 +24,7 @@ public:
 private:
     float d_rpm;
     float curr_rpm;
+    float fuel_usage;
     uint8_t target_gear_lower;
     uint8_t target_gear_upper;
     bool active_aux_heater;

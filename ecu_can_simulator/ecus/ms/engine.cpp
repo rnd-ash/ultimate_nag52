@@ -34,6 +34,8 @@ void engine::simulate_tick() {
     ms608.set_T_MOT(coolant_temp + 40);
     ms308.set_NMOT((short)this->curr_rpm);
     ms308.set_UEHITZ(oil_temp > 120);
+    ms608.set_VB((short)(this->fuel_usage*2));
+
 
     this->curr_rpm += this->d_rpm;
 
@@ -42,13 +44,13 @@ void engine::simulate_tick() {
     }
 
     if (this->pedal_press && this->curr_rpm < REDLINE_RPM && this->d_rpm < 15) {
-        this->d_rpm += 0.05 * this->pedal_percentage;
+        this->d_rpm += 0.05 * this->pedal_percentage * 2;
     } else if (this->curr_rpm >= REDLINE_RPM && d_rpm > 0) {
-        this->d_rpm -= 0.5;
+        this->d_rpm -= 1;
     } else if (this->curr_rpm > IDLE_RPM && d_rpm > -10) {
-        this->d_rpm -= 0.2;
+        this->d_rpm -= 0.5;
     }
-    printf("CURR RPM: %.1f\n", this->curr_rpm);
+    //printf("CURR RPM: %.1f\n", this->curr_rpm);
 
 
 }
