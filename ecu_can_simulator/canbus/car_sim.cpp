@@ -12,6 +12,8 @@
 #include "EZS_A5.h"
 EZS_A5 ezsa5; // For variant testing!
 
+CAR_SIMULATOR *sim = nullptr;
+
 std::string fmt_frame(CAN_FRAME *f) {
     char buf[150] = {0x00};
     int pos = sprintf(buf, "0x%04X - [", f->id);
@@ -41,8 +43,10 @@ void CAR_SIMULATOR::init() {
     this->thread_exec = true;
     this->can_thread = std::thread(&CAR_SIMULATOR::can_sim_thread, this);
     this->sim_thread = std::thread(&CAR_SIMULATOR::ecu_sim_thread, this);
+    sim = this;
 }
 
+uint8_t distance = 50;
 void CAR_SIMULATOR::can_sim_thread() {
     printf("CAN sender thread starting!\n");
     CAN_FRAME tx;
@@ -62,7 +66,7 @@ void CAR_SIMULATOR::can_sim_thread() {
     //art258.set_V_ART(50);
     //art258.set_ART_DSPL_EIN(true);
     //art258.set_OBJ_ERK(true);
-    ////art258.set_ABST_R_OBJ(100); // In yards
+    //art258.set_ABST_R_OBJ(distance); // In yards
     //art258.set_V_ZIEL(10);
     //art258.set_ART_ABW_AKT(true);
     //art258.set_AAS_LED_BL(true);

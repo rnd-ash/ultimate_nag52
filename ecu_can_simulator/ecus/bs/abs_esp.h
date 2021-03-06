@@ -9,12 +9,12 @@
 #include "../abstract_ecu.h"
 #include "../extern_frames.h"
 
-#define WHEEL_DIAMETER =
+
+
+extern short output_shaft_rpm; // Pre differential
 
 class abs_esp : public abstract_ecu {
-
     void simulate_tick();
-
 public:
     void setup();
 };

@@ -7,6 +7,7 @@
 
 #include "../abstract_ecu.h"
 #include "../extern_frames.h"
+#include "nag_iface.h"
 
 // W5A580 - Max torque 580Nm
 // W5A330 - Max torque 330Nm
@@ -39,6 +40,40 @@ enum class DriveProgramMode {
     Fail // F marker
 };
 
+enum V_GEAR {
+    PARK,
+    REV_1,
+    REV_2,
+    NEUTRAL,
+    D_1,
+    D_2,
+    D_3,
+    D_4,
+    D_5
+};
+
+class virtual_nag_iface : public nag_iface {
+public:
+    int get_n2_rpm() override; // 1, 2, 3, 4, 5
+    int get_n3_rpm() override; // 2, 3, 4, R1, R2
+
+    int get_oil_temp() override;
+
+    int get_vbatt_mv() override; // Battery voltage (mv)
+
+    void set_tcc(uint8_t pwm) override; // TCC pressure
+    void set_mpc(uint8_t pwm) override; // Modulating pressure
+    void set_spc(uint8_t pwm) override; // Shift pressure
+
+    void set_one_two(uint8_t pwm) override; // 1-2 / 4-5
+    void set_two_three(uint8_t pwm) override; // 2-3
+    void set_three_four(uint8_t pwm) override; // 3-4
+
+    void set_ewm_position(int g);
+private:
+    V_GEAR virtual_gear = V_GEAR::PARK;
+};
+
 /*
  * http://ftp.hamsk.ru/auto/W210/AKPP%20Mercedes-Manual.pdf
  *
@@ -66,30 +101,31 @@ class nag52 : public abstract_ecu {
 public:
     void setup();
     void simulate_tick();
-
-
-
-    float get_current_ratio();
 private:
+
+    virtual_nag_iface iface;
+
     bool limp_mode = false;
 
-    float curr_gear_ratio = 0.0;
+    int curr_fwd_gear = 0;
     DriveProgramMode prog;
 
-    float n1 = 0;
-    float n3 = 0;
+    int last_rpm = 0;
 
-    uint8_t tcc = 0; // Torque converter solenoid
-    uint8_t mpc = 0; // Modulating pressure solenoid
-    uint8_t spc = 0; // Shift pressure solenoid
 
-    uint8_t one_two = 0; // 1-2/4-5
-    uint8_t two_three = 0; // 2-3
-    uint8_t three_four = 0; // 3-4
+    bool upshift();
+    bool downshift();
+
+    float get_gear_ratio();
+
+    int force_engine_rpm();
 
     void handle_btn_press();
     bool handle_press = false;
 };
+
+
+
 
 
 #endif //ECU_CAN_SIMULATOR_NAG52_H

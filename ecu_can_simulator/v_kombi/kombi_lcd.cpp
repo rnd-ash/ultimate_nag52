@@ -79,19 +79,18 @@ void kombi_lcd::draw_time() {
     int m = 13;
 
     // draw colon in center
-    this->draw_char_large(':', (IC_WIDTH_PX/2)-1, 11*12, false, false);
+    this->draw_char_large(':', (IC_WIDTH_PX/2)-1, 11*12+3, false, false);
     int h_start = IC_WIDTH_PX/2+1;
     sprintf(buf, "%02d", h); // Tmp time
     for (const char &x : buf) {
-        h_start += this->draw_char_large(x, h_start, 11*12, false, false) + 1;
+        h_start += this->draw_char_large(x, h_start, 11*12+3, false, false) + 1;
     }
     sprintf(buf, "%02d", m); // Tmp time
     h_start = IC_WIDTH_PX/2-1 - get_ascii_size(buf, &this->large) -3;
     sprintf(buf, "%02d", h); // Tmp time
     for (const char &x : buf) {
-        h_start += this->draw_char_large(x, h_start, 11*12, false, false) + 1;
+        h_start += this->draw_char_large(x, h_start, 11*12+3, false, false) + 1;
     }
-    //this->draw_text_large(buf, 11, Justification::CENTER, false, false);
 }
 
 void kombi_lcd::clear_screen() {
@@ -190,7 +189,7 @@ void kombi_lcd::toggle_cc_display(bool state) {
 }
 
 #define WIDTH_CHAR 12
-void kombi_lcd::draw_gear_display(bool p, bool r, bool n, bool d, char custom_d) {
+void kombi_lcd::draw_gear_display(bool p, bool r, bool n, bool d, char custom_d, char drive_prog) {
 
     if (p) {
         this->draw_box(4, IC_HEIGHT_TOP_PX + IC_HEIGHT_BOT_PX - 20, 14, 9, true);
@@ -211,6 +210,11 @@ void kombi_lcd::draw_gear_display(bool p, bool r, bool n, bool d, char custom_d)
         this->draw_box(4+3*WIDTH_CHAR, IC_HEIGHT_TOP_PX + IC_HEIGHT_BOT_PX - 20, 14, 9, true);
     }
     this->draw_ascii(custom_d, &this->large_bold, 5+(3*WIDTH_CHAR), IC_HEIGHT_TOP_PX+IC_HEIGHT_BOT_PX - 8, d);
+
+    char test[2] = {drive_prog, 0x00};
+    int prog_width = this->get_ascii_size(test, &this->large);
+    this->draw_box(IC_WIDTH_PX-15, IC_HEIGHT_TOP_PX + IC_HEIGHT_BOT_PX - 20, 14, prog_width+4, false);
+    this->draw_ascii(drive_prog, &this->large, IC_WIDTH_PX-14+1, IC_HEIGHT_TOP_PX+IC_HEIGHT_BOT_PX - 8, false);
 }
 
 // (x,y) - Top left of box
@@ -221,7 +225,18 @@ void kombi_lcd::draw_box(int x, int y, int h, int w, bool filled) {
         if (y_pos >= 0 && y_pos < IC_HEIGHT_TOP_PX+IC_HEIGHT_BOT_PX) {
             for (int x_pos = x; x_pos < x + w; x_pos++) {
                 if (x_pos >= 0 && x_pos < IC_WIDTH_PX) {
-                    this->px_states[(IC_WIDTH_PX * y_pos) + x_pos] = true; //  TODO - OUTLINED  BOX
+                    if (filled) {
+                        this->px_states[(IC_WIDTH_PX * y_pos) + x_pos] = true;
+                    } else {
+                        // Top / bottom of box
+                        if (y_pos == y || y_pos == y + h - 1) {
+                            this->px_states[(IC_WIDTH_PX * y_pos) + x_pos] = true;
+                        } else {
+                            if (x_pos == x || x_pos == x + w - 1) {
+                                this->px_states[(IC_WIDTH_PX * y_pos) + x_pos] = true;
+                            }
+                        }
+                    }
                 }
             }
         }

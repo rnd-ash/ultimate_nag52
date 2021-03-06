@@ -338,69 +338,111 @@ void virtual_kombi::update_loop() {
         this->engine_temp.set_value(ms608.get_T_MOT() - 40);
         this->fuel.set_value(50); // TODO fuel reading - Assume half tank
 
-        switch (gs418.get_FSC()) {
-            /*
-             * RAW: 32 - Blank ("") / BLANK
-			RAW: 49 - speed step "1" / ONE
-			RAW: 50 - speed step "2" / TWO
-			RAW: 51 - speed step "3" / THREE
-			RAW: 52 - speed step "4" / ​​FOUR
-			RAW: 53 - speed step "5" / FUENF
-			RAW: 54 - speed step "6" / SIX
-			RAW: 55 - speed step "7" / SEVEN
-			RAW: 65 - speed level "A" / A
-			RAW: 68 - speed step "D" / D
-			RAW: 70 - "F" / F error mark
-			RAW: 78 - speed step "N" / N
-			RAW: 80 - speed step "P" / P
-			RAW: 82 - speed step "R" / R
-			RAW: 255 - Passive value / SNV
-             */
-            case 49:
-                this->lcd->draw_gear_display(false, false, false, true, '1');
+        char prog = ' ';
+        switch(gs418.get_FPC()) {
+            case DrivingProgram::W:
+            case DrivingProgram::W_MGN:
+            case DrivingProgram::W_MGW:
+                prog = 'W';
                 break;
-            case 50:
-                this->lcd->draw_gear_display(false, false, false, true, '2');
+            case DrivingProgram::S:
+            case DrivingProgram::S_MCFB_WT:
+            case DrivingProgram::S_MGBB:
+            case DrivingProgram::S_MGGEA:
+            case DrivingProgram::S_MGN:
+            case DrivingProgram::S_MGSNN:
+            case DrivingProgram::S_MGW:
+            case DrivingProgram::S_MGZSN:
+                prog = 'S';
                 break;
-            case 51:
-                this->lcd->draw_gear_display(false, false, false, true, '3');
+            case DrivingProgram::C:
+            case DrivingProgram::C_MCFB_WT:
+            case DrivingProgram::C_MGBB:
+            case DrivingProgram::C_MGGEA:
+            case DrivingProgram::C_MGN:
+            case DrivingProgram::C_MGSNN:
+            case DrivingProgram::C_MGW:
+            case DrivingProgram::C_MGZSN:
+                prog = 'C';
                 break;
-            case 52:
-                this->lcd->draw_gear_display(false, false, false, true, '4');
+            case DrivingProgram::M:
+            case DrivingProgram::M_MGW:
+            case DrivingProgram::M_MGN:
+                prog = 'M';
                 break;
-            case 53:
-                this->lcd->draw_gear_display(false, false, false, true, '5');
+            case DrivingProgram::UP:
+                prog = '^';
                 break;
-            case 54:
-                this->lcd->draw_gear_display(false, false, false, true, '6');
+            case DrivingProgram::DOWN:
+                prog = 'v';
                 break;
-            case 55:
-                this->lcd->draw_gear_display(false, false, false, true, '7');
+            case DrivingProgram::U:
+            case DrivingProgram::U_MGN:
+            case DrivingProgram::U_MGW:
+                prog = '_';
                 break;
-            case 65:
-                this->lcd->draw_gear_display(false, false, false, true, 'A');
+            case DrivingProgram::A:
+            case DrivingProgram::A_MCFB_WT:
+            case DrivingProgram::A_MGBB:
+            case DrivingProgram::A_MGGEA:
+            case DrivingProgram::A_MGN:
+            case DrivingProgram::A_MGSNN:
+            case DrivingProgram::A_MGW:
+            case DrivingProgram::A_MGZSN:
+                prog = 'A';
                 break;
-            case 68:
-                this->lcd->draw_gear_display(false, false, false, true, 'D');
+            case DrivingProgram::F:
+            case DrivingProgram::F_MGW:
+                prog = 'F';
                 break;
-            case 70:
-                this->lcd->draw_gear_display(false, false, false, true, 'F');
-                break;
-            case 78: // N
-                this->lcd->draw_gear_display(false, false, true, false, 'D');
-                break;
-            case 80: // P
-                this->lcd->draw_gear_display(true, false, false, false, 'D');
-                break;
-            case 82: // R
-                this->lcd->draw_gear_display(false, true, false, false, 'D');
-                break;
-
-            case 32:
             default:
                 break;
         }
 
+        switch (gs418.get_FSC()) { // Get text to be displays in the 'D' slot
+            case 49: // D (Drive - range restrict 1st gear)
+                this->lcd->draw_gear_display(false, false, false, true, '1', prog);
+                break;
+            case 50: // D (Drive - range restrict 2nd gear)
+                this->lcd->draw_gear_display(false, false, false, true, '2', prog);
+                break;
+            case 51: // D (Drive - range restrict 3rd gear)
+                this->lcd->draw_gear_display(false, false, false, true, '3', prog);
+                break;
+            case 52: // D (Drive - range restrict 4th gear)
+                this->lcd->draw_gear_display(false, false, false, true, '4', prog);
+                break;
+            case 53: // D (Drive - range restrict 5th gear)
+                this->lcd->draw_gear_display(false, false, false, true, '5', prog);
+                break;
+            case 54: // D (Drive - range restrict 6th gear)
+                this->lcd->draw_gear_display(false, false, false, true, '6', prog);
+                break;
+            case 55: // D (Drive - range restrict 7th gear)
+                this->lcd->draw_gear_display(false, false, false, true, '7', prog);
+                break;
+            case 65: // A (Drive - All wheel drive)
+                this->lcd->draw_gear_display(false, false, false, true, 'A', prog);
+                break;
+            case 68: // D (Drive - Normal)
+                this->lcd->draw_gear_display(false, false, false, true, 'D', prog);
+                break;
+            case 70: // F (Failed gearbox)
+                this->lcd->draw_gear_display(false, false, false, true, 'F', prog);
+                break;
+            case 78: // N (Neutral)
+                this->lcd->draw_gear_display(false, false, true, false, 'D', prog);
+                break;
+            case 80: // P (Park)
+                this->lcd->draw_gear_display(true, false, false, false, 'D', prog);
+                break;
+            case 82: // R (Reverse)
+                this->lcd->draw_gear_display(false, true, false, false, 'D', prog);
+                break;
+            case 32: // Blank
+            default: // SNV (Signal not available)
+                break;
+        }
         this->abs_light.is_active = bs200.get_ABS_KL();
         this->esp_light.is_active = bs200.get_ESP_INFO_DL() | bs200.get_ESP_INFO_BL();
 

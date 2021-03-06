@@ -21,8 +21,10 @@ public:
     void simulate_tick();
     void press_pedal();
     void release_pedal();
+    void force_set_rpm(short rpm, float ratio);
 private:
     float d_rpm;
+    float d_rpm_drag = 1;
     float curr_rpm;
     float fuel_usage;
     uint8_t target_gear_lower;

@@ -45,7 +45,7 @@ public:
     void draw_text_small(char* txt, int row, Justification j, bool is_bold, bool is_highlighted);
     void draw_text_large(char* txt, int row, Justification j, bool is_bold, bool is_highlighted);
     void toggle_cc_display(bool state);
-    void draw_gear_display(bool p, bool r, bool n, bool d, char custom_d);
+    void draw_gear_display(bool p, bool r, bool n, bool d, char custom_d, char drive_prog);
 private:
     bool show_cc = false;
 

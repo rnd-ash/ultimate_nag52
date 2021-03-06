@@ -11,6 +11,7 @@
 
 
 
+
 #define TX_FRAME(f) \
 {                    \
 f.export_frame(tx); \
@@ -49,6 +50,8 @@ private:
     std::thread sim_thread;
     std::thread can_thread;
 };
+
+extern CAR_SIMULATOR *sim;
 
 // Misc functions to help with printing data!
 
