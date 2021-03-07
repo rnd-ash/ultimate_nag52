@@ -37,18 +37,18 @@ void engine::simulate_tick() {
     ms608.set_VB((short)(this->fuel_usage*2));
 
 
-    this->curr_rpm += this->d_rpm;
+    this->curr_rpm += this->d_rpm * d_rpm_drag;
 
     if (this->curr_rpm < IDLE_RPM) {
         this->d_rpm = IDLE_RPM - this->curr_rpm;
     }
 
     if (this->pedal_press && this->curr_rpm < REDLINE_RPM && this->d_rpm < 15) {
-        this->d_rpm += 0.05 * this->pedal_percentage * 2 * d_rpm_drag;
+        this->d_rpm += 0.05 * this->pedal_percentage;
     } else if (this->curr_rpm >= REDLINE_RPM && d_rpm > 0) {
-        this->d_rpm -= 1 * d_rpm_drag;
+        this->d_rpm -= 1;
     } else if (this->curr_rpm > IDLE_RPM && d_rpm > -10) {
-        this->d_rpm -= 0.5 * d_rpm_drag;
+        this->d_rpm -= 0.5;
     }
     //printf("CURR RPM: %.1f\n", this->curr_rpm);
 
@@ -69,6 +69,6 @@ void engine::release_pedal() {
 void engine::force_set_rpm(short rpm, float ratio) {
     this->curr_rpm = (float)rpm;
     this->d_rpm = 0;
-    this->d_rpm_drag = ratio;
+    this->d_rpm_drag = ratio / 5;
     this->pedal_percentage /= 4;
 }
