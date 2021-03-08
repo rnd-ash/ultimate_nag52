@@ -6,6 +6,8 @@
 #include "nag52.h"
 #include "../../canbus/car_sim.h"
 
+//#define UPSHIFT_ON_REDLINE // Comment out for redline bounding in drive and manual mode!
+
 void nag52::setup() {
     gs418.raw = 0x504D7404DD00C000;
     gs218.raw = 0x0000DD4923003060;
@@ -25,21 +27,61 @@ void nag52::simulate_tick() {
 
     output_shaft_rpm = this->iface.get_n2_rpm();
 
+    int downshift_threshold = 2000;
+    int upshift_threshold = 2500;
+
+    if (prog == DriveProgramMode::Comfort) {
+        upshift_threshold = 2000;
+        downshift_threshold = 1200;
+    } else if (prog == DriveProgramMode::Sport) {
+        upshift_threshold = 3000;
+        downshift_threshold = 1200;
+    } else if (prog == DriveProgramMode::Agility) {
+        upshift_threshold = 3700;
+        downshift_threshold = 2200;
+    } else if (prog == DriveProgramMode::Manual) {
+#ifdef UPSHIFT_ON_REDLINE
+        upshift_threshold = REDLINE_RPM;
+#else
+        upshift_threshold = 9999; // Basically, don't upshift on redline
+#endif
+        downshift_threshold = 1000;
+    }
+
+
+
+
     int curr_rpm = ms308.get_NMOT();
-    if (this->last_rpm > curr_rpm) { // Car is slower
-        if (ms308.get_NMOT() < 1500 && ewm230.get_WHC() == WHC::GS_D) {
-            if(downshift()) {
-                sim->get_engine()->force_set_rpm(this->force_engine_rpm(), this->get_gear_ratio());
+    if (this->prog != DriveProgramMode::Manual) {
+        if (this->last_rpm > curr_rpm) { // Car is slower
+            if (ms308.get_NMOT() < downshift_threshold && ewm230.get_WHC() == WHC::GS_D) {
+                if (downshift()) {
+                    sim->get_engine()->force_set_rpm(this->force_engine_rpm(), this->get_gear_ratio());
+                }
+            }
+        } else { // Car is faster
+            if (ms308.get_NMOT() > upshift_threshold && ewm230.get_WHC() == WHC::GS_D) {
+                if (upshift()) {
+                    sim->get_engine()->force_set_rpm(this->force_engine_rpm(), this->get_gear_ratio());
+                }
             }
         }
-    } else { // Car is faster
-        if (ms308.get_NMOT() > 3000 && ewm230.get_WHC() == WHC::GS_D) {
-            if(upshift()) {
+    } else {
+        // Manual mode, just check bounds
+        if (ms308.get_NMOT() > upshift_threshold) {
+            if (upshift()) {
+                sim->get_engine()->force_set_rpm(this->force_engine_rpm(), this->get_gear_ratio());
+            }
+        } else if (ms308.get_NMOT() <= downshift_threshold) {
+            if (downshift()) {
                 sim->get_engine()->force_set_rpm(this->force_engine_rpm(), this->get_gear_ratio());
             }
         }
     }
     this->last_rpm = curr_rpm;
+
+    bool show_upshift = prog == DriveProgramMode::Manual && curr_rpm >= REDLINE_RPM-500 && this->curr_fwd_gear < 5;
+    bool show_downshift = prog == DriveProgramMode::Manual && curr_rpm <= 1500 && this->curr_fwd_gear > 1;
 
     switch(ewm230.get_WHC()) {
         case GS_P:
@@ -50,8 +92,20 @@ void nag52::simulate_tick() {
         case GS_D:
         case GS_PLUS:
         case GS_MINUS:
+            if (this->curr_fwd_gear == 1) {
+                gs418.set_FSC(49);
+            } else if (this->curr_fwd_gear == 2) {
+                gs418.set_FSC(50);
+            } else if (this->curr_fwd_gear == 3) {
+                gs418.set_FSC(51);
+            } else if (this->curr_fwd_gear == 4) {
+                gs418.set_FSC(52);
+            } else if (this->curr_fwd_gear == 5) {
+                gs418.set_FSC(53);
+            }else {
+                gs418.set_FSC(68);
+            }
             gs418.set_WHST(4);
-            gs418.set_FSC(68); // TODO - Range restrict mode
             this->iface.set_ewm_position(3);
             break;
         case GS_N:
@@ -73,24 +127,31 @@ void nag52::simulate_tick() {
     }
 
     // IC only listens to FSC value (Not sure about the rest of the car)
-    switch(this->prog) {
-        case DriveProgramMode::Sport:
-            gs418.set_FPC(DrivingProgram::S);
-            break;
-        case DriveProgramMode::Comfort:
-            gs418.set_FPC(DrivingProgram::C);
-            break;
-        case DriveProgramMode::Agility:
-            gs418.set_FPC(DrivingProgram::A);
-            break;
-        case DriveProgramMode::Manual:
-            gs418.set_FPC(DrivingProgram::M);
-            break;
-        case DriveProgramMode::Fail:
-            gs418.set_FPC(DrivingProgram::F);
-            break;
-        default:
-            break;
+
+    if (show_upshift) {
+        gs418.set_FPC(DrivingProgram::UP);
+    } else  if (show_downshift) {
+        gs418.set_FPC(DrivingProgram::DOWN);
+    } else {
+        switch (this->prog) {
+            case DriveProgramMode::Sport:
+                gs418.set_FPC(DrivingProgram::S);
+                break;
+            case DriveProgramMode::Comfort:
+                gs418.set_FPC(DrivingProgram::C);
+                break;
+            case DriveProgramMode::Agility:
+                gs418.set_FPC(DrivingProgram::A);
+                break;
+            case DriveProgramMode::Manual:
+                gs418.set_FPC(DrivingProgram::M);
+                break;
+            case DriveProgramMode::Fail:
+                gs418.set_FPC(DrivingProgram::F);
+                break;
+            default:
+                break;
+        }
     }
     if (ewm230.get_FPT()) {
         this->handle_btn_press();
@@ -222,6 +283,52 @@ float nag52::get_gear_ratio() {
             return D5_RAT;
         default:
             return 1.0;
+    }
+}
+
+void nag52::request_upshift_release() {
+    this->up_pressed = false;
+}
+
+void nag52::request_downshift_release() {
+    this->down_pressed = false;
+}
+
+// Manual up/downshift logic is a bit different
+// We have to check if the NEXT gear is within range before switching
+void nag52::request_upshift_press() {
+    if (this->curr_fwd_gear == 5) {
+        return;
+    }
+    if (!up_pressed) {
+        int tmp = this->curr_fwd_gear;
+        this->curr_fwd_gear += 1;
+        float rat = this->get_gear_ratio();
+        this->curr_fwd_gear = tmp;
+        if (output_shaft_rpm * rat > 1200) {
+            if (upshift()) {
+                up_pressed = true;
+                sim->get_engine()->force_set_rpm(this->force_engine_rpm(), this->get_gear_ratio());
+           }
+        }
+    }
+}
+
+void nag52::request_downshift_press() {
+    if (this->curr_fwd_gear == 1) {
+        return;
+    }
+    if (!down_pressed) {
+        int tmp = this->curr_fwd_gear;
+        this->curr_fwd_gear -= 1;
+        float rat = this->get_gear_ratio();
+        this->curr_fwd_gear = tmp;
+        if (output_shaft_rpm * rat <= REDLINE_RPM) {
+            if (downshift()) {
+                this->down_pressed = true;
+                sim->get_engine()->force_set_rpm(this->force_engine_rpm(), this->get_gear_ratio());
+            }
+        }
     }
 }
 

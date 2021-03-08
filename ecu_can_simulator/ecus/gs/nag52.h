@@ -101,8 +101,16 @@ class nag52 : public abstract_ecu {
 public:
     void setup();
     void simulate_tick();
-private:
 
+    void request_upshift_press();
+    void request_downshift_press();
+
+    void request_upshift_release();
+    void request_downshift_release();
+
+private:
+    bool up_pressed = false;
+    bool down_pressed = false;
     virtual_nag_iface iface;
 
     bool limp_mode = false;

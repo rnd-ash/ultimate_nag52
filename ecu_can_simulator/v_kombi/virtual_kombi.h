@@ -31,9 +31,9 @@ private:
     kombiPart img;
     SDL_Point rotation;
     double min_angle;
-    int min_value_raw;
+    double min_value_raw;
     double max_angle;
-    int max_value_raw;
+    double max_value_raw;
     double curr_angle;
     double target_angle;
     double curr_shown_value;
@@ -42,7 +42,7 @@ private:
     double last_angle;
     bool speedup;
     bool slowdown;
-    int target_raw;
+    double target_raw;
 };
 
 class virtual_kombi {

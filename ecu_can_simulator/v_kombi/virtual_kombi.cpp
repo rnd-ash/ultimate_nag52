@@ -281,6 +281,12 @@ void virtual_kombi::update() {
             case SDLK_l:
                 if(!move_applied) { move_applied = true; sim->get_ewm()->apply_force(MOVE_DIR::RIGHT); }
                 break;
+            case SDLK_p:
+                this->sim->get_nag52()->request_upshift_press();
+                break;
+            case SDLK_o:
+                this->sim->get_nag52()->request_downshift_press();
+                break;
             default:
                 break;
         }
@@ -298,6 +304,12 @@ void virtual_kombi::update() {
             case SDLK_l:
                 move_applied = false;
                 sim->get_ewm()->apply_force(MOVE_DIR::NONE);
+                break;
+            case SDLK_p:
+                this->sim->get_nag52()->request_upshift_release();
+                break;
+            case SDLK_o:
+                this->sim->get_nag52()->request_downshift_release();
                 break;
             default:
                 break;

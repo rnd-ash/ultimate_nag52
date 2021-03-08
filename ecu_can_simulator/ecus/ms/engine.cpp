@@ -55,6 +55,9 @@ void engine::simulate_tick() {
 }
 
 void engine::press_pedal() {
+    if (this->d_rpm < 0) {
+        this->d_rpm = 0;
+    }
     this->pedal_press = true;
     if(this->pedal_percentage < 100) {
         this->pedal_percentage++;
