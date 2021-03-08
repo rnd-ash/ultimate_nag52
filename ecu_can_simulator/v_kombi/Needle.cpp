@@ -51,16 +51,30 @@ void Needle::update_motor() {
     // TODO we want a nice ease in-out function to apply to the motor needles
     // to minic the worm gears speeding up and slowing down that drive the needles
     // for now, Linear animation is good enough
+    if (this->target_angle == this->curr_angle) {
+        this->d_rot = 0;
+        return;
+    }
 
-    double min_delta = 1.0;
-    if (abs(target_angle-curr_angle) < 1.0) {
-        min_delta / 10;
+    float delta = abs(target_angle-curr_angle);
+
+    if (delta > 5.0) {
+        if (this->d_rot < 3.0) {
+            this->d_rot += 0.25;
+        }
+    } else {
+        // Should decrease speed!
+        if (delta > 10) {
+            this->d_rot -= 0.4;
+        } else {
+            this->d_rot = delta;
+        }
     }
 
     if (this->target_angle > this->curr_angle) {
-        this->curr_angle += std::fmin(min_delta, target_angle-curr_angle);
+        this->curr_angle += d_rot;
     } else if (this->target_angle < this->curr_angle) {
-        this->curr_angle -= std::fmin(min_delta, curr_angle-target_angle);
+        this->curr_angle -= d_rot;
     }
 }
 
