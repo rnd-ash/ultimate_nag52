@@ -1,0 +1,173 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CodeBlocks_project_file>
+	<FileVersion major="1" minor="6"/>
+	<Project>
+		<Option title="ecu_can_simulator"/>
+		<Option makefile_is_custom="1"/>
+		<Option compiler="gcc"/>
+		<Option virtualFolders="CMake Files\;CMake Files\..\;CMake Files\..\..\;CMake Files\..\..\..\;CMake Files\..\..\..\..\;CMake Files\..\..\..\..\usr\;CMake Files\..\..\..\..\usr\lib64\;CMake Files\..\..\..\..\usr\lib64\cmake\;CMake Files\..\..\..\..\usr\lib64\cmake\SDL2\;"/>
+		<Build>
+			<Target title="all">
+				<Option working_dir="/home/ashcon/code/ultimate_nag52/cmake-build-debug"/>
+				<Option type="4"/>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j12 -f &quot;/home/ashcon/code/ultimate_nag52/cmake-build-debug/Makefile&quot;  VERBOSE=1 all"/>
+					<CompileFile command="/usr/bin/make -j12 -f &quot;/home/ashcon/code/ultimate_nag52/cmake-build-debug/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j12 -f &quot;/home/ashcon/code/ultimate_nag52/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j12 -f &quot;/home/ashcon/code/ultimate_nag52/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="rebuild_cache">
+				<Option working_dir="/home/ashcon/code/ultimate_nag52/cmake-build-debug"/>
+				<Option type="4"/>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j12 -f &quot;/home/ashcon/code/ultimate_nag52/cmake-build-debug/Makefile&quot;  VERBOSE=1 rebuild_cache"/>
+					<CompileFile command="/usr/bin/make -j12 -f &quot;/home/ashcon/code/ultimate_nag52/cmake-build-debug/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j12 -f &quot;/home/ashcon/code/ultimate_nag52/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j12 -f &quot;/home/ashcon/code/ultimate_nag52/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="edit_cache">
+				<Option working_dir="/home/ashcon/code/ultimate_nag52/cmake-build-debug"/>
+				<Option type="4"/>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j12 -f &quot;/home/ashcon/code/ultimate_nag52/cmake-build-debug/Makefile&quot;  VERBOSE=1 edit_cache"/>
+					<CompileFile command="/usr/bin/make -j12 -f &quot;/home/ashcon/code/ultimate_nag52/cmake-build-debug/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j12 -f &quot;/home/ashcon/code/ultimate_nag52/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j12 -f &quot;/home/ashcon/code/ultimate_nag52/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="ecu_can_simulator">
+				<Option output="/home/ashcon/code/ultimate_nag52/cmake-build-debug/ecu_can_simulator" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/home/ashcon/code/ultimate_nag52/cmake-build-debug"/>
+				<Option object_output="./"/>
+				<Option type="1"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add directory="/usr/lib/gcc/x86_64-pc-linux-gnu/10.2.0/../../../../include/c++/10.2.0"/>
+					<Add directory="/usr/lib/gcc/x86_64-pc-linux-gnu/10.2.0/../../../../include/c++/10.2.0/x86_64-pc-linux-gnu"/>
+					<Add directory="/usr/lib/gcc/x86_64-pc-linux-gnu/10.2.0/../../../../include/c++/10.2.0/backward"/>
+					<Add directory="/usr/lib/gcc/x86_64-pc-linux-gnu/10.2.0/include"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/usr/lib/gcc/x86_64-pc-linux-gnu/10.2.0/include-fixed"/>
+					<Add directory="/usr/include"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j12 -f &quot;/home/ashcon/code/ultimate_nag52/cmake-build-debug/Makefile&quot;  VERBOSE=1 ecu_can_simulator"/>
+					<CompileFile command="/usr/bin/make -j12 -f &quot;/home/ashcon/code/ultimate_nag52/cmake-build-debug/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j12 -f &quot;/home/ashcon/code/ultimate_nag52/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j12 -f &quot;/home/ashcon/code/ultimate_nag52/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="ecu_can_simulator/fast">
+				<Option output="/home/ashcon/code/ultimate_nag52/cmake-build-debug/ecu_can_simulator" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/home/ashcon/code/ultimate_nag52/cmake-build-debug"/>
+				<Option object_output="./"/>
+				<Option type="1"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add directory="/usr/lib/gcc/x86_64-pc-linux-gnu/10.2.0/../../../../include/c++/10.2.0"/>
+					<Add directory="/usr/lib/gcc/x86_64-pc-linux-gnu/10.2.0/../../../../include/c++/10.2.0/x86_64-pc-linux-gnu"/>
+					<Add directory="/usr/lib/gcc/x86_64-pc-linux-gnu/10.2.0/../../../../include/c++/10.2.0/backward"/>
+					<Add directory="/usr/lib/gcc/x86_64-pc-linux-gnu/10.2.0/include"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/usr/lib/gcc/x86_64-pc-linux-gnu/10.2.0/include-fixed"/>
+					<Add directory="/usr/include"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j12 -f &quot;/home/ashcon/code/ultimate_nag52/cmake-build-debug/Makefile&quot;  VERBOSE=1 ecu_can_simulator/fast"/>
+					<CompileFile command="/usr/bin/make -j12 -f &quot;/home/ashcon/code/ultimate_nag52/cmake-build-debug/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j12 -f &quot;/home/ashcon/code/ultimate_nag52/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j12 -f &quot;/home/ashcon/code/ultimate_nag52/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+		</Build>
+		<Unit filename="/home/ashcon/code/ultimate_nag52/simulator/canbus/car_sim.cpp">
+			<Option target="ecu_can_simulator"/>
+		</Unit>
+		<Unit filename="/home/ashcon/code/ultimate_nag52/simulator/canbus/car_sim.h">
+			<Option target="ecu_can_simulator"/>
+		</Unit>
+		<Unit filename="/home/ashcon/code/ultimate_nag52/simulator/canbus/esp32_forwarder.cpp">
+			<Option target="ecu_can_simulator"/>
+		</Unit>
+		<Unit filename="/home/ashcon/code/ultimate_nag52/simulator/canbus/esp32_forwarder.h">
+			<Option target="ecu_can_simulator"/>
+		</Unit>
+		<Unit filename="/home/ashcon/code/ultimate_nag52/simulator/ecus/abstract_ecu.cpp">
+			<Option target="ecu_can_simulator"/>
+		</Unit>
+		<Unit filename="/home/ashcon/code/ultimate_nag52/simulator/ecus/abstract_ecu.h">
+			<Option target="ecu_can_simulator"/>
+		</Unit>
+		<Unit filename="/home/ashcon/code/ultimate_nag52/simulator/ecus/bs/abs_esp.cpp">
+			<Option target="ecu_can_simulator"/>
+		</Unit>
+		<Unit filename="/home/ashcon/code/ultimate_nag52/simulator/ecus/bs/abs_esp.h">
+			<Option target="ecu_can_simulator"/>
+		</Unit>
+		<Unit filename="/home/ashcon/code/ultimate_nag52/simulator/ecus/ewm/ewm.cpp">
+			<Option target="ecu_can_simulator"/>
+		</Unit>
+		<Unit filename="/home/ashcon/code/ultimate_nag52/simulator/ecus/ewm/ewm.h">
+			<Option target="ecu_can_simulator"/>
+		</Unit>
+		<Unit filename="/home/ashcon/code/ultimate_nag52/simulator/ecus/extern_frames.cpp">
+			<Option target="ecu_can_simulator"/>
+		</Unit>
+		<Unit filename="/home/ashcon/code/ultimate_nag52/simulator/ecus/extern_frames.h">
+			<Option target="ecu_can_simulator"/>
+		</Unit>
+		<Unit filename="/home/ashcon/code/ultimate_nag52/simulator/ecus/gs/nag52.cpp">
+			<Option target="ecu_can_simulator"/>
+		</Unit>
+		<Unit filename="/home/ashcon/code/ultimate_nag52/simulator/ecus/gs/nag52.h">
+			<Option target="ecu_can_simulator"/>
+		</Unit>
+		<Unit filename="/home/ashcon/code/ultimate_nag52/simulator/ecus/ms/engine.cpp">
+			<Option target="ecu_can_simulator"/>
+		</Unit>
+		<Unit filename="/home/ashcon/code/ultimate_nag52/simulator/ecus/ms/engine.h">
+			<Option target="ecu_can_simulator"/>
+		</Unit>
+		<Unit filename="/home/ashcon/code/ultimate_nag52/simulator/main.cpp">
+			<Option target="ecu_can_simulator"/>
+		</Unit>
+		<Unit filename="/home/ashcon/code/ultimate_nag52/simulator/v_kombi/Needle.cpp">
+			<Option target="ecu_can_simulator"/>
+		</Unit>
+		<Unit filename="/home/ashcon/code/ultimate_nag52/simulator/v_kombi/kombi_lcd.cpp">
+			<Option target="ecu_can_simulator"/>
+		</Unit>
+		<Unit filename="/home/ashcon/code/ultimate_nag52/simulator/v_kombi/kombi_lcd.h">
+			<Option target="ecu_can_simulator"/>
+		</Unit>
+		<Unit filename="/home/ashcon/code/ultimate_nag52/simulator/v_kombi/lcd_symbols.cpp">
+			<Option target="ecu_can_simulator"/>
+		</Unit>
+		<Unit filename="/home/ashcon/code/ultimate_nag52/simulator/v_kombi/lcd_symbols.h">
+			<Option target="ecu_can_simulator"/>
+		</Unit>
+		<Unit filename="/home/ashcon/code/ultimate_nag52/simulator/v_kombi/virtual_kombi.cpp">
+			<Option target="ecu_can_simulator"/>
+		</Unit>
+		<Unit filename="/home/ashcon/code/ultimate_nag52/simulator/v_kombi/virtual_kombi.h">
+			<Option target="ecu_can_simulator"/>
+		</Unit>
+		<Unit filename="/home/ashcon/code/ultimate_nag52/CMakeLists.txt">
+			<Option virtualFolder="CMake Files\"/>
+		</Unit>
+		<Unit filename="/home/ashcon/code/ultimate_nag52/../../../../usr/lib64/cmake/SDL2/SDL2Config.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\usr\lib64\cmake\SDL2\"/>
+		</Unit>
+		<Unit filename="/home/ashcon/code/ultimate_nag52/../../../../usr/lib64/cmake/SDL2/SDL2ConfigVersion.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\usr\lib64\cmake\SDL2\"/>
+		</Unit>
+		<Unit filename="/home/ashcon/code/ultimate_nag52/../../../../usr/lib64/cmake/SDL2/SDL2Targets-noconfig.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\usr\lib64\cmake\SDL2\"/>
+		</Unit>
+		<Unit filename="/home/ashcon/code/ultimate_nag52/../../../../usr/lib64/cmake/SDL2/SDL2Targets.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\usr\lib64\cmake\SDL2\"/>
+		</Unit>
+	</Project>
+</CodeBlocks_project_file>

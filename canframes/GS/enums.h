@@ -34,7 +34,7 @@ enum ErrorCheck {
     NotDefined = 3
 };
 
-enum  GearVariant {
+enum GearVariant {
     NAG_LARGE = 0, // NAG - Large gear
     NAG_SMALL = 1, // NAG - Small gear
     NAG2_GROSS2 = 2, // NAG2 - Large gear

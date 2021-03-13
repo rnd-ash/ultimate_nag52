@@ -1,0 +1,4 @@
+/usr/bin/cmake -DCMAKE_BUILD_TYPE=Debug -G "CodeBlocks - Unix Makefiles" /home/ashcon/code/ultimate_nag52
+-- Configuring done
+-- Generating done
+-- Build files have been written to: /home/ashcon/code/ultimate_nag52/cmake-build-debug

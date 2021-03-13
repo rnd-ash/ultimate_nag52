@@ -4,6 +4,10 @@
 #include <stdint.h>
 #include "enums.h"
 
+#ifdef SIM_MODE
+#include "../../can_frame.h"
+#endif
+
 #ifdef FW_MODE
 #include <can_common.h>
 #endif
@@ -15,12 +19,12 @@ typedef union {
     uint64_t raw;
 
     // Sets speed step
-    void set_FSC(uint8_t value){ raw = (raw & 0x00ffffffffffffff) | ((uint64_t)value & 0xff) << 56; }
+    void set_FSC(FSC value){ raw = (raw & 0x00ffffffffffffff) | ((uint64_t)value & 0xff) << 56; }
     // Gets speed step
-    uint8_t get_FSC() { return raw >> 56 & 0xff; }
+    FSC get_FSC() { return (FSC)(raw >> 56 & 0xff); }
 
     // Sets driving program
-    void set_FPC(uint8_t value){ raw = (raw & 0xff00ffffffffffff) | ((uint64_t)value & 0xff) << 48; }
+    void set_FPC(DrivingProgram value){ raw = (raw & 0xff00ffffffffffff) | ((uint64_t)value & 0xff) << 48; }
     // Gets driving program
     DrivingProgram get_FPC() { return (DrivingProgram)(raw >> 48 & 0xff); }
 
@@ -80,9 +84,9 @@ typedef union {
     uint8_t get_M_VERL() { return raw >> 16 & 0xff; }
 
     // Sets Gear selector lever position (NAG, KSG, CVT)
-    void set_WHST(uint8_t value){ raw = (raw & 0xffffffffffffc7ff) | ((uint64_t)value & 0x7) << 11; }
+    void set_WHST(GearSelectorPos value){ raw = (raw & 0xffffffffffffc7ff) | ((uint64_t)value & 0x7) << 11; }
     // Gets Gear selector lever position (NAG, KSG, CVT)
-    uint8_t get_WHST() { return raw >> 11 & 0x7; }
+    GearSelectorPos get_WHST() { return (GearSelectorPos)(raw >> 11 & 0x7); }
 
     // Sets Factor wheel torque toggle 40ms + -10
     void set_FMRADTGL(bool value){ raw = (raw & 0xffffffffffffbfff) | ((uint64_t)value & 0x1) << 14; }

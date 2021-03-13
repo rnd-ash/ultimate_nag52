@@ -1,3 +1,0 @@
-/home/ashcon/code/ultimate_nag52/ecu_can_simulator/cmake-build-debug/CMakeFiles/rebuild_cache.dir
-/home/ashcon/code/ultimate_nag52/ecu_can_simulator/cmake-build-debug/CMakeFiles/edit_cache.dir
-/home/ashcon/code/ultimate_nag52/ecu_can_simulator/cmake-build-debug/CMakeFiles/ecu_can_simulator.dir
