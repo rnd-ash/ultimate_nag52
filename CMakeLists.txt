@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.7)
-project(test)
+project(nag52_simulator)
 
 set(CMAKE_CXX_STANDARD 11)
 
@@ -12,7 +12,7 @@ include_directories(gearbox)
 
 add_definitions(-DSIM_MODE)
 
-add_executable(test
+add_executable(nag52_simulator
         simulator/simulator.cpp
         simulator/canbus/esp32_forwarder.cpp
         simulator/canbus/esp32_forwarder.h
@@ -47,4 +47,4 @@ add_executable(test
         gearbox/gearbox_brain.h
 )
 
-target_link_libraries(test ${SDL2_LIBRARY} )
+target_link_libraries(nag52_simulator ${SDL2_LIBRARY} )
