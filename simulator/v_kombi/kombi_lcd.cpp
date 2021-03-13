@@ -17,10 +17,10 @@ kombi_lcd::kombi_lcd(SDL_Renderer* r) {
         i = false;
     }
     this->use_warning_colour = false;
-    this->std = ascii_table(r, (char*)"v_kombi/img/lcd/ascii_small_std.png", 5, 7);
-    this->std_bold = ascii_table(r, (char*)"v_kombi/img/lcd/ascii_big_std.png", 7, 10);
-    this->large = ascii_table(r, (char*)"v_kombi/img/lcd/ascii_big_std.png", 7, 10);
-    this->large_bold = ascii_table(r, (char*)"v_kombi/img/lcd/ascii_big_bold.png", 7, 10);
+    this->std = ascii_table(r, (char*)"simulator/v_kombi/img/lcd/ascii_small_std.png", 5, 7);
+    this->std_bold = ascii_table(r, (char*)"simulator/v_kombi/img/lcd/ascii_big_std.png", 7, 10);
+    this->large = ascii_table(r, (char*)"simulator/v_kombi/img/lcd/ascii_big_std.png", 7, 10);
+    this->large_bold = ascii_table(r, (char*)"simulator/v_kombi/img/lcd/ascii_big_bold.png", 7, 10);
 }
 
 SDL_Texture *kombi_lcd::get_texture() {

@@ -8,7 +8,13 @@ ascii_table::ascii_table(SDL_Renderer* r, char *path, int char_width, int char_h
     this->char_height = char_height;
     this->char_width = char_width;
 
+    char *base_path = SDL_GetBasePath();
+    printf("%s\n", base_path);
+
     SDL_Surface *img = IMG_Load(path);
+    if (!img) {
+        printf("Error loading image resource: %s\n", path);
+    }
     SDL_Texture* t = SDL_CreateTexture(r, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, img->w, img->h);
 
     if (t) {
@@ -66,7 +72,6 @@ ascii_table::ascii_table(SDL_Renderer* r, char *path, int char_width, int char_h
                         occupied_px++;
                     }
                 }
-                printf("%d %d\n", idx, occupied_px);
                 if(occupied_px != 0) {
                     this->state_buffer[idx].draw_width = occupied_px;
                 }

@@ -9,7 +9,7 @@
 
 #include <cstdint>
 #include "../abstract_ecu.h"
-#include "../../extern_frames.h"
+#include "can_frames.h"
 
 // Change these as you wish - These are configured here for my OM646 Engine
 #define REDLINE_RPM 4500
@@ -39,7 +39,6 @@ private:
     bool limp_mode;
     bool kickdown;
     bool speed_limit_enabled;
-    CAN_FRAME frame_list[7];
 };
 
 

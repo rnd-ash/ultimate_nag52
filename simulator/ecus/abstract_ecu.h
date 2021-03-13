@@ -7,12 +7,6 @@
 
 
 #include <vector>
-#include "can_frame.h"
-
-struct frame_list {
-    uint8_t count;
-    CAN_FRAME* ptr;
-};
 
 class abstract_ecu {
 public:
@@ -22,8 +16,6 @@ public:
      * Called every 10ms (Update current ECUs state!)
      */
     virtual void simulate_tick() = 0;
-protected:
-    frame_list* frames = nullptr;
 };
 
 

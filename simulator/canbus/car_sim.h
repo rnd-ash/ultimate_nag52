@@ -5,15 +5,13 @@
 #include <string>
 #include "esp32_forwarder.h"
 #include "../ecus/ecus.h"
-
 #include <thread>
 
-
-
-
 #define TX_FRAME(f) \
-{                    \
-f.export_frame(tx); \
+{                   \
+CAN_FRAME cf;        \
+                    \
+f.export_frame(&tx.id, &tx.data[0], &tx.dlc); \
 this->bcast_frame(&tx); \
 std::this_thread::sleep_for(std::chrono::microseconds(100)); \
 }

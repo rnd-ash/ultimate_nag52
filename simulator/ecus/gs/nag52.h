@@ -6,8 +6,8 @@
 #define ECU_CAN_SIMULATOR_NAG52_H
 
 #include "../abstract_ecu.h"
-#include "../../../nag_iface.h"
-#include "../../../gearbox_brain.h"
+#include "nag_iface.h"
+#include "gearbox_brain.h"
 
 
 

@@ -24,14 +24,14 @@ virtual_kombi::virtual_kombi(CAR_SIMULATOR *simulator) {
     this->lcd = new kombi_lcd(this->renderer);
     SDL_GL_SetSwapInterval(1);
 
-    this->bg_left = this->load_texture((char*)"v_kombi/img/bg_left.png", (char*)"BG_LEFT");
+    this->bg_left = this->load_texture((char*)"simulator/v_kombi/img/bg_left.png", (char*)"BG_LEFT");
     this->bg_left.loc = SDL_Rect { // x y w h
             100,
             100,
             this->bg_left.w/3,
             this->bg_left.h/3
     };
-    this->bg_right = this->load_texture((char*)"v_kombi/img/bg_right.png", (char*)"BG_RIGHT");
+    this->bg_right = this->load_texture((char*)"simulator/v_kombi/img/bg_right.png", (char*)"BG_RIGHT");
     // Set position
     this->bg_right.loc = SDL_Rect { // x y w h
         800,
@@ -40,7 +40,7 @@ virtual_kombi::virtual_kombi(CAR_SIMULATOR *simulator) {
         this->bg_right.h/3
     };
 
-    this->esp_light = this->load_texture((char*)"v_kombi/img/esp.png", (char*)"ESP_WARNING");
+    this->esp_light = this->load_texture((char*)"simulator/v_kombi/img/esp.png", (char*)"ESP_WARNING");
     this->esp_light.loc = SDL_Rect { // x y w h
             365,
             250,
@@ -48,7 +48,7 @@ virtual_kombi::virtual_kombi(CAR_SIMULATOR *simulator) {
             this->esp_light.h/3
     };
 
-    this->brake_light = this->load_texture((char*)"v_kombi/img/handbrake.png", (char*)"HANDBRAKE");
+    this->brake_light = this->load_texture((char*)"simulator/v_kombi/img/handbrake.png", (char*)"HANDBRAKE");
     this->brake_light.loc = SDL_Rect { // x y w h
             415,
             380,
@@ -56,7 +56,7 @@ virtual_kombi::virtual_kombi(CAR_SIMULATOR *simulator) {
             (int)(this->esp_light.h/3.2)
     };
 
-    this->abs_light = this->load_texture((char*)"v_kombi/img/abs.png", (char*)"ABS");
+    this->abs_light = this->load_texture((char*)"simulator/v_kombi/img/abs.png", (char*)"ABS");
     this->abs_light.loc = SDL_Rect { // x y w h
             925,
             250,
@@ -64,7 +64,7 @@ virtual_kombi::virtual_kombi(CAR_SIMULATOR *simulator) {
             (int)(this->abs_light.h/2.9)
     };
 
-    this->srs_light = this->load_texture((char*)"v_kombi/img/srs.png", (char*)"ABS");
+    this->srs_light = this->load_texture((char*)"simulator/v_kombi/img/srs.png", (char*)"ABS");
     this->srs_light.loc = SDL_Rect { // x y w h
             1025,
             255,
@@ -72,7 +72,7 @@ virtual_kombi::virtual_kombi(CAR_SIMULATOR *simulator) {
             (int)(this->srs_light.h/2.9)
     };
 
-    this->beam_light = this->load_texture((char*)"v_kombi/img/beam.png", (char*)"ABS");
+    this->beam_light = this->load_texture((char*)"simulator/v_kombi/img/beam.png", (char*)"ABS");
     this->beam_light.loc = SDL_Rect { // x y w h
             975,
             375,
@@ -82,7 +82,7 @@ virtual_kombi::virtual_kombi(CAR_SIMULATOR *simulator) {
 
 
     // Needles
-    kombiPart img_needle_temp = this->load_texture((char*)"v_kombi/img/needle_small.png", (char*)"NEEDLE_TEMP");
+    kombiPart img_needle_temp = this->load_texture((char*)"simulator/v_kombi/img/needle_small.png", (char*)"NEEDLE_TEMP");
     img_needle_temp.loc = SDL_Rect { // x y w h
             214,
             406,
@@ -102,7 +102,7 @@ virtual_kombi::virtual_kombi(CAR_SIMULATOR *simulator) {
     );
 
     // Needle for speed (MPH)
-    kombiPart img_needle_spd = this->load_texture((char*)"v_kombi/img/needle_large.png", (char*)"NEEDLE_SPD");
+    kombiPart img_needle_spd = this->load_texture((char*)"simulator/v_kombi/img/needle_large.png", (char*)"NEEDLE_SPD");
     img_needle_spd.loc = SDL_Rect { // x y w h
             405,
             260,
@@ -122,7 +122,7 @@ virtual_kombi::virtual_kombi(CAR_SIMULATOR *simulator) {
     );
 
     // Needle for engine RPM
-    kombiPart img_needle_rpm = this->load_texture((char*)"v_kombi/img/needle_large.png", (char*)"NEEDLE_RPM");
+    kombiPart img_needle_rpm = this->load_texture((char*)"simulator/v_kombi/img/needle_large.png", (char*)"NEEDLE_RPM");
     img_needle_rpm.loc = SDL_Rect { // x y w h
             965,
             260,
@@ -141,7 +141,7 @@ virtual_kombi::virtual_kombi(CAR_SIMULATOR *simulator) {
             5000 // RPM
     );
 
-    kombiPart img_needle_fuel = this->load_texture((char*)"v_kombi/img/needle_small.png", (char*)"NEEDLE_TEMP");
+    kombiPart img_needle_fuel = this->load_texture((char*)"simulator/v_kombi/img/needle_small.png", (char*)"NEEDLE_TEMP");
     img_needle_fuel.loc = SDL_Rect { // x y w h
             1190,
             400,
@@ -352,59 +352,59 @@ void virtual_kombi::update_loop() {
 
         char prog = ' ';
         switch(gs418.get_FPC()) {
-            case DrivingProgram::W:
-            case DrivingProgram::W_MGN:
-            case DrivingProgram::W_MGW:
+            case GS_FPC::W:
+            case GS_FPC::W_MGN:
+            case GS_FPC::W_MGW:
                 prog = 'W';
                 break;
-            case DrivingProgram::S:
-            case DrivingProgram::S_MCFB_WT:
-            case DrivingProgram::S_MGBB:
-            case DrivingProgram::S_MGGEA:
-            case DrivingProgram::S_MGN:
-            case DrivingProgram::S_MGSNN:
-            case DrivingProgram::S_MGW:
-            case DrivingProgram::S_MGZSN:
+            case GS_FPC::S:
+            case GS_FPC::S_MCFB_WT:
+            case GS_FPC::S_MGBB:
+            case GS_FPC::S_MGGEA:
+            case GS_FPC::S_MGN:
+            case GS_FPC::S_MGSNN:
+            case GS_FPC::S_MGW:
+            case GS_FPC::S_MGZSN:
                 prog = 'S';
                 break;
-            case DrivingProgram::C:
-            case DrivingProgram::C_MCFB_WT:
-            case DrivingProgram::C_MGBB:
-            case DrivingProgram::C_MGGEA:
-            case DrivingProgram::C_MGN:
-            case DrivingProgram::C_MGSNN:
-            case DrivingProgram::C_MGW:
-            case DrivingProgram::C_MGZSN:
+            case GS_FPC::C:
+            case GS_FPC::C_MCFB_WT:
+            case GS_FPC::C_MGBB:
+            case GS_FPC::C_MGGEA:
+            case GS_FPC::C_MGN:
+            case GS_FPC::C_MGSNN:
+            case GS_FPC::C_MGW:
+            case GS_FPC::C_MGZSN:
                 prog = 'C';
                 break;
-            case DrivingProgram::M:
-            case DrivingProgram::M_MGW:
-            case DrivingProgram::M_MGN:
+            case GS_FPC::M:
+            case GS_FPC::M_MGW:
+            case GS_FPC::M_MGN:
                 prog = 'M';
                 break;
-            case DrivingProgram::UP:
+            case GS_FPC::UP:
                 prog = '^';
                 break;
-            case DrivingProgram::DOWN:
+            case GS_FPC::DOWN:
                 prog = 'v';
                 break;
-            case DrivingProgram::U:
-            case DrivingProgram::U_MGN:
-            case DrivingProgram::U_MGW:
+            case GS_FPC::U:
+            case GS_FPC::U_MGN:
+            case GS_FPC::U_MGW:
                 prog = '_';
                 break;
-            case DrivingProgram::A:
-            case DrivingProgram::A_MCFB_WT:
-            case DrivingProgram::A_MGBB:
-            case DrivingProgram::A_MGGEA:
-            case DrivingProgram::A_MGN:
-            case DrivingProgram::A_MGSNN:
-            case DrivingProgram::A_MGW:
-            case DrivingProgram::A_MGZSN:
+            case GS_FPC::A:
+            case GS_FPC::A_MCFB_WT:
+            case GS_FPC::A_MGBB:
+            case GS_FPC::A_MGGEA:
+            case GS_FPC::A_MGN:
+            case GS_FPC::A_MGSNN:
+            case GS_FPC::A_MGW:
+            case GS_FPC::A_MGZSN:
                 prog = 'A';
                 break;
-            case DrivingProgram::F:
-            case DrivingProgram::F_MGW:
+            case GS_FPC::F:
+            case GS_FPC::F_MGW:
                 prog = 'F';
                 break;
             default:
@@ -412,46 +412,46 @@ void virtual_kombi::update_loop() {
         }
 
         switch (gs418.get_FSC()) { // Get text to be displays in the 'D' slot
-            case 49: // D (Drive - range restrict 1st gear)
+            case GS_FSC::ONE: // D (Drive - range restrict 1st gear)
                 this->lcd->draw_gear_display(false, false, false, true, '1', prog);
                 break;
-            case 50: // D (Drive - range restrict 2nd gear)
+            case GS_FSC::TWO: // D (Drive - range restrict 2nd gear)
                 this->lcd->draw_gear_display(false, false, false, true, '2', prog);
                 break;
-            case 51: // D (Drive - range restrict 3rd gear)
+            case GS_FSC::THREE: // D (Drive - range restrict 3rd gear)
                 this->lcd->draw_gear_display(false, false, false, true, '3', prog);
                 break;
-            case 52: // D (Drive - range restrict 4th gear)
+            case GS_FSC::FOUR: // D (Drive - range restrict 4th gear)
                 this->lcd->draw_gear_display(false, false, false, true, '4', prog);
                 break;
-            case 53: // D (Drive - range restrict 5th gear)
+            case GS_FSC::FIVE: // D (Drive - range restrict 5th gear)
                 this->lcd->draw_gear_display(false, false, false, true, '5', prog);
                 break;
-            case 54: // D (Drive - range restrict 6th gear)
+            case GS_FSC::SIX: // D (Drive - range restrict 6th gear)
                 this->lcd->draw_gear_display(false, false, false, true, '6', prog);
                 break;
-            case 55: // D (Drive - range restrict 7th gear)
+            case GS_FSC::SEVEN: // D (Drive - range restrict 7th gear)
                 this->lcd->draw_gear_display(false, false, false, true, '7', prog);
                 break;
-            case 65: // A (Drive - All wheel drive)
+            case GS_FSC::A: // A (Drive - All wheel drive)
                 this->lcd->draw_gear_display(false, false, false, true, 'A', prog);
                 break;
-            case 68: // D (Drive - Normal)
+            case GS_FSC::D: // D (Drive - Normal)
                 this->lcd->draw_gear_display(false, false, false, true, 'D', prog);
                 break;
-            case 70: // F (Failed gearbox)
+            case GS_FSC::F: // F (Failed gearbox)
                 this->lcd->draw_gear_display(false, false, false, true, 'F', prog);
                 break;
-            case 78: // N (Neutral)
+            case GS_FSC::N: // N (Neutral)
                 this->lcd->draw_gear_display(false, false, true, false, 'D', prog);
                 break;
-            case 80: // P (Park)
+            case GS_FSC::P: // P (Park)
                 this->lcd->draw_gear_display(true, false, false, false, 'D', prog);
                 break;
-            case 82: // R (Reverse)
+            case GS_FSC::R: // R (Reverse)
                 this->lcd->draw_gear_display(false, true, false, false, 'D', prog);
                 break;
-            case 32: // Blank
+            case GS_FSC::BLANK: // Blank
             default: // SNV (Signal not available)
                 break;
         }

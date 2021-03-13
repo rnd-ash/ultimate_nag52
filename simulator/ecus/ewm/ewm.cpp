@@ -8,7 +8,7 @@
 void ewm::setup() {
     ewm230.raw = 0x0000000000000000;
     this->drive_prog_btn = false;
-    this->selector_position = GS_P; // Park to start with
+    this->selector_position = EWM_WHC::P; // Park to start with
 }
 
 void ewm::simulate_tick() {
@@ -25,90 +25,90 @@ void ewm::simulate_tick() {
         printf("Selector position: %d\n", this->selector_position);
         if (selector_move_dir == MOVE_DIR::UP) {
             switch(this->selector_position) {
-                case GS_D:
-                    this->selector_position = WHC::GS_N_D;
+                case EWM_WHC::D:
+                    this->selector_position = EWM_WHC::N_D;
                     break;
-                case GS_N:
-                    this->selector_position = WHC::GS_R_N;
+                case EWM_WHC::N:
+                    this->selector_position = EWM_WHC::R_N;
                     break;
-                case GS_R:
-                    this->selector_position = WHC::GS_P_R;
+                case EWM_WHC::R:
+                    this->selector_position = EWM_WHC::P_R;
                     break;
-                case GS_N_D:
-                    this->selector_position = WHC::GS_N;
+                case EWM_WHC::N_D:
+                    this->selector_position = EWM_WHC::N;
                     break;
-                case GS_R_N:
-                    this->selector_position = WHC::GS_R;
+                case EWM_WHC::R_N:
+                    this->selector_position = EWM_WHC::R;
                     break;
-                case GS_P_R:
-                    this->selector_position = WHC::GS_P;
+                case EWM_WHC::P_R:
+                    this->selector_position = EWM_WHC::P;
                     break;
-                case GS_P:
-                case GS_PLUS:
-                case GS_MINUS:
-                case GS_SNV: // 0xFF
+                case EWM_WHC::P:
+                case EWM_WHC::PLUS:
+                case EWM_WHC::MINUS:
+                case EWM_WHC::SNV: // 0xFF
                     break;
             }
         } else if (selector_move_dir == MOVE_DIR::DOWN) {
             switch(this->selector_position) {
-                case GS_N:
-                    this->selector_position = WHC::GS_N_D;
+                case EWM_WHC::N:
+                    this->selector_position = EWM_WHC::N_D;
                     break;
-                case GS_R:
-                    this->selector_position = WHC::GS_R_N;
+                case EWM_WHC::R:
+                    this->selector_position = EWM_WHC::R_N;
                     break;
-                case GS_P:
-                    this->selector_position = WHC::GS_P_R;
+                case EWM_WHC::P:
+                    this->selector_position = EWM_WHC::P_R;
                     break;
-                case GS_N_D:
-                    this->selector_position = WHC::GS_D;
+                case EWM_WHC::N_D:
+                    this->selector_position = EWM_WHC::D;
                     break;
-                case GS_R_N:
-                    this->selector_position = WHC::GS_N;
+                case EWM_WHC::R_N:
+                    this->selector_position = EWM_WHC::N;
                     break;
-                case GS_P_R:
-                    this->selector_position = WHC::GS_R;
+                case EWM_WHC::P_R:
+                    this->selector_position = EWM_WHC::R;
                     break;
-                case GS_D:
-                case GS_PLUS:
-                case GS_MINUS:
-                case GS_SNV:
+                case EWM_WHC::D:
+                case EWM_WHC::PLUS:
+                case EWM_WHC::MINUS:
+                case EWM_WHC::SNV:
                     break;
             }
         } else if (selector_move_dir == MOVE_DIR::RIGHT) {
             switch(this->selector_position) {
-                case GS_D:
-                    this->selector_position = GS_PLUS;
+                case EWM_WHC::D:
+                    this->selector_position = EWM_WHC::PLUS;
                     break;
-                case GS_MINUS:
-                    this->selector_position = GS_D;
+                case EWM_WHC::MINUS:
+                    this->selector_position = EWM_WHC::D;
                     break;
-                case GS_N:
-                case GS_R:
-                case GS_P:
-                case GS_PLUS:
-                case GS_N_D:
-                case GS_R_N:
-                case GS_P_R:
-                case GS_SNV:
+                case EWM_WHC::N:
+                case EWM_WHC::R:
+                case EWM_WHC::P:
+                case EWM_WHC::PLUS:
+                case EWM_WHC::N_D:
+                case EWM_WHC::R_N:
+                case EWM_WHC::P_R:
+                case EWM_WHC::SNV:
                     break;
             }
         } else if (selector_move_dir == MOVE_DIR::LEFT) {
             switch(this->selector_position) {
-                case GS_D:
-                    this->selector_position = GS_MINUS;
+                case EWM_WHC::D:
+                    this->selector_position = EWM_WHC::MINUS;
                     break;
-                case GS_PLUS:
-                    this->selector_position = GS_D;
+                case EWM_WHC::PLUS:
+                    this->selector_position = EWM_WHC::D;
                     break;
-                case GS_MINUS:
-                case GS_N:
-                case GS_R:
-                case GS_P:
-                case GS_N_D:
-                case GS_R_N:
-                case GS_P_R:
-                case GS_SNV:
+                case EWM_WHC::MINUS:
+                case EWM_WHC::N:
+                case EWM_WHC::R:
+                case EWM_WHC::P:
+                case EWM_WHC::N_D:
+                case EWM_WHC::R_N:
+                case EWM_WHC::P_R:
+                case EWM_WHC::SNV:
                     break;
             }
         }

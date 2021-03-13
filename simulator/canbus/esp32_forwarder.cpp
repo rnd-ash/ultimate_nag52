@@ -69,8 +69,8 @@ void esp32_forwarder::send_frame(CAN_FRAME *f) {
     // We can reduce the number of bytes a bit by using 2 bytes for CANID since W203 network doesn't use extended CAN!
     this->write_buf[0] = (uint8_t)(f->id >> 8) & 0xFF;
     this->write_buf[1] = (uint8_t)(f->id & 0xFF);
-    this->write_buf[2] = (uint8_t)f->length & 0xFF;
-    memcpy(&this->write_buf[3], &f->data.bytes[0], f->length);
+    this->write_buf[2] = (uint8_t)f->dlc & 0xFF;
+    memcpy(&this->write_buf[3], &f->data[0], f->dlc);
 
     //ppoll(this->fd, 1, 0);
     write(this->fd, &this->write_buf[0], 11);

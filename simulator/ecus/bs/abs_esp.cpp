@@ -3,7 +3,7 @@
 //
 
 #include "abs_esp.h"
-#include "../../extern_frames.h"
+#include "can_frames.h"
 
 short output_shaft_rpm = 0;
 

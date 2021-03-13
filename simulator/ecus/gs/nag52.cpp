@@ -4,7 +4,6 @@
 
 #include <cstdio>
 #include "nag52.h"
-#include "../../canbus/car_sim.h"
 
 #define UPSHIFT_ON_REDLINE // Comment out for redline bounding in drive and manual mode!
 #define MANUAL_2_START // Comment out to prevent optionally starting in 2nd in manual mode!
