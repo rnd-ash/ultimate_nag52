@@ -4,7 +4,10 @@
 
 int main() {
     CAR_SIMULATOR sim((char*)"/dev/ttyUSB0");
-    sim.init();
+    sim.init((char*)"/home/ashcon/Desktop/canlogs/canlogs_winnersh-london.log");
+    //sim.init();
     virtual_kombi(&sim).loop();
     return 0;
 }
+
+

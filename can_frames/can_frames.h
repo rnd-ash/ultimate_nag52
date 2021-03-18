@@ -25,6 +25,12 @@
 #include "ART_250.h"
 #include "ART_258.h"
 
+// MRM
+#include "LRW_236.h"
+#include "MRM_238.h"
+
+#include "SBW_232.h"
+
 extern GS_218 gs218;
 extern GS_338 gs338;
 extern GS_418 gs418;
@@ -47,5 +53,10 @@ extern MS_608 ms608;
 
 extern ART_250 art250;
 extern ART_258 art258;
+
+extern LRW_236 lrw236;
+extern MRM_238 mrm238;
+
+extern SBW_232 sbw232;
 
 #endif

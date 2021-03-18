@@ -18,16 +18,15 @@ void engine::setup() {
     this->curr_rpm = IDLE_RPM; // We are idling to start with
     this->pedal_press = false;
     this->pedal_percentage = 0.0;
+    ms608.set_FCOD_MOT(44);
     this->d_rpm = 0;
 }
 
 void engine::simulate_tick() {
-
-
-
     int oil_temp = 90;
     int coolant_temp = 80;
     //ms308.set_NMOT(curr_rpm);
+    ms608.set_FCOD_MOT(44);
     ms308.set_VGL_KL(false);
     ms210.set_MSS_AKT(true);
     ms308.set_T_OEL(oil_temp+40);

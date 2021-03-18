@@ -6,9 +6,6 @@
 #include <SDL2/SDL_image.h>
 
 
-#define WIN_WIDTH 1366
-#define WIN_HEIGHT 768
-
 virtual_kombi::virtual_kombi(CAR_SIMULATOR *simulator) {
     this->sim = simulator;
     SDL_Init(SDL_INIT_VIDEO);
@@ -23,6 +20,9 @@ virtual_kombi::virtual_kombi(CAR_SIMULATOR *simulator) {
     this->renderer = SDL_CreateRenderer(this->window, -1, SDL_RENDERER_ACCELERATED);
     this->lcd = new kombi_lcd(this->renderer);
     SDL_GL_SetSwapInterval(1);
+
+    // Overlay
+    this->overlay = new diag_overlay();
 
     this->bg_left = this->load_texture((char*)"simulator/v_kombi/img/bg_left.png", (char*)"BG_LEFT");
     this->bg_left.loc = SDL_Rect { // x y w h
@@ -186,7 +186,7 @@ bool quit = false;
 void virtual_kombi::loop() {
    while (!quit) {
         this->update();
-        //SDL_SetRenderDrawColor(this->renderer, 0, 128, 128, 1);
+        SDL_SetRenderDrawColor(this->renderer, 0, 10, 10, 1);
         SDL_RenderClear(this->renderer);
         // Draw background of IC
         draw_kombi_part(&this->bg_left);
@@ -207,6 +207,9 @@ void virtual_kombi::loop() {
         draw_kombi_needle(&this->speed);
         draw_kombi_needle(&this->tachometer);
         draw_kombi_needle(&this->fuel);
+
+        // Draw diag overlay
+        this->overlay->draw_overlay(this->renderer, this->sim);
 
         // Present render
         SDL_RenderPresent(this->renderer);

@@ -2,6 +2,7 @@
 #define NAG_PROFILE_H_
 
 #include "nag_iface.h"
+#include "can_frames.h"
 
 enum class PROFILE {
     SPORT,
@@ -17,7 +18,7 @@ public:
     virtual GS_FPC get_current_profile() = 0;
     virtual void update(nag_iface* iface) = 0; // Call this every 10ms
     // Returns speed step to show on IC
-    virtual GS_FSC get_display_gear() = 0;
+    virtual GS_FSC get_display_gear();
     virtual PROFILE get_profile_type() = 0;
 };
 
@@ -25,7 +26,6 @@ class sport_profile : public abstract_nag_profile {
 public:
     GS_FPC get_current_profile() override;
     void update(nag_iface* iface) override;
-    GS_FSC get_display_gear() override;
     PROFILE get_profile_type() override;
 private:
     GS_FSC speedstep = GS_FSC::BLANK;

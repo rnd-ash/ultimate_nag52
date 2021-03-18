@@ -16,59 +16,7 @@ void nag52::setup() {
 
 void nag52::simulate_tick() {
     this->sim.loop();
-}
-
-void nag52::handle_btn_press() {
-    /*
-    if (this->limp_mode) { // Ignore this request in limp!
-        this->prog = DriveProgramMode::Fail;
-        return;
-    }
-    if (!this->handle_press) {
-        // S -> C -> A -> M -> S
-        switch (prog) {
-            case DriveProgramMode::Sport:
-                this->prog = DriveProgramMode::Comfort;
-                break;
-            case DriveProgramMode::Comfort:
-                this->prog = DriveProgramMode::Winter;
-                break;
-            case DriveProgramMode::Winter:
-                this->prog = DriveProgramMode::Agility;
-                break;
-            case DriveProgramMode::Agility:
-                this->prog = DriveProgramMode::Manual;
-                break;
-            case DriveProgramMode::Manual:
-                this->prog = DriveProgramMode::Sport;
-                break;
-            default:
-                break;
-        }
-        this->handle_press = true;
-    }
-     */
-}
-
-// Assumes shift has just 'completed' engine RPM must be set
-int nag52::force_engine_rpm() {
-    /*
-    switch (this->curr_fwd_gear) {
-        case 1:
-            return output_shaft_rpm * D1_RAT;
-        case 2:
-            return output_shaft_rpm * D2_RAT;
-        case 3:
-            return output_shaft_rpm * D3_RAT;
-        case 4:
-            return output_shaft_rpm * D4_RAT;
-        case 5:
-            return output_shaft_rpm * D5_RAT;
-        default:
-            return 0;
-    }
-    */
-    return 0;
+    this->iface.update();
 }
 
 void nag52::request_upshift_release() {
@@ -157,18 +105,19 @@ int virtual_nag_iface::get_vbatt_mv() {
 }
 
 void virtual_nag_iface::set_tcc(uint8_t pwm) {
-
+    this->tcc = pwm;
 }
 
 void virtual_nag_iface::set_mpc(uint8_t pwm) {
-    // Ignore
+    this->mpc = pwm;
 }
 
 void virtual_nag_iface::set_spc(uint8_t pwm) {
-    // Ignore
+    this->spc = pwm;
 }
 
 void virtual_nag_iface::set_three_four(uint8_t pwm) {
+    this->y5 = pwm;
     if (this->virtual_gear == V_GEAR::D_3) {
         this->virtual_gear = V_GEAR::D_4;
     } else if (this->virtual_gear == V_GEAR::D_4) {
@@ -177,6 +126,7 @@ void virtual_nag_iface::set_three_four(uint8_t pwm) {
 }
 
 void virtual_nag_iface::set_two_three(uint8_t pwm) {
+    this->y4 = pwm;
     if (this->virtual_gear == V_GEAR::D_2) {
         this->virtual_gear = V_GEAR::D_3;
     } else if (this->virtual_gear == V_GEAR::D_3) {
@@ -185,6 +135,7 @@ void virtual_nag_iface::set_two_three(uint8_t pwm) {
 }
 
 void virtual_nag_iface::set_one_two(uint8_t pwm) {
+    this->y3 = pwm;
     if (this->virtual_gear == V_GEAR::D_1) {
         this->virtual_gear = V_GEAR::D_2;
     } else if (this->virtual_gear == V_GEAR::D_2) {
@@ -213,4 +164,8 @@ void virtual_nag_iface::set_ewm_position(int g) {
             this->virtual_gear = V_GEAR::D_1;
         }
     }
+}
+
+void virtual_nag_iface::update() {
+    // TODO simulate clutch pack applications based on PWM of solenoids :)
 }

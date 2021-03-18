@@ -3,7 +3,7 @@ project(nag52_simulator)
 
 set(CMAKE_CXX_STANDARD 11)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread -lSDL2 -lSDL2_image")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread -lSDL2 -lSDL2_image -lSDL2_ttf")
 find_package(SDL2 REQUIRED)
 
 include_directories(simulator)
@@ -39,12 +39,16 @@ add_executable(nag52_simulator
         simulator/v_kombi/Needle.cpp
         simulator/v_kombi/lcd_symbols.h
         simulator/v_kombi/lcd_symbols.cpp
+        simulator/v_kombi/diag_overlay.cpp
+        simulator/v_kombi/diag_overlay.h
 
         gearbox/profiles.h
         gearbox/profiles.cpp
         gearbox/nag_iface.h
         gearbox/gearbox_brain.cpp
         gearbox/gearbox_brain.h
+        gearbox/shift_api.cpp
+        gearbox/shift_api.h
 )
 
 target_link_libraries(nag52_simulator ${SDL2_LIBRARY} )

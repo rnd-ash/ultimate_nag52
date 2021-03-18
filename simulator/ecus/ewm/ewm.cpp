@@ -22,7 +22,6 @@ void ewm::simulate_tick() {
     if (this->sim_ticks >= 50) {
         this->sim_ticks = 0;
         // Move the selector position based on the force being applied to it by the user
-        printf("Selector position: %d\n", this->selector_position);
         if (selector_move_dir == MOVE_DIR::UP) {
             switch(this->selector_position) {
                 case EWM_WHC::D:

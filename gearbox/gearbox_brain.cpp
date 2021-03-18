@@ -1,10 +1,10 @@
 
 #include "gearbox_brain.h"
-
+#include "helper.h"
 
 void Gearbox::startup(nag_iface* iface) {
     this->iface = iface;
-
+    this->shifter = new shift_api(iface);
     // On startup we should be in 'S' mode
     this->sports = sport_profile();
     this->current_profile = &sports;
@@ -21,6 +21,7 @@ void Gearbox::startup(nag_iface* iface) {
     // Gears are unknown at startup!
     gs418.set_GIC(GS_GIC::SNV);
     gs418.set_GZC(GS_GZC::SNV);
+    gs418.set_FSC(GS_FSC::SNV);
 
     gs418.set_KD(false); // Always - EGS52 and up doesn't monitor kickdown
     gs418.set_SWITCH(false); // TODO analyse what this does
@@ -44,5 +45,35 @@ void Gearbox::select_next_profile() {
 }
 
 void Gearbox::loop() {
+    this->shifter->update();
+    this->current_profile->update(this->iface);
+    gs418.set_FSC(this->current_profile->get_display_gear());
+    //LOG_MSG("%s\n", gs418.get_fsc());
 
+
+    // WHST always follows EWM position!
+    GS_WHST whst;
+    switch(ewm230.get_WHC()) {
+        case EWM_WHC::D:
+        case EWM_WHC::PLUS:
+        case EWM_WHC::MINUS:
+            whst = GS_WHST::D;
+            break;
+        case EWM_WHC::N:
+        case EWM_WHC::N_D:
+            whst = GS_WHST::N;
+            break;
+        case EWM_WHC::R:
+        case EWM_WHC::R_N:
+            whst = GS_WHST::R;
+            break;
+        case EWM_WHC::P:
+        case EWM_WHC::P_R:
+            whst = GS_WHST::P;
+            break;
+        case EWM_WHC::SNV:
+            whst = GS_WHST::SNV;
+            break;
+    }
+    gs418.set_WHST(whst);
 }

@@ -6,6 +6,7 @@
 #include "esp32_forwarder.h"
 #include "../ecus/ecus.h"
 #include <thread>
+#include <map>
 
 #define TX_FRAME(f) \
 {                   \
@@ -13,7 +14,6 @@ CAN_FRAME cf;        \
                     \
 f.export_frame(&tx.id, &tx.data[0], &tx.dlc); \
 this->bcast_frame(&tx); \
-std::this_thread::sleep_for(std::chrono::microseconds(100)); \
 }
 
 #define CLEAR_FRAME(f) \
@@ -25,14 +25,19 @@ class CAR_SIMULATOR {
 public:
     CAR_SIMULATOR(char* port_name);
     void init();
+    void init(char* file_name);
     void can_sim_thread();
     void ecu_sim_thread();
+    void ecu_sim_thread_replay(std::vector<CAN_FRAME> f);
+
     void terminate();
 
     abs_esp* get_abs();
     ewm* get_ewm();
     nag52* get_nag52();
     engine* get_engine();
+
+    std::map<uint32_t, CAN_FRAME> last_frames;
 private:
     std::vector<abstract_ecu*> ecus;
     abs_esp* esp_ecu;

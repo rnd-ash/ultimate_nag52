@@ -8,6 +8,7 @@
 #include <SDL2/SDL.h>
 #include "../canbus/car_sim.h"
 #include "kombi_lcd.h"
+#include "diag_overlay.h"
 
 struct kombiPart {
     SDL_Texture *tex;
@@ -54,7 +55,7 @@ public:
 
 private:
     kombiPart load_texture(char* path, char* name);
-
+    diag_overlay* overlay; // For diagnostic
     void draw_kombi_part(kombiPart* p);
     void draw_kombi_needle(Needle* needle);
     void update_loop();

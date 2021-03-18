@@ -7,13 +7,12 @@
 ascii_table::ascii_table(SDL_Renderer* r, char *path, int char_width, int char_height) {
     this->char_height = char_height;
     this->char_width = char_width;
-
-    char *base_path = SDL_GetBasePath();
-    printf("%s\n", base_path);
+    this->state_buffer = nullptr;
 
     SDL_Surface *img = IMG_Load(path);
     if (!img) {
         printf("Error loading image resource: %s\n", path);
+        return;
     }
     SDL_Texture* t = SDL_CreateTexture(r, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, img->w, img->h);
 
@@ -34,6 +33,7 @@ ascii_table::ascii_table(SDL_Renderer* r, char *path, int char_width, int char_h
         printf("Char map loaded. Total size: %d x %d. Characters: %d x %d\n", img->w, img->h, chars_x, chars_y);
         SDL_UnlockTexture(t);
         SDL_DestroyTexture(t);
+        SDL_FreeSurface(img);
 
 
         int y_pos = 0;

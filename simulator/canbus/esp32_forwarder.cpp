@@ -51,7 +51,7 @@ esp32_forwarder::esp32_forwarder(char *port) {
     port_settings.c_cc[VMIN] = 0;
 
 
-    cfsetspeed(&port_settings, 115200);
+    cfsetspeed(&port_settings, 500000);
     //port_settings.c_cflag &= ~CBAUD;
     //port_settings.c_cflag |= CBAUDEX;
     //port_settings.c_ispeed = 9600;
