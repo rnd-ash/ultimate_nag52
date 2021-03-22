@@ -36,8 +36,21 @@
 #include "../can_frames/can_c_enums.h"
 #endif
 
+enum class NAG_GEAR {
+    P,
+    R1,
+    R2,
+    N,
+    D1,
+    D2,
+    D3,
+    D4,
+    D5
+};
+
 class nag_iface {
 public:
+
     virtual int get_n2_rpm() = 0; // 1, 2, 3, 4, 5
     virtual int get_n3_rpm() = 0; // 2, 3, 4, R1, R2
 
@@ -53,12 +66,28 @@ public:
     virtual void set_two_three(uint8_t pwm) = 0; // 2-3
     virtual void set_three_four(uint8_t pwm) = 0; // 3-4
 
+    uint8_t get_tcc_pwm() { return this->pwm_tcc; }
+    uint8_t get_mpc_pwm() { return this->pwm_mpc; }
+    uint8_t get_spc_pwm() { return this->pwm_spc; }
+
+    uint8_t get_y5_pwm() { return this->pwm_y3; }
+    uint8_t get_y3_pwm() { return this->pwm_y4; }
+    uint8_t get_y4_pwm() { return this->pwm_y5; }
+
 // Set the gearbox mechanic type on CANBUS
 #ifdef W5A330
     GS_MECH gearbox_type = GS_MECH::NAG_SMALL;
 #elif W5A580
     GS_MECH gearbox_type = GS_MECH::NAG_LARGE;
 #endif
+protected:
+    uint8_t pwm_tcc = 0;
+    uint8_t pwm_mpc = 0;
+    uint8_t pwm_spc = 0;
+
+    uint8_t pwm_y3 = 0;
+    uint8_t pwm_y4 = 0;
+    uint8_t pwm_y5 = 0;
 };
 
 

@@ -248,6 +248,7 @@ void CAR_SIMULATOR::can_sim_thread() {
         TX_FRAME(gs218)
         TX_FRAME(gs338)
         TX_FRAME(gs418)
+        TX_FRAME(gs419)
         TX_FRAME(bs200)
         TX_FRAME(bs208)
         TX_FRAME(bs270)

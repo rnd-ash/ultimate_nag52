@@ -46,11 +46,9 @@ void Gearbox::select_next_profile() {
 
 void Gearbox::loop() {
     this->shifter->update();
-    this->current_profile->update(this->iface);
+    this->current_profile->update(this->iface, this->shifter);
     gs418.set_FSC(this->current_profile->get_display_gear());
-    //LOG_MSG("%s\n", gs418.get_fsc());
-
-
+    this->iface->set_mpc(50);
     // WHST always follows EWM position!
     GS_WHST whst;
     switch(ewm230.get_WHC()) {
@@ -75,5 +73,14 @@ void Gearbox::loop() {
             whst = GS_WHST::SNV;
             break;
     }
+
+    gs419.set_MPC_PWM(iface->get_mpc_pwm());
+    gs419.set_TCC_PWM(iface->get_tcc_pwm());
+    gs419.set_SPC_PWM(iface->get_spc_pwm());
+
+    gs419.set_Y3_PWM(iface->get_y3_pwm());
+    gs419.set_Y4_PWM(iface->get_y4_pwm());
+    gs419.set_Y5_PWM(iface->get_y5_pwm());
+
     gs418.set_WHST(whst);
 }

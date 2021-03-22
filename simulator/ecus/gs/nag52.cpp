@@ -105,19 +105,19 @@ int virtual_nag_iface::get_vbatt_mv() {
 }
 
 void virtual_nag_iface::set_tcc(uint8_t pwm) {
-    this->tcc = pwm;
+    this->pwm_tcc = pwm;
 }
 
 void virtual_nag_iface::set_mpc(uint8_t pwm) {
-    this->mpc = pwm;
+    this->pwm_mpc = pwm;
 }
 
 void virtual_nag_iface::set_spc(uint8_t pwm) {
-    this->spc = pwm;
+    this->pwm_spc = pwm;
 }
 
 void virtual_nag_iface::set_three_four(uint8_t pwm) {
-    this->y5 = pwm;
+    this->pwm_y5 = pwm;
     if (this->virtual_gear == V_GEAR::D_3) {
         this->virtual_gear = V_GEAR::D_4;
     } else if (this->virtual_gear == V_GEAR::D_4) {
@@ -126,7 +126,7 @@ void virtual_nag_iface::set_three_four(uint8_t pwm) {
 }
 
 void virtual_nag_iface::set_two_three(uint8_t pwm) {
-    this->y4 = pwm;
+    this->pwm_y4 = pwm;
     if (this->virtual_gear == V_GEAR::D_2) {
         this->virtual_gear = V_GEAR::D_3;
     } else if (this->virtual_gear == V_GEAR::D_3) {
@@ -135,7 +135,7 @@ void virtual_nag_iface::set_two_three(uint8_t pwm) {
 }
 
 void virtual_nag_iface::set_one_two(uint8_t pwm) {
-    this->y3 = pwm;
+    this->pwm_y3 = pwm;
     if (this->virtual_gear == V_GEAR::D_1) {
         this->virtual_gear = V_GEAR::D_2;
     } else if (this->virtual_gear == V_GEAR::D_2) {

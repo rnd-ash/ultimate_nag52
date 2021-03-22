@@ -49,6 +49,7 @@ add_executable(nag52_simulator
         gearbox/gearbox_brain.h
         gearbox/shift_api.cpp
         gearbox/shift_api.h
+
 )
 
 target_link_libraries(nag52_simulator ${SDL2_LIBRARY} )

@@ -320,26 +320,15 @@ void virtual_kombi::update() {
     }
 }
 
+int counter = 0;
 void virtual_kombi::update_loop() {
 
     while(!quit) {
-        // Clear IC
-        this->lcd->clear_screen();
-        //this->lcd->draw_text_small("Settings", 1, Justification::CENTER, false, false);
-        //this->lcd->draw_text_small("To reset:", 2, Justification::CENTER, false, false);
-        //this->lcd->draw_text_small("Press reset", 3, Justification::CENTER, false, false);
-        //this->lcd->draw_text_small("button", 4, Justification::CENTER, false, false);
-        //this->lcd->draw_text_small("for 3 seconds", 5, Justification::CENTER, false, false);
-
-        this->lcd->draw_text_large("IS-Test", 3, Justification::CENTER, false, false);
-        this->lcd->draw_text_large("WSA NIO", 4, Justification::CENTER, false, false);
-
+        // https://www.tyresizecalculator.com/tyre-wheel-calculators/tire-size-calculator-tire-dimensions
+        // My W203 has 245/40 R17 wheels
         this->animate_needles(); // Update IC needles etc...
         // Kombi uses front wheel RPM (DVL + DVR) to calculate speed of vehicle)
         double avg_rpm = (bs200.get_DVL() / 2.0 + bs200.get_DVR() / 2.0) / 2.0;
-
-        // https://www.tyresizecalculator.com/tyre-wheel-calculators/tire-size-calculator-tire-dimensions
-        // My W203 has 245/40 R17 wheels
 
 #define WHEEL_CIRCUMFERENCE_M 2.000 // In Meters
 
@@ -348,115 +337,124 @@ void virtual_kombi::update_loop() {
         int spd_kmh = m_per_s * 3.6;
 
         this->speed.set_value(spd_mph); // MPH
-        this->lcd->draw_spd_kmh(spd_kmh);
+
         this->tachometer.set_value(ms308.get_NMOT());
         this->engine_temp.set_value(ms608.get_T_MOT() - 40);
         this->fuel.set_value(50); // TODO fuel reading - Assume half tank
 
-        char prog = ' ';
-        switch(gs418.get_FPC()) {
-            case GS_FPC::W:
-            case GS_FPC::W_MGN:
-            case GS_FPC::W_MGW:
-                prog = 'W';
-                break;
-            case GS_FPC::S:
-            case GS_FPC::S_MCFB_WT:
-            case GS_FPC::S_MGBB:
-            case GS_FPC::S_MGGEA:
-            case GS_FPC::S_MGN:
-            case GS_FPC::S_MGSNN:
-            case GS_FPC::S_MGW:
-            case GS_FPC::S_MGZSN:
-                prog = 'S';
-                break;
-            case GS_FPC::C:
-            case GS_FPC::C_MCFB_WT:
-            case GS_FPC::C_MGBB:
-            case GS_FPC::C_MGGEA:
-            case GS_FPC::C_MGN:
-            case GS_FPC::C_MGSNN:
-            case GS_FPC::C_MGW:
-            case GS_FPC::C_MGZSN:
-                prog = 'C';
-                break;
-            case GS_FPC::M:
-            case GS_FPC::M_MGW:
-            case GS_FPC::M_MGN:
-                prog = 'M';
-                break;
-            case GS_FPC::UP:
-                prog = '^';
-                break;
-            case GS_FPC::DOWN:
-                prog = 'v';
-                break;
-            case GS_FPC::U:
-            case GS_FPC::U_MGN:
-            case GS_FPC::U_MGW:
-                prog = '_';
-                break;
-            case GS_FPC::A:
-            case GS_FPC::A_MCFB_WT:
-            case GS_FPC::A_MGBB:
-            case GS_FPC::A_MGGEA:
-            case GS_FPC::A_MGN:
-            case GS_FPC::A_MGSNN:
-            case GS_FPC::A_MGW:
-            case GS_FPC::A_MGZSN:
-                prog = 'A';
-                break;
-            case GS_FPC::F:
-            case GS_FPC::F_MGW:
-                prog = 'F';
-                break;
-            default:
-                break;
-        }
+        // Clear IC
+        counter--;
+        if (counter <= 0) {
+            counter = 50;
+            this->lcd->clear_screen();
+            this->lcd->draw_text_large("IS-Test", 3, Justification::CENTER, false, false);
+            this->lcd->draw_text_large("WSA NIO", 4, Justification::CENTER, false, false);
+            this->lcd->draw_spd_kmh(spd_kmh);
+            char prog = ' ';
+            switch (gs418.get_FPC()) {
+                case GS_FPC::W:
+                case GS_FPC::W_MGN:
+                case GS_FPC::W_MGW:
+                    prog = 'W';
+                    break;
+                case GS_FPC::S:
+                case GS_FPC::S_MCFB_WT:
+                case GS_FPC::S_MGBB:
+                case GS_FPC::S_MGGEA:
+                case GS_FPC::S_MGN:
+                case GS_FPC::S_MGSNN:
+                case GS_FPC::S_MGW:
+                case GS_FPC::S_MGZSN:
+                    prog = 'S';
+                    break;
+                case GS_FPC::C:
+                case GS_FPC::C_MCFB_WT:
+                case GS_FPC::C_MGBB:
+                case GS_FPC::C_MGGEA:
+                case GS_FPC::C_MGN:
+                case GS_FPC::C_MGSNN:
+                case GS_FPC::C_MGW:
+                case GS_FPC::C_MGZSN:
+                    prog = 'C';
+                    break;
+                case GS_FPC::M:
+                case GS_FPC::M_MGW:
+                case GS_FPC::M_MGN:
+                    prog = 'M';
+                    break;
+                case GS_FPC::UP:
+                    prog = '^';
+                    break;
+                case GS_FPC::DOWN:
+                    prog = 'v';
+                    break;
+                case GS_FPC::U:
+                case GS_FPC::U_MGN:
+                case GS_FPC::U_MGW:
+                    prog = '_';
+                    break;
+                case GS_FPC::A:
+                case GS_FPC::A_MCFB_WT:
+                case GS_FPC::A_MGBB:
+                case GS_FPC::A_MGGEA:
+                case GS_FPC::A_MGN:
+                case GS_FPC::A_MGSNN:
+                case GS_FPC::A_MGW:
+                case GS_FPC::A_MGZSN:
+                    prog = 'A';
+                    break;
+                case GS_FPC::F:
+                case GS_FPC::F_MGW:
+                    prog = 'F';
+                    break;
+                default:
+                    break;
+            }
 
-        switch (gs418.get_FSC()) { // Get text to be displays in the 'D' slot
-            case GS_FSC::ONE: // D (Drive - range restrict 1st gear)
-                this->lcd->draw_gear_display(false, false, false, true, '1', prog);
-                break;
-            case GS_FSC::TWO: // D (Drive - range restrict 2nd gear)
-                this->lcd->draw_gear_display(false, false, false, true, '2', prog);
-                break;
-            case GS_FSC::THREE: // D (Drive - range restrict 3rd gear)
-                this->lcd->draw_gear_display(false, false, false, true, '3', prog);
-                break;
-            case GS_FSC::FOUR: // D (Drive - range restrict 4th gear)
-                this->lcd->draw_gear_display(false, false, false, true, '4', prog);
-                break;
-            case GS_FSC::FIVE: // D (Drive - range restrict 5th gear)
-                this->lcd->draw_gear_display(false, false, false, true, '5', prog);
-                break;
-            case GS_FSC::SIX: // D (Drive - range restrict 6th gear)
-                this->lcd->draw_gear_display(false, false, false, true, '6', prog);
-                break;
-            case GS_FSC::SEVEN: // D (Drive - range restrict 7th gear)
-                this->lcd->draw_gear_display(false, false, false, true, '7', prog);
-                break;
-            case GS_FSC::A: // A (Drive - All wheel drive)
-                this->lcd->draw_gear_display(false, false, false, true, 'A', prog);
-                break;
-            case GS_FSC::D: // D (Drive - Normal)
-                this->lcd->draw_gear_display(false, false, false, true, 'D', prog);
-                break;
-            case GS_FSC::F: // F (Failed gearbox)
-                this->lcd->draw_gear_display(false, false, false, true, 'F', prog);
-                break;
-            case GS_FSC::N: // N (Neutral)
-                this->lcd->draw_gear_display(false, false, true, false, 'D', prog);
-                break;
-            case GS_FSC::P: // P (Park)
-                this->lcd->draw_gear_display(true, false, false, false, 'D', prog);
-                break;
-            case GS_FSC::R: // R (Reverse)
-                this->lcd->draw_gear_display(false, true, false, false, 'D', prog);
-                break;
-            case GS_FSC::BLANK: // Blank
-            default: // SNV (Signal not available)
-                break;
+            switch (gs418.get_FSC()) { // Get text to be displays in the 'D' slot
+                case GS_FSC::ONE: // D (Drive - range restrict 1st gear)
+                    this->lcd->draw_gear_display(false, false, false, true, '1', prog);
+                    break;
+                case GS_FSC::TWO: // D (Drive - range restrict 2nd gear)
+                    this->lcd->draw_gear_display(false, false, false, true, '2', prog);
+                    break;
+                case GS_FSC::THREE: // D (Drive - range restrict 3rd gear)
+                    this->lcd->draw_gear_display(false, false, false, true, '3', prog);
+                    break;
+                case GS_FSC::FOUR: // D (Drive - range restrict 4th gear)
+                    this->lcd->draw_gear_display(false, false, false, true, '4', prog);
+                    break;
+                case GS_FSC::FIVE: // D (Drive - range restrict 5th gear)
+                    this->lcd->draw_gear_display(false, false, false, true, '5', prog);
+                    break;
+                case GS_FSC::SIX: // D (Drive - range restrict 6th gear)
+                    this->lcd->draw_gear_display(false, false, false, true, '6', prog);
+                    break;
+                case GS_FSC::SEVEN: // D (Drive - range restrict 7th gear)
+                    this->lcd->draw_gear_display(false, false, false, true, '7', prog);
+                    break;
+                case GS_FSC::A: // A (Drive - All wheel drive)
+                    this->lcd->draw_gear_display(false, false, false, true, 'A', prog);
+                    break;
+                case GS_FSC::D: // D (Drive - Normal)
+                    this->lcd->draw_gear_display(false, false, false, true, 'D', prog);
+                    break;
+                case GS_FSC::F: // F (Failed gearbox)
+                    this->lcd->draw_gear_display(false, false, false, true, 'F', prog);
+                    break;
+                case GS_FSC::N: // N (Neutral)
+                    this->lcd->draw_gear_display(false, false, true, false, 'D', prog);
+                    break;
+                case GS_FSC::P: // P (Park)
+                    this->lcd->draw_gear_display(true, false, false, false, 'D', prog);
+                    break;
+                case GS_FSC::R: // R (Reverse)
+                    this->lcd->draw_gear_display(false, true, false, false, 'D', prog);
+                    break;
+                case GS_FSC::BLANK: // Blank
+                default: // SNV (Signal not available)
+                    break;
+            }
         }
         this->abs_light.is_active = bs200.get_ABS_KL();
         this->esp_light.is_active = bs200.get_ESP_INFO_DL() | bs200.get_ESP_INFO_BL();

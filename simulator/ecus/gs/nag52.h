@@ -41,23 +41,9 @@ public:
     void set_two_three(uint8_t pwm) override; // 2-3
     void set_three_four(uint8_t pwm) override; // 3-4
 
-    uint8_t get_tcc() { return this->tcc; }
-    uint8_t get_spc() { return this->spc; }
-    uint8_t get_mpc() { return this->mpc; }
-    uint8_t get_y3()  { return this->y3; }
-    uint8_t get_y4()  { return this->y4; }
-    uint8_t get_y5()  { return this->y5; }
-
     void set_ewm_position(int g);
 private:
     V_GEAR virtual_gear = V_GEAR::PARK;
-
-    uint8_t mpc = 0;
-    uint8_t spc = 0;
-    uint8_t tcc = 0;
-    uint8_t y3 = 0;
-    uint8_t y4 = 0;
-    uint8_t y5 = 0;
 };
 
 /*
@@ -95,12 +81,12 @@ public:
     void request_downshift_release();
 
     // For graphing
-    uint8_t get_mpc_duty() { return this->iface.get_mpc(); }
-    uint8_t get_spc_duty() { return this->iface.get_spc(); }
-    uint8_t get_tcc_duty() { return this->iface.get_tcc(); }
-    uint8_t get_y3_duty()  { return this->iface.get_y3(); }
-    uint8_t get_y4_duty()  { return this->iface.get_y4(); }
-    uint8_t get_y5_duty()  { return this->iface.get_y5(); }
+    uint8_t get_mpc_duty() { return this->iface.get_mpc_pwm(); }
+    uint8_t get_spc_duty() { return this->iface.get_spc_pwm(); }
+    uint8_t get_tcc_duty() { return this->iface.get_tcc_pwm(); }
+    uint8_t get_y3_duty()  { return this->iface.get_y3_pwm(); }
+    uint8_t get_y4_duty()  { return this->iface.get_y4_pwm(); }
+    uint8_t get_y5_duty()  { return this->iface.get_y5_pwm(); }
 
 
 private:

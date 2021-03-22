@@ -3,6 +3,7 @@
 
 #include "GS_218.h"
 #include "GS_418.h"
+#include "GS_419_CUSTOM.h"
 #include "GS_338.h"
 
 #include "EWM_230.h"
@@ -34,6 +35,7 @@
 extern GS_218 gs218;
 extern GS_338 gs338;
 extern GS_418 gs418;
+extern GS_419 gs419;
 
 extern EWM_230 ewm230;
 

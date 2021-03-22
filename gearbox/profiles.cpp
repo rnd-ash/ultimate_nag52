@@ -26,8 +26,10 @@ GS_FPC sport_profile::get_current_profile() {
     return GS_FPC::S;
 }
 
-void sport_profile::update(nag_iface* iface) {
-    // TODO Sport profile update :)
+void sport_profile::update(nag_iface* iface, shift_api* s) {
+    if(ms308.get_NMOT() > 3000) {
+        s->upshift(150);
+    }
 }
 
 PROFILE sport_profile::get_profile_type() {
