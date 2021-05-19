@@ -1,6 +1,7 @@
 #include <Arduino.h>
 
 #include "scn/scn.h"
+#include "diag/kwp2000.h"
 
 void setup() {
   // put your setup code here, to run once:
