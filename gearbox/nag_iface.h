@@ -52,7 +52,7 @@ class nag_iface {
 public:
 
     virtual int get_n2_rpm() = 0; // 1, 2, 3, 4, 5
-    virtual int get_n3_rpm() = 0; // 2, 3, 4, R1, R2
+    virtual int get_n3_rpm() = 0; //    2, 3, 4,    R1, R2
 
     virtual int get_oil_temp() = 0;
 
