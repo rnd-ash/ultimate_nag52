@@ -142,6 +142,24 @@
 #define P260F 0x260F // Supply voltage for sensors overvoltage
 
 
+
+
+
+// ------------------------------------------------------------------------------------- //
+// Codes Below are ultimate-nag52 specific and are not recognised by Daimler's software  //
+// Use OpenVehicleDiagnostic (OVD) for diagnostics with these codes                      //
+// ------------------------------------------------------------------------------------- //
+
+// 404 - Gearbox not found 
+#define P0404 0x0404 // Where gearbox? (No solenoid control or sensor inputs)
+
+
+
+
+// ------------------------------------------------------------- //
+// Functions for flagging and clearing error codes from the ECU  //
+// ------------------------------------------------------------- //
+
 bool trigger_dtc(uint16_t dtc);
 uint8_t get_dtc_trigger_count(uint16_t dtc);
 bool clear_dtc(uint16_t dtc);
