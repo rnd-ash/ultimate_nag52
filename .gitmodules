@@ -1,0 +1,3 @@
+[submodule "FIRMWARE/lib/FlexCAN_T4"]
+	path = FIRMWARE/lib/FlexCAN_T4
+	url = https://github.com/tonton81/FlexCAN_T4
