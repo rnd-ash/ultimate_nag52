@@ -2,6 +2,9 @@
 #define KWP2000_H_
 
 #include <dtcs.h>
+#include "kwp_structs.h"
+#include <FreeRTOS_TEENSY4.h>
+#include "can_network/can_manager.h"
 
 /**
  * KWP 2000 diagnostic server implementation
@@ -90,28 +93,35 @@ struct KwpBuffer {
 
 class KWPDiagServer {
 public:
-    KwpBuffer process_bytes(uint8_t* request_buffer, uint8_t request_len);
+    KWPDiagServer(IsoTp_Manager* tx_mgr);
+    static void create_task(void* params);
+    void run_task();
 private:
+
+    void process_payload(uint8_t sid, uint8_t* args, uint8_t arg_len);
 
     /**
      * Generates an Error response given the Service ID and Error code
      */
-    KwpBuffer respond_err(uint8_t sid, uint8_t err);
+    void respond_err(uint8_t sid, uint8_t err);
 
     /**
      * Generates an OK Response given a Service ID and Local ID.
      * Data is copied to the Tx buffer, and must be data_len bytes
      */
-    KwpBuffer respond_ok(uint8_t sid, uint8_t lid, void* data, uint8_t data_len);
+    void respond_ok(uint8_t sid, uint8_t lid, void* data, uint8_t data_len);
 
     /**
      * Generates an OK Response given a Service ID.
      * Data is copied to the Tx buffer, and must be data_len bytes
      */
-    KwpBuffer respond_ok(uint8_t, void* data, uint8_t data_len);
+    void respond_ok(uint8_t, void* data, uint8_t data_len);
 
     uint8_t server_state = SESSION_DEFAULT;
     unsigned long last_tp_time = 0;
+
+    IsoTp_Manager* payload_mgr;
+
 };
 
 

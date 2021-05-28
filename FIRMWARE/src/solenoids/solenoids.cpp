@@ -2,6 +2,7 @@
 #include "../pins.h"
 #include <Arduino.h>
 #include "SPI.h"
+#include "../gearbox/sensors.h"
 
 SolenoidControl::SolenoidControl() {
     SPI.begin();
@@ -17,9 +18,29 @@ SolenoidControl::SolenoidControl() {
     // Activate reset (15us)
     digitalWrite(RESET_SHIFT, LOW);
     digitalWrite(RESET_PRESSURE, LOW);
-    delayMicroseconds(15);
     digitalWrite(RESET_SHIFT, HIGH);
     digitalWrite(RESET_PRESSURE, HIGH);
+
+    // Now set all solenoid pins to output
+    pinMode(TCC_PWM, OUTPUT);
+    pinMode(SPC_PWM, OUTPUT);
+    pinMode(MPC_PWM, OUTPUT);
+    pinMode(Y3_PWM, OUTPUT);
+    pinMode(Y4_PWM, OUTPUT);
+    pinMode(Y5_PWM, OUTPUT);
+
+    //analogWriteResolution(12);
+    analogWriteFrequency(TCC_PWM, 100); // 100Hz for TCC
+    analogWriteFrequency(MPC_PWM, 1000); // 1000Hz for MPC
+    analogWriteFrequency(SPC_PWM, 1000); // 1000Hz for SPC
+
+    // All solenoids off by default!
+    analogWrite(TCC_PWM, 256);
+    analogWrite(SPC_PWM, 256);
+    analogWrite(MPC_PWM, 256);
+    analogWrite(Y3_PWM, 256);
+    analogWrite(Y4_PWM, 256);
+    analogWrite(Y5_PWM, 256);
 }
 
 SolenoidState SolenoidControl::get_solenoid_state(Solenoid s) {
@@ -55,88 +76,83 @@ void SolenoidControl::query_solenoid_states() {
     this->shift_states[1] = (SolenoidState)((shift_status >> 2) & 0x03);
 
     // Channel 3
-    this->pressure_states[2] = (SolenoidState)((pressure_status >> 4) & 0x03);
+    this->pressure_states[2] = (SolenoidState)((pressure_status >> 4) & 0x03); 
     this->shift_states[2] = (SolenoidState)((shift_status >> 4) & 0x03);
-
-    //uint8_t shift_amount = 0;
-    //switch (s) {
-    //    case Solenoid::TCC:
-    //    case Solenoid::Y3:
-    //        // Channel 1
-    //        shift_amount = 0;
-    //        break;
-    //    case Solenoid::SPC:
-    //    case Solenoid::Y4:
-    //         // Channel 2
-    //        shift_amount = 2;
-    //        break;
-    //    case Solenoid::MPC:
-    //    case Solenoid::Y5:
-    //         // Channel 3
-    //        shift_amount = 4;
-    //        break;
-    //    default:
-    //        break;
-    //}
-    //return (SolenoidState)((res >> shift_amount) & 0b11);
 }
 
-void SolenoidControl::set_pwm(Solenoid s, uint8_t pwm) {
-    uint8_t val = 255-pwm; // Ver 1.x PCB has PRG shorted to ground, meaning 255 is off, 0 is on
-    switch (s) {
-        case Solenoid::Y3:
-            analogWrite(Y3_PWM, val);
-            this->pwm_y3 = val;
-            break;
-        case Solenoid::Y4:
-            analogWrite(Y4_PWM, val);
-            this->pwm_y4 = val;
-            break;
-        case Solenoid::Y5:
-            analogWrite(Y5_PWM, val);
-            this->pwm_y5 = val;
-            break;
-        case Solenoid::SPC:
-            analogWrite(SPC_PWM, val);
-            this->pwm_spc = val;
-            break;
-        case Solenoid::MPC:
-            analogWrite(MPC_PWM, val);
-            this->pwm_mpc = val;
-            break;
-        case Solenoid::TCC:
-            analogWrite(TCC_PWM, val);
-            this->pwm_tcc = val;
-            break;
-        default:
-            break;
-    }
-
+void SolenoidControl::set_current(Solenoid s, int current) {
+    solenoid_powers[(uint8_t)s].targ_current = current;
 }
 
 uint8_t SolenoidControl::get_pwm(Solenoid s) {
-    switch (s) {
-        case Solenoid::Y3:
-            return 255-this->pwm_y3;
-        case Solenoid::Y4:
-            return 255-this->pwm_y4;
-        case Solenoid::Y5:
-            return 255-this->pwm_y5;
-        case Solenoid::SPC:
-            return 255-this->pwm_spc;
-        case Solenoid::MPC:
-            return 255-this->pwm_mpc;
-        case Solenoid::TCC:
-            return 255-this->pwm_tcc;
-        default:
-            break;
+    return solenoid_powers[(uint8_t)s].pwm_current;
+}
+
+int SolenoidControl::get_current(Solenoid s) {
+    uint8_t pwm = solenoid_powers[(uint8_t)s].pwm_current;
+    float resistance = 4.5;
+    if (s == Solenoid::TCC) {
+        resistance = 1;
+    } else if (s == Solenoid::MPC || s == Solenoid::SPC) {
+        resistance = 6;
     }
-    return 0;
+    return (int)((float)get_voltage_mv()*((float)pwm/256.0)/resistance);
+}
+
+void SolenoidControl::update() {
+    update_solenoid(Solenoid::TCC);
+    //update_solenoid(Solenoid::MPC);
+    //update_solenoid(Solenoid::SPC);
+    //update_solenoid(Solenoid::Y3);
+    //update_solenoid(Solenoid::Y4);
+    //update_solenoid(Solenoid::Y5);
+}
+
+void SolenoidControl::update_solenoid(Solenoid s) {
+    // How much is the solenoid currently drawing?
+    SolenoidControlState* sol_state = &solenoid_powers[(uint8_t)s];
+    float v = (float)get_voltage_mv();
+    float resistance = 4.5;
+    if (s == Solenoid::TCC) {
+        resistance = 1;
+    } else if (s == Solenoid::MPC || s == Solenoid::SPC) {
+        resistance = 6;
+    }
+
+    // How much current do we want?
+    float target_voltage = (float)(sol_state->targ_current)*resistance;
+    float ratio = target_voltage / v;
+    float pwm_f = (256.0 * ratio);
+    uint8_t pwm = max(min(256, (uint8_t)pwm_f), 0);
+    sol_state->pwm_current = pwm;
+    switch(s) {
+    case Solenoid::Y3:
+        analogWrite(Y3_PWM, 256-pwm);
+        break;
+    case Solenoid::Y4:
+        analogWrite(Y4_PWM, 256-pwm);
+        break;
+    case Solenoid::Y5:
+        analogWrite(Y5_PWM, 256-pwm);
+        break;
+    case Solenoid::TCC:
+        analogWrite(TCC_PWM, 256-pwm);
+        break;
+    case Solenoid::SPC:
+        analogWrite(SPC_PWM, 256-pwm);
+        break;
+    case Solenoid::MPC:
+        analogWrite(MPC_PWM, 256-pwm);
+        break;
+    default:
+        break;
+    }
 }
 
 uint8_t SolenoidControl::spi_transfer(uint8_t req, uint8_t cs_pin) {
     SPI.beginTransaction(SPISettings(5000000, MSBFIRST, SPI_MODE0)); // 5Mhz for TLE6220GP
     digitalWrite(cs_pin, LOW);
+    delayNanoseconds(300); // Teensy is too fast. Wait 250ns for TLE6220GP to be ready
     uint8_t res = SPI.transfer(req);
     digitalWrite(cs_pin, HIGH);
     SPI.endTransaction();

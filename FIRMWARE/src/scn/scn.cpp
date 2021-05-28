@@ -65,7 +65,7 @@ namespace SCN_CONFIG {
         memcpy(&cfg.variant[0], &read_buffer[0], 4);
 
         // Tire size(MM)
-        cfg.tire_size_mm =    (uint16_t)read_buffer[34] | read_buffer[35] << 8;
+        cfg.tire_size_mm = (uint16_t)read_buffer[34] | read_buffer[35] << 8;
         // Rear differential ratio (x1000)
         cfg.rear_diff_ratio = (uint16_t)read_buffer[30] | read_buffer[31] << 8;
         // Car has flappy paddles?

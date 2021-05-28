@@ -145,7 +145,7 @@ typedef union {
     // Gets oil quality
     uint8_t get_OEL_QUAL() { return raw >> 0 & 0xff; }
 
-    void import_frame(uint32_t cid, uint8_t* data, uint8_t len) {
+    void import_frame(uint32_t cid, const uint8_t* data, uint8_t len) {
         if (cid == MS_308_ID) {
             for (int i = 0; i < len; i++) {
                 bytes[7-i] = data[i];
