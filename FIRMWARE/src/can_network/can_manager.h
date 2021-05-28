@@ -47,6 +47,7 @@ public:
 private:
     bool has_rx_payload = false;
     bool has_tx_payload = false;
+
     bool clear_to_send = false;
     bool send_flow_control = false;
     bool is_receiving = false;
@@ -57,6 +58,8 @@ private:
 
     IsoTpPayload tx;
     IsoTpPayload rx;
+
+    unsigned long last_tx_time = 0;
 };
 
 extern IsoTp_Manager* kwp2000_iso_tp_server;

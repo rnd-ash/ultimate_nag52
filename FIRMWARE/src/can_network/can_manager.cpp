@@ -53,10 +53,52 @@ IsoTp_Manager::IsoTp_Manager(uint8_t st_min, uint8_t bs, uint16_t rx_id, uint16_
     this->rx_id = rx_id;
 }
 
+void debug_send(CAN_message_t t) {
+    //Serial.print("Write: [");
+    //for(int i = 0; i < t.len; i++) {
+    //    Serial.print(t.buf[i], HEX);
+    //    Serial.print(" ");
+    //}
+    //Serial.println("]");
+    canc.write(t);
+}
+
 void IsoTp_Manager::task() {
     Serial.println("Task created ISOTP");
+    CAN_message_t txf;
+    txf.id = this->tx_id;
+    txf.len = 8;
+    uint8_t pci = 0x21;
     while(1) {
         vTaskDelay(20);
+        if (this->send_flow_control) {
+            txf.buf[0] = 0x30;
+            txf.buf[1] = this->st_min;
+            txf.buf[2] = this->bs;
+            canc.write(txf);
+            this->send_flow_control = false;
+        }
+        if (this->clear_to_send && this->has_tx_payload) {
+            if (millis() - last_tx_time > 20) {
+                txf.buf[0] = pci;
+                uint8_t max_cpy = min(7, this->tx.buffer_len - this->tx._buf_pos);
+                memcpy(&txf.buf[1], &this->tx.buffer[this->tx._buf_pos], max_cpy);
+                tx._buf_pos += max_cpy;
+                debug_send(txf);
+                last_tx_time = millis();
+                if (tx._buf_pos >= tx.buffer_len) {
+                    // Done
+                    this->clear_to_send = false;
+                    this->has_tx_payload = false;
+                    pci = 0x21;
+                } else {
+                    pci++;
+                    if (pci == 0x30) {
+                        pci = 0x20;
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -70,24 +112,36 @@ bool IsoTp_Manager::read_payload(IsoTpPayload &p) {
 }
 
 void IsoTp_Manager::tx_payload(IsoTpPayload tx) {
+    if (this->has_tx_payload) {
+        Serial.println("Already sending!");
+        return; // TODO Handle busy condition
+    }
     CAN_message_t tx_frame;
     tx_frame.id = this->tx_id;
     tx_frame.len = 8;
-
+    Serial.print("Tx: [");
+    for(int i = 0; i < tx.buffer_len; i++) {
+        Serial.print(tx.buffer[i], HEX);
+        Serial.print(" ");
+    }
+    Serial.println("]");
     if (tx.buffer_len <= 7) {
         // Can Tx in 1 frame!
         tx_frame.buf[0] = tx.buffer_len;
         memcpy(&tx_frame.buf[1], tx.buffer, tx.buffer_len);
         canc.write(tx_frame);
+        this->has_tx_payload = false;
     } else {
+        // Send first frame
         memcpy(&this->tx, &tx, sizeof(IsoTpPayload));
         this->clear_to_send = false;
-        this->send_flow_control = true;
         tx_frame.buf[0] = 0x10;
         tx_frame.buf[1] = tx.buffer_len;
         memcpy(&tx_frame.buf[2], tx.buffer, 6);
         this->tx._buf_pos = 6;
         canc.write(tx_frame);
+        this->has_tx_payload = true;
+        this->last_tx_time = millis();
     }
 }
 
