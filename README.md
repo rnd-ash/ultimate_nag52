@@ -1,6 +1,12 @@
 # Ultimate NAG52
 An open implementation of NAG52 (722.6 Transmission controller), complete with KWP2000 diagnostics and CANBUS support
 
+## About GPL and lack of Gerber
+
+This project follows the GPL license, however right now you will notice there is only the schematics of the PCB avaliable. So what about the PCB Gerber file?
+
+Currently, the Gerber file is private whilst the board undergoes testing. This is to prevent anyone from making a PCB which has potential issues. The board is being tested by a beta tester group. Once testing has concluded and the product is ready to be sold (Assembled PCBs), the Gerber will then become avaliable in this repository!
+
 ## Video playlist
 
 See the following [youtube playlist](https://youtube.com/playlist?list=PLxrw-4Vt7xtu9d8lCkMCG0_K7oHcsSMtF)
