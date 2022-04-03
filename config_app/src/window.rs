@@ -1,10 +1,8 @@
 use std::{borrow::BorrowMut, collections::VecDeque};
 
 use ecu_diagnostics::hardware::Hardware;
-use eframe::{
-    egui,
-    epi::{self, Storage},
-};
+use egui::*;
+use epi::*;
 
 use crate::ui::status_bar::{self};
 
@@ -40,7 +38,7 @@ impl MainWindow {
 }
 
 impl epi::App for MainWindow {
-    fn update(&mut self, ctx: &egui::CtxRef, frame: &epi::Frame) {
+    fn update(&mut self, ctx: &egui::Context, frame: &epi::Frame) {
         let stack_size = self.pages.len();
         if stack_size > 0 {
             let mut pop_page = false;
@@ -78,7 +76,7 @@ impl epi::App for MainWindow {
                 }
             });
         }
-        ctx.request_repaint(); // Continuous mode
+        //ctx.request_repaint(); // Continuous mode
     }
 
     fn name(&self) -> &str {

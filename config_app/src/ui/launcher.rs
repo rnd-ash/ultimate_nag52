@@ -1,12 +1,8 @@
 use std::sync::{Arc, Mutex};
 
 use ecu_diagnostics::hardware::{HardwareResult, HardwareScanner};
-use eframe::{
-    egui::Color32,
-    egui::RichText,
-    egui::{self, Ui},
-    epi,
-};
+use egui::*;
+use epi::*;
 
 use crate::{
     ui::main::MainPage,
@@ -58,6 +54,7 @@ impl InterfacePage for Launcher {
 
         ui.heading("Devices");
 
+
         if self.get_device_list().len() == 0 {
         } else {
             egui::ComboBox::from_label("Select device")
@@ -70,21 +67,18 @@ impl InterfacePage for Launcher {
                 });
         }
 
+        if !self.selected_device.is_empty() && ui.button("Launch configuration app").clicked() {
+            match self.open_device(&self.selected_device) {
+                Ok(dev) => {
+                    return PageAction::Overwrite(Box::new(MainPage::new(dev)));
+                }
+                Err(e) => self.launch_err = Some(format!("Cannot open device: {}", e)),
+            }
+        }
+
         if ui.button("Refresh device list").clicked() {
             self.scanner = Nag52UsbScanner::new();
             self.selected_device.clear();
-        }
-
-        if !self.selected_device.is_empty() {
-            if ui.button("Launch configuration app").clicked() {
-                match self.open_device(&self.selected_device) {
-                    Ok(dev) => {
-                        println!("Open OK!");
-                        return PageAction::Overwrite(Box::new(MainPage::new(dev)));
-                    }
-                    Err(e) => self.launch_err = Some(format!("Cannot open device: {}", e)),
-                }
-            }
         }
 
         if let Some(e) = &self.launch_err {

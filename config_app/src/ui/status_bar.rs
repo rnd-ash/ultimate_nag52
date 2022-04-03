@@ -1,7 +1,6 @@
 use ecu_diagnostics::hardware::Hardware;
-use eframe::egui::Color32;
-use eframe::egui::{self, RichText, Vec2};
-use eframe::epi;
+use egui::*;
+use epi::*;
 use std::{
     collections::VecDeque,
     sync::{Arc, Mutex, RwLock},

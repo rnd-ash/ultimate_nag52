@@ -3,13 +3,13 @@
 //! The USB endpoint ONLY supports sending fakes ISO-TP messages
 
 use std::{
-    io::{BufRead, BufReader, BufWriter},
+    io::{BufRead, BufReader, BufWriter, Write},
     sync::{
         atomic::{AtomicBool, Ordering},
         mpsc::{self, Receiver},
         Arc,
     },
-    time::Instant,
+    time::Instant, ops::{Deref, DerefMut}, thread::JoinHandle,
 };
 
 use ecu_diagnostics::{
@@ -17,7 +17,7 @@ use ecu_diagnostics::{
     hardware::{HardwareInfo, HardwareResult},
     ChannelError, HardwareError,
 };
-use serialport::{ClearBuffer, DataBits, FlowControl, Parity, SerialPortBuilder, StopBits};
+use serial_rs::{SerialPort, PortInfo, SerialPortSettings, ByteSize, FlowControl};
 
 #[derive(Debug, Clone, Copy)]
 pub enum EspLogLevel {
@@ -37,74 +37,55 @@ pub struct EspLogMessage {
 }
 
 pub struct Nag52USB {
-    port: Option<Box<dyn serialport::SerialPort>>,
+    port: Option<Box<dyn SerialPort>>,
+    port_info: PortInfo,
     port_name: String,
     info: HardwareInfo,
     rx_log: mpsc::Receiver<EspLogMessage>,
     rx_diag: mpsc::Receiver<(u32, Vec<u8>)>,
-    tx: mpsc::Sender<Vec<u8>>,
     is_running: Arc<AtomicBool>,
-    is_running_reader: Arc<AtomicBool>,
-    is_running_writer: Arc<AtomicBool>,
     tx_id: u32,
     rx_id: u32,
+    r_handle: Option<JoinHandle<()>>
 }
 
 unsafe impl Sync for Nag52USB {}
 unsafe impl Send for Nag52USB {}
 
 impl Nag52USB {
-    pub fn new(path: &str) -> HardwareResult<Self> {
-        let port = serialport::new(path, 256000)
-            .flow_control(FlowControl::None)
-            .data_bits(DataBits::Eight)
-            .timeout(std::time::Duration::from_millis(200))
-            .stop_bits(StopBits::One)
-            .parity(Parity::None)
-            .open()
+    pub fn new(path: &str, info: PortInfo) -> HardwareResult<Self> {
+        let mut port = serial_rs::new_from_path(path, Some(SerialPortSettings::default()
+            .baud(115200)
+            .read_timeout(Some(100))
+            .write_timeout(Some(100))
+            .set_flow_control(FlowControl::None)))
             .map_err(|e| HardwareError::APIError {
                 code: 99,
-                desc: e.description,
-            })?;
-        port.clear(ClearBuffer::All)
-            .map_err(|e| HardwareError::APIError {
-                code: 99,
-                desc: format!("Clearbuffer error {}", e.description),
+                desc: e.to_string(),
             })?;
 
         let (read_tx_log, read_rx_log) = mpsc::channel::<EspLogMessage>();
         let (read_tx_diag, read_rx_diag) = mpsc::channel::<(u32, Vec<u8>)>();
-        let (send_tx, send_rx) = mpsc::channel::<Vec<u8>>();
-
-        let mut reader = BufReader::new(port.try_clone().unwrap());
-        let mut writer = BufWriter::new(port.try_clone().unwrap());
 
         let is_running = Arc::new(AtomicBool::new(true));
         let is_running_r = is_running.clone();
-        let is_running_w = is_running.clone();
-
-        let is_running_reader = Arc::new(AtomicBool::new(true));
-        let is_running_reader_t = is_running.clone();
-
-        let is_running_writer = Arc::new(AtomicBool::new(true));
-        let is_running_writer_t = is_running.clone();
+        let mut port_clone = port.try_clone().unwrap();
 
         // Create 2 threads, one to read the port, one to write to it
         let reader_thread = std::thread::spawn(move || {
             println!("Serial reader start");
-            is_running_reader_t.store(true, Ordering::Relaxed);
-            let mut buffer = String::new();
             while is_running_r.load(Ordering::Relaxed) {
-                if let Ok(n) = reader.read_line(&mut buffer) {
-                    if n != 0 {
-                        if buffer.chars().next().unwrap() == '#' {
+                let mut reader = BufReader::new(&mut port_clone);
+                for mut line in reader.lines().filter_map(|x| x.ok()) {
+                    if !line.is_empty() {
+                        if line.chars().next().unwrap() == '#' {
                             // First char is #, diag message
                             // Diag message
-                            if buffer.len() % 2 != 0 {
-                                eprintln!("Discarding invalid diag msg {}", buffer);
+                            if line.len() % 2 == 0 {
+                                eprintln!("Discarding invalid diag msg '{}'", line);
                             } else {
-                                println!("Read diag payload {:?} from Nag52 USB", buffer);
-                                let contents: &str = &buffer[1..buffer.len() - 1];
+                                println!("Read diag payload {:?} from Nag52 USB", line);
+                                let contents: &str = &line[1..];
                                 let can_id = u32::from_str_radix(&contents[0..4], 16).unwrap();
                                 let payload: Vec<u8> = (4..contents.len())
                                     .step_by(2)
@@ -114,23 +95,22 @@ impl Nag52USB {
                             }
                         } else {
                             // This is a log message
-                            if buffer.len() < 5 {
-                                break;
+                            if line.len() < 5 {
+                                continue;
                             }
-                            buffer.truncate(buffer.len() - 2); // Remove \r\n
-                            let lvl = match buffer.chars().next().unwrap() {
+                            let lvl = match line.chars().next().unwrap() {
                                 'I' => EspLogLevel::Info,
                                 'W' => EspLogLevel::Warn,
                                 'E' => EspLogLevel::Error,
                                 'D' => EspLogLevel::Debug,
-                                _ => break,
+                                _ => continue,
                             };
                             let timestamp = u128::from_str_radix(
-                                buffer.split_once(")").unwrap().0.split_once("(").unwrap().1,
+                                line.split_once(")").unwrap().0.split_once("(").unwrap().1,
                                 10,
                             )
                             .unwrap();
-                            let split = buffer.split_once(": ").unwrap();
+                            let split = line.split_once(": ").unwrap();
                             let msg = EspLogMessage {
                                 lvl,
                                 timestamp,
@@ -139,20 +119,17 @@ impl Nag52USB {
                             };
                             read_tx_log.send(msg);
                         }
-                        buffer.clear();
                     }
                 }
-                std::thread::sleep(std::time::Duration::from_millis(10));
             }
             println!("Serial reader stop");
-            is_running_reader_t.store(false, Ordering::Relaxed);
         });
+
         Ok(Self {
             port: Some(port),
             port_name: path.into(),
+            port_info: info,
             is_running,
-            is_running_reader,
-            is_running_writer,
             info: HardwareInfo {
                 name: "Ultimate-Nag52 USB interface".to_string(),
                 vendor: Some("rnd-ash@github.com".to_string()),
@@ -172,9 +149,9 @@ impl Nag52USB {
             },
             rx_log: read_rx_log,
             rx_diag: read_rx_diag,
-            tx: send_tx,
             tx_id: 0,
             rx_id: 0,
+            r_handle: Some(reader_thread)
         })
     }
 
@@ -183,30 +160,31 @@ impl Nag52USB {
     }
 
     pub fn is_connected(&self) -> bool {
-        self.is_running_reader.load(Ordering::Relaxed)
-            || self.is_running_writer.load(Ordering::Relaxed)
+        self.is_running.load(Ordering::Relaxed)
     }
 
     pub fn get_usb_path(&self) -> &str {
         &self.port_name
     }
 
-    pub fn disconnect(&mut self) {
+    pub fn on_flash_begin(&mut self) -> Box<dyn SerialPort> {
         self.is_running.store(false, Ordering::Relaxed);
-        std::mem::drop(self.port.as_ref());
+        if let Some(handle) = self.r_handle.take() {
+            handle.join().expect("Could not terminate reader thread!");
+        }
+        return self.port.take().unwrap()
     }
 
-    pub fn reconnect(&mut self) -> HardwareResult<()> {
-        self.disconnect();
-        let tmp = Self::new(&self.port_name)?;
-        let _ = std::mem::replace(self, tmp);
+    pub fn on_flash_end(&mut self) -> HardwareResult<()> {
+        let new = Self::new(&self.port_name, self.port_info.clone())?;
+        let _ = std::mem::replace(self, new);
         Ok(())
     }
 }
 
 impl Drop for Nag52USB {
     fn drop(&mut self) {
-        self.disconnect();
+        self.is_running.store(false, Ordering::Relaxed);
     }
 }
 
@@ -287,15 +265,14 @@ impl PayloadChannel for Nag52USB {
     ) -> ecu_diagnostics::channel::ChannelResult<()> {
         // Just write buffer
         match self.port.as_mut() {
-            Some(p) => {
+            Some(mut p) => {
                 let mut buf = format!("#{:04X}", addr);
                 for x in buffer {
                     buf.push_str(&format!("{:02X}", x));
                 }
                 buf.push('\n');
-                println!("Sending {:?} to Nag52 USB", buf);
-                p.write_all(&buf.as_bytes())
-                    .map_err(|e| ChannelError::IOError(e));
+                let mut writer = BufWriter::new(&mut p);
+                writer.write(buf.as_bytes()).map_err(|e| ChannelError::IOError(e))?;
                 Ok(())
             }
             None => Err(ChannelError::InterfaceNotOpen),
@@ -305,9 +282,7 @@ impl PayloadChannel for Nag52USB {
     fn clear_rx_buffer(&mut self) -> ecu_diagnostics::channel::ChannelResult<()> {
         match self.port.as_mut() {
             Some(p) => {
-                println!("Clearing Rx buffer");
                 while self.rx_diag.try_recv().is_ok() {} // Clear rx_diag too!
-                println!("Clearing Rx buffer done");
                 Ok(())
             }
             None => Err(ChannelError::InterfaceNotOpen),

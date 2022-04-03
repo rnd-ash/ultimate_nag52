@@ -2,9 +2,11 @@ use std::sync::{Arc, Mutex};
 
 use ecu_diagnostics::{
     hardware::Hardware,
+    DiagnosticServer,
     kwp2000::{self, Kwp2000DiagnosticServer, Kwp2000ServerOptions, Kwp2000VoidHandler},
 };
-use eframe::egui;
+use egui::*;
+use epi::Frame;
 
 use crate::{
     usb_hw::diag_usb::Nag52USB,
@@ -14,6 +16,7 @@ use crate::{
 use super::{firmware_update::FwUpdateUI, status_bar::MainStatusBar};
 
 use ecu_diagnostics::kwp2000::*;
+use crate::ui::diagnostics::DiagnosticsPage;
 
 pub struct MainPage {
     dev: Arc<Mutex<Nag52USB>>,
@@ -34,8 +37,8 @@ impl MainPage {
 impl InterfacePage for MainPage {
     fn make_ui(
         &mut self,
-        ui: &mut eframe::egui::Ui,
-        frame: &eframe::epi::Frame,
+        ui: &mut egui::Ui,
+        frame: &epi::Frame,
     ) -> crate::window::PageAction {
         // UI context menu
         egui::menu::bar(ui, |bar_ui| {
@@ -53,42 +56,11 @@ impl InterfacePage for MainPage {
         let mut create_page = None;
         ui.vertical(|v| {
             v.heading("Utilities");
-            if v.button("Firmware updater").clicked() {
+            if v.button("Firmware updater").on_disabled_hover_ui(|u| {u.label("Broken, will be added soon!");}).clicked() {
                 create_page = Some(PageAction::Add(Box::new(FwUpdateUI::new(self.dev.clone()))));
             }
             if v.button("Diagnostics").clicked() {
-                let mut channel = Hardware::create_iso_tp_channel(self.dev.clone()).unwrap();
-                let channel_cfg = ecu_diagnostics::channel::IsoTPSettings {
-                    block_size: 8,
-                    st_min: 20,
-                    extended_addressing: false,
-                    pad_frame: true,
-                    can_speed: 500_000,
-                    can_use_ext_addr: false,
-                };
-                let server_settings = Kwp2000ServerOptions {
-                    send_id: 0x07E1,
-                    recv_id: 0x07E9,
-                    read_timeout_ms: 2000,
-                    write_timeout_ms: 2000,
-                    global_tp_id: 0,
-                    tester_present_interval_ms: 2000,
-                    tester_present_require_response: true,
-                };
-                let mut kwp = Kwp2000DiagnosticServer::new_over_iso_tp(
-                    server_settings,
-                    channel,
-                    channel_cfg,
-                    Kwp2000VoidHandler {},
-                )
-                .unwrap();
-                println!(
-                    "KWP RES: {:?}",
-                    kwp2000::set_diagnostic_session_mode(
-                        &mut kwp,
-                        SessionType::ExtendedDiagnostics
-                    )
-                );
+                create_page = Some(PageAction::Add(Box::new(DiagnosticsPage::new(self.dev.clone(), self.bar.clone()))));
             }
             if v.button("Map tuner").clicked() {}
             if v.button("Configure drive profiles").clicked() {}
