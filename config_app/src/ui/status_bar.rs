@@ -3,7 +3,7 @@ use egui::*;
 use epi::*;
 use std::{
     collections::VecDeque,
-    sync::{Arc, Mutex, RwLock},
+    sync::{Arc, Mutex, RwLock}, borrow::BorrowMut,
 };
 
 use crate::{
@@ -17,6 +17,7 @@ pub struct MainStatusBar {
     show_log_view: bool,
     msgs: VecDeque<EspLogMessage>,
     auto_scroll: bool,
+    use_light_theme: bool
 }
 
 impl MainStatusBar {
@@ -26,12 +27,13 @@ impl MainStatusBar {
             show_log_view: false,
             msgs: VecDeque::new(),
             auto_scroll: true,
+            use_light_theme: false
         }
     }
 }
 
 impl StatusBar for MainStatusBar {
-    fn draw(&mut self, ui: &mut egui::Ui) {
+    fn draw(&mut self, ui: &mut egui::Ui, ctx: &egui::Context) {
         match self.dev.lock().unwrap().is_connected() {
             true => ui.label("Connected"),
             false => ui.label("Disconnected"),
@@ -39,6 +41,18 @@ impl StatusBar for MainStatusBar {
         if ui.button("TCM log view").clicked() {
             self.show_log_view = true;
         }
+
+        if ui.checkbox(&mut self.use_light_theme, "Light theme").clicked() {
+            println!("Theme {}", self.use_light_theme);
+            let style = match self.use_light_theme {
+                true => egui::Visuals::light(),
+                false => egui::Visuals::dark()
+            };
+            ctx.set_visuals(style);
+
+        }
+
+
         if self.show_log_view {
             egui::containers::Window::new("Log view")
                 .fixed_size(&[1200f32, 400f32])

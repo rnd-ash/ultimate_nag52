@@ -1,8 +1,7 @@
 use std::sync::{Arc, Mutex};
 
 use ecu_diagnostics::{
-    hardware::{HardwareCapabilities, HardwareInfo},
-    HardwareError,
+    hardware::{HardwareCapabilities, HardwareInfo, HardwareError},
 };
 use serial_rs::PortInfo;
 
@@ -20,7 +19,7 @@ impl Nag52UsbScanner {
                     .iter()
                     .map(|i| (HardwareInfo {
                         name: i.get_port().to_string(),
-                        vendor: None,
+                        vendor: Some(i.get_manufacturer().to_string()),
                         device_fw_version: None,
                         api_version: None,
                         library_version: None,

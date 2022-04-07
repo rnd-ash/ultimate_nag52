@@ -53,8 +53,13 @@ fn main() {
         power_preference: wgpu::PowerPreference::LowPower,
         compatible_surface: Some(&surface),
         force_fallback_adapter: false,
-    }))
-    .unwrap();
+    })).or_else(|| {
+        pollster::block_on(instance.request_adapter(&wgpu::RequestAdapterOptions {
+            power_preference: wgpu::PowerPreference::HighPerformance,
+            compatible_surface: Some(&surface),
+            force_fallback_adapter: false,
+        })) }
+    ).unwrap();
 
     let (device, queue) = pollster::block_on(adapter.request_device(
         &wgpu::DeviceDescriptor {

@@ -3,7 +3,7 @@
 
 use std::mem::size_of;
 use ecu_diagnostics::{DiagError, DiagServerResult};
-use ecu_diagnostics::kwp2000::{Kwp2000DiagnosticServer, read_custom_local_identifier};
+use ecu_diagnostics::kwp2000::{Kwp2000DiagnosticServer};
 use egui::{Color32, InnerResponse, RichText, Ui};
 
 #[repr(u8)]
@@ -16,26 +16,25 @@ pub enum RecordIdents {
 
 impl RecordIdents {
     pub fn query_ecu(&self, server: &mut Kwp2000DiagnosticServer) -> DiagServerResult<LocalRecordData> {
-        let resp = read_custom_local_identifier(server, *self as u8)?;
+        let resp = server.read_custom_local_identifier(*self as u8)?;
         let expected_size = match &self {
             Self::GearboxSensors => size_of::<DataGearboxSensors>(),
             Self::SolenoidStatus => size_of::<DataSolenoids>(),
             Self::CanDataDump => size_of::<DataCanDump>(),
         };
-        if resp.len() - 2 != expected_size {
+        if resp.len() != expected_size {
             return Err(DiagError::InvalidResponseLength)
         }
         match self {
-            Self::GearboxSensors => Ok(LocalRecordData::Sensors(unsafe { std::ptr::read(resp[2..].as_ptr() as *const _) })),
-            Self::SolenoidStatus => Ok(LocalRecordData::Solenoids(unsafe { std::ptr::read(resp[2..].as_ptr() as *const _) })),
-            Self::CanDataDump => Ok(LocalRecordData::Canbus(unsafe { std::ptr::read(resp[2..].as_ptr() as *const _) })),
+            Self::GearboxSensors => Ok(LocalRecordData::Sensors(unsafe { std::ptr::read(resp.as_ptr() as *const _) })),
+            Self::SolenoidStatus => Ok(LocalRecordData::Solenoids(unsafe { std::ptr::read(resp.as_ptr() as *const _) })),
+            Self::CanDataDump => Ok(LocalRecordData::Canbus(unsafe { std::ptr::read(resp.as_ptr() as *const _) })),
         }
     }
 }
 
 #[derive(Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq)]
 pub enum LocalRecordData {
-    None,
     Sensors(DataGearboxSensors),
     Solenoids(DataSolenoids),
     Canbus(DataCanDump)
@@ -44,10 +43,18 @@ pub enum LocalRecordData {
 impl LocalRecordData {
     pub fn to_table(&self, ui: &mut Ui) -> InnerResponse<()> {
         match &self {
-            LocalRecordData::None => todo!(),
             LocalRecordData::Sensors(s) => s.to_table(ui),
             LocalRecordData::Solenoids(s) => s.to_table(ui),
             LocalRecordData::Canbus(s) => s.to_table(ui)
+        }
+    }
+
+    pub fn get_chart_data(&self) -> Vec<ChartData> {
+        match &self {
+            LocalRecordData::Sensors(s) => s.to_chart_data(),
+            LocalRecordData::Solenoids(s) => s.to_chart_data(),
+            LocalRecordData::Canbus(s) => s.to_chart_data(),
+            _ => vec![]
         }
     }
 }
@@ -58,6 +65,7 @@ pub struct DataGearboxSensors {
     pub n2_rpm: u16,
     pub n3_rpm: u16,
     pub calculated_rpm: u16,
+    pub calc_ratio: u16,
     pub v_batt: u16,
     pub atf_temp_c: i32,
     pub parking_lock: u8
@@ -86,6 +94,10 @@ impl DataGearboxSensors {
             ui.label(if self.calculated_rpm == u16::MAX { make_text("ERROR", true) } else { make_text(format!("{} RPM", self.calculated_rpm), false) });
             ui.end_row();
 
+            ui.label("Calculated ratio").on_hover_text("Calculated gear ratio");
+            ui.label(if self.calculated_rpm == u16::MAX { make_text("ERROR", true) } else { make_text(format!("{:.2}", self.calc_ratio as f32 / 100.0), false) });
+            ui.end_row();
+
             ui.label("Battery voltage");
             ui.label(if self.v_batt == u16::MAX { make_text("ERROR", true) } else { make_text(format!("{:.1} V", self.v_batt as f32/1000.0), false) });
             ui.end_row();
@@ -98,6 +110,34 @@ impl DataGearboxSensors {
             ui.label(if self.parking_lock == 0x00 { make_text("No", false) } else { make_text("Yes", false) });
             ui.end_row();
         })
+    }
+
+    pub fn to_chart_data(&self) -> Vec<ChartData> {
+        vec![
+            ChartData::new(
+                "RPM sensors".into(),
+                vec![
+                    ("N2 raw", self.n2_rpm as f32, None),
+                    ("N3 raw", self.n3_rpm as f32, None),
+                    ("Calculated RPM", self.calculated_rpm as f32, None),
+                ],
+                Some((0.0, 0.0))
+            ),
+        ]
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, PartialOrd)]
+pub struct ChartData {
+    /// Min, Max
+    pub bounds: Option<(f32, f32)>,
+    pub group_name: String,
+    pub data: Vec<(String, f32, Option<String>)> // Data field name, data field value, data field unit
+}
+
+impl ChartData {
+    pub fn new<T: Into<String>>(group_name: String, data: Vec<(T, f32, Option<T>)>, bounds: Option<(f32, f32)>) -> Self {
+        Self { bounds, group_name, data: data.into_iter().map(|(n, v, u)| (n.into(), v, u.map(|x| x.into()))).collect() }
     }
 }
 
@@ -157,9 +197,38 @@ impl DataSolenoids {
             ui.end_row();
         })
     }
+
+    pub fn to_chart_data(&self) -> Vec<ChartData> {
+        vec![
+            ChartData::new(
+                "Solenoid PWM".into(),
+                vec![
+                    ("MPC Solenoid", self.mpc_pwm as f32, None),
+                    ("SPC Solenoid", self.spc_pwm as f32, None),
+                    ("TCC Solenoid", self.tcc_pwm as f32, None),
+                    ("Y3 Solenoid", self.y3_pwm as f32, None),
+                    ("Y4 Solenoid", self.y4_pwm as f32, None),
+                    ("Y5 Solenoid", self.y5_pwm as f32, None),
+                ],
+                Some((0.0, 4096.0))
+            ),
+            ChartData::new(
+                "Solenoid Current".into(),
+                vec![
+                    ("MPC Solenoid", self.mpc_current as f32, Some("mA")),
+                    ("SPC Solenoid", self.spc_current as f32, Some("mA")),
+                    ("TCC Solenoid", self.tcc_current as f32, Some("mA")),
+                    ("Y3 Solenoid", self.y3_current as f32, Some("mA")),
+                    ("Y4 Solenoid", self.y4_current as f32, Some("mA")),
+                    ("Y5 Solenoid", self.y5_current as f32, Some("mA")),
+                ],
+                Some((0.0, 6600.0))
+            ),
+        ]
+    }
 }
 
-#[repr(C)]
+#[repr(u8)]
 #[derive(Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq)]
 pub enum PaddlePosition {
     None,
@@ -169,7 +238,7 @@ pub enum PaddlePosition {
     SNV = 0xFF
 }
 
-#[repr(C)]
+#[repr(u8)]
 #[derive(Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq)]
 pub enum ShifterPosition {
     Park,
@@ -233,5 +302,34 @@ impl DataCanDump {
             ui.label(if self.paddle_position == PaddlePosition::SNV { make_text("Signal not available", true) } else { make_text(format!("{:?}", self.paddle_position), false) });
             ui.end_row();
         })
+    }
+
+    pub fn to_chart_data(&self) -> Vec<ChartData> {
+        let max = if self.max_torque_ms == u16::MAX {
+            0.0
+        } else {
+            self.max_torque_ms as f32 / 4.0 - 500.0
+        };
+        let min = if self.min_torque_ms == u16::MAX {
+            0.0
+        } else {
+            self.min_torque_ms as f32 / 4.0 - 500.0
+        };
+        let sta = if self.static_torque == u16::MAX {
+            0.0
+        } else {
+            self.static_torque as f32 / 4.0 - 500.0
+        };
+        vec![
+            ChartData::new(
+                "Engine torque".into(),
+                vec![
+                    ("Max", max, None),
+                    ("Min", min, None),
+                    ("Static", sta, None),
+                ],
+                None
+            ),
+        ]
     }
 }

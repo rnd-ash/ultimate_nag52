@@ -47,7 +47,7 @@ impl epi::App for MainWindow {
                     .default_height(800.0)
                     .show(ctx, |nav| {
                         nav.horizontal(|row| {
-                            status_bar.draw(row);
+                            status_bar.draw(row, ctx);
                             if stack_size > 1 && self.show_back {
                                 if row.button("Back").clicked() {
                                     pop_page = true;
@@ -104,5 +104,5 @@ pub trait InterfacePage {
 }
 
 pub trait StatusBar {
-    fn draw(&mut self, ui: &mut egui::Ui);
+    fn draw(&mut self, ui: &mut egui::Ui, ctx: &egui::Context);
 }

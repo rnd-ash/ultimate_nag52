@@ -13,9 +13,8 @@ use std::{
 };
 
 use ecu_diagnostics::{
-    channel::{IsoTPChannel, PayloadChannel},
-    hardware::{HardwareInfo, HardwareResult},
-    ChannelError, HardwareError,
+    channel::{IsoTPChannel, PayloadChannel, ChannelError},
+    hardware::{HardwareInfo, HardwareResult,  HardwareError},
 };
 use serial_rs::{SerialPort, PortInfo, SerialPortSettings, ByteSize, FlowControl};
 

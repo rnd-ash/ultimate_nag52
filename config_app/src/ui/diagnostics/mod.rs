@@ -1,8 +1,12 @@
+use std::collections::VecDeque;
+use std::collections::hash_map::DefaultHasher;
+use std::hash::{Hash, Hasher};
 use std::mem::{size_of, transmute};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 use ecu_diagnostics::hardware::Hardware;
 use ecu_diagnostics::kwp2000::{Kwp2000DiagnosticServer, Kwp2000ServerOptions, Kwp2000VoidHandler};
+use egui::plot::{Plot, Value, Line, Values, Legend};
 use egui::{Ui, RichText, Color32};
 use epi::Frame;
 use crate::ui::status_bar::MainStatusBar;
@@ -11,8 +15,10 @@ use crate::window::{PageAction, StatusBar};
 pub mod rli;
 pub mod data;
 use crate::usb_hw::diag_usb::Nag52USB;
-use ecu_diagnostics::kwp2000::*;
+use ecu_diagnostics::{kwp2000::*, bcd_decode};
 use crate::ui::diagnostics::rli::{DataCanDump, DataGearboxSensors, DataSolenoids, LocalRecordData, RecordIdents};
+
+use self::rli::ChartData;
 
 pub enum CommandStatus {
     Ok(String),
@@ -28,7 +34,9 @@ pub struct DiagnosticsPage{
     record_data: Option<LocalRecordData>,
     record_to_query: Option<RecordIdents>,
     last_query_time: Instant,
-    query_loop: bool
+    query_loop: bool,
+    charting_data: VecDeque<(u128, ChartData)>,
+    chart_idx: u128
 }
 
 impl DiagnosticsPage {
@@ -68,7 +76,9 @@ impl DiagnosticsPage {
             record_data: None,
             record_to_query: None,
             last_query_time: Instant::now(),
-            query_loop: false
+            query_loop: false,
+            charting_data: VecDeque::new(),
+            chart_idx: 0
         }
     }
 }
@@ -79,7 +89,7 @@ impl crate::window::InterfacePage for DiagnosticsPage {
         ui.heading("This is experimental, use with MOST up-to-date firmware");
 
         if ui.button("Query ECU Serial number").clicked() {
-            match read_ecu_serial_number(&mut self.server) {
+            match self.server.read_ecu_serial_number() {
                 Ok(b) => {
                     self.text = CommandStatus::Ok(format!("ECU Serial: {}", String::from_utf8_lossy(&b).to_string()))
                 },
@@ -88,17 +98,17 @@ impl crate::window::InterfacePage for DiagnosticsPage {
         }
 
         if ui.button("Query ECU data").clicked() {
-            match read_daimler_identification(&mut self.server) {
+            match self.server.read_daimler_identification() {
                 Ok(b) => {
                     self.text = CommandStatus::Ok(format!(
                         r#"
                         Part number: {}
-                        Software date: Week {:02X} of year {:02X}
-                        ECU production date: {:02X}/{:02X}/{:02X}
+                        Software date {}
+                        ECU production date: {}
                         "#,
                         b.part_number,
-                        b.ecu_sw_build_week, b.ecu_sw_build_year,
-                        b.ecu_production_day, b.ecu_production_month, b.ecu_sw_build_year,
+                        b.get_software_date_pretty(),
+                        b.get_production_date_pretty()
                     ))
                 },
                 Err(e) => self.text = CommandStatus::Err(e.to_string())
@@ -107,12 +117,21 @@ impl crate::window::InterfacePage for DiagnosticsPage {
 
         if ui.button("Query gearbox sensor").clicked() {
             self.record_to_query = Some(RecordIdents::GearboxSensors);
+            self.chart_idx = 0;
+            self.charting_data.clear();
+            self.record_data = None;
         }
         if ui.button("Query gearbox solenoids").clicked() {
             self.record_to_query = Some(RecordIdents::SolenoidStatus);
+            self.chart_idx = 0;
+            self.charting_data.clear();
+            self.record_data = None;
         }
         if ui.button("Query can Rx data").clicked() {
             self.record_to_query = Some(RecordIdents::CanDataDump);
+            self.chart_idx = 0;
+            self.charting_data.clear();
+            self.record_data = None;
         }
         ui.checkbox(&mut self.query_loop, "Loop query data");
 
@@ -127,6 +146,7 @@ impl crate::window::InterfacePage for DiagnosticsPage {
 
         if self.query_loop && self.last_query_time.elapsed().as_millis() > 100 {
             self.last_query_time = Instant::now();
+            self.chart_idx += 100;
             if let Some(rid) = self.record_to_query {
                 if let Ok(r) = rid.query_ecu(&mut self.server) {
                     self.record_data = Some(r)
@@ -136,6 +156,52 @@ impl crate::window::InterfacePage for DiagnosticsPage {
 
         if let Some(data) = self.record_data  {
             data.to_table(ui);
+
+            let c = data.get_chart_data();
+
+            if !c.is_empty() {
+                let d = &c[0];
+                self.charting_data.push_back((
+                    self.chart_idx,
+                    d.clone()
+                ));
+
+                if self.charting_data.len() > 500 {
+                    let _ = self.charting_data.pop_front();
+                }
+
+                // Can guarantee everything in `self.charting_data` will have the SAME length
+                // as `d`
+                let mut lines = Vec::new();
+                let mut legend = Legend::default();
+
+                for (idx, (key, _, _)) in d.data.iter().enumerate() {
+                    let mut points: Vec<Value> = Vec::new();
+                    for (timestamp, point) in &self.charting_data {
+                        points.push(Value::new(*timestamp as f64, point.data[idx].1))
+                    }
+                    let mut key_hasher = DefaultHasher::default();
+                    key.hash(&mut key_hasher);
+                    let r = key_hasher.finish();
+                    lines.push(Line::new(Values::from_values(points)).name(key.clone()).color(Color32::from_rgb((r & 0xFF) as u8, ((r >> 8) & 0xFF) as u8, ((r >> 16) & 0xFF) as u8)))
+                }
+
+                let mut plot = Plot::new(d.group_name.clone())
+                        .allow_drag(false)
+                        .legend(legend);
+                if let Some((min, max)) = &d.bounds {
+                    plot = plot.include_y(*min);
+                    if *max > 0.1 { // 0.0 check
+                        plot = plot.include_y(*max);
+                    }
+                }
+
+                plot.show(ui, |plot_ui| {
+                    for x in lines {
+                        plot_ui.line(x)
+                    }
+                });
+            }
         }
 
         PageAction::None

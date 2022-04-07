@@ -42,7 +42,7 @@ impl Launcher {
             .scanner
             .list_devices()
             .iter()
-            .map(|x| x.name.clone())
+            .map(|x| (x.name.clone()))
             .collect();
     }
 }
