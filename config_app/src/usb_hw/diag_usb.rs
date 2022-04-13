@@ -74,8 +74,8 @@ impl Nag52USB {
         let reader_thread = std::thread::spawn(move || {
             println!("Serial reader start");
             while is_running_r.load(Ordering::Relaxed) {
-                let mut reader = BufReader::new(&mut port_clone);
-                for mut line in reader.lines().filter_map(|x| x.ok()) {
+                let reader = BufReader::new(&mut port_clone);
+                for line in reader.lines().filter_map(|x| x.ok()) {
                     if !line.is_empty() {
                         if line.chars().next().unwrap() == '#' {
                             // First char is #, diag message
@@ -95,6 +95,10 @@ impl Nag52USB {
                         } else {
                             // This is a log message
                             if line.len() < 5 {
+                                continue;
+                            }
+                            if !line.contains("(") || !line.contains(")") {
+                                println!("{}", line);
                                 continue;
                             }
                             let lvl = match line.chars().next().unwrap() {

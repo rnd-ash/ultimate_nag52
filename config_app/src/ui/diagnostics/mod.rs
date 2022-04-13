@@ -133,6 +133,13 @@ impl crate::window::InterfacePage for DiagnosticsPage {
             self.charting_data.clear();
             self.record_data = None;
         }
+
+        if ui.button("Query Performance metrics").clicked() {
+            self.record_to_query = Some(RecordIdents::SysUsage);
+            self.chart_idx = 0;
+            self.charting_data.clear();
+            self.record_data = None;
+        }
         ui.checkbox(&mut self.query_loop, "Loop query data");
 
         match &self.text {
@@ -154,7 +161,7 @@ impl crate::window::InterfacePage for DiagnosticsPage {
             }
         }
 
-        if let Some(data) = self.record_data  {
+        if let Some(data) = &self.record_data  {
             data.to_table(ui);
 
             let c = data.get_chart_data();

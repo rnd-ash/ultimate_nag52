@@ -13,7 +13,7 @@ use crate::{
     window::{InterfacePage, PageAction, StatusBar},
 };
 
-use super::{firmware_update::FwUpdateUI, status_bar::MainStatusBar};
+use super::{firmware_update::FwUpdateUI, status_bar::MainStatusBar, configuration::ConfigPage};
 
 use ecu_diagnostics::kwp2000::*;
 use crate::ui::diagnostics::DiagnosticsPage;
@@ -64,7 +64,9 @@ impl InterfacePage for MainPage {
             }
             if v.button("Map tuner").clicked() {}
             if v.button("Configure drive profiles").clicked() {}
-            if v.button("Configure vehicle / gearbox").clicked() {}
+            if v.button("Configure vehicle / gearbox").clicked() {
+                create_page = Some(PageAction::Add(Box::new(ConfigPage::new(self.dev.clone(), self.bar.clone()))));
+            }
         });
         if let Some(page) = create_page {
             return page;

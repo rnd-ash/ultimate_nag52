@@ -43,7 +43,6 @@ impl StatusBar for MainStatusBar {
         }
 
         if ui.checkbox(&mut self.use_light_theme, "Light theme").clicked() {
-            println!("Theme {}", self.use_light_theme);
             let style = match self.use_light_theme {
                 true => egui::Visuals::light(),
                 false => egui::Visuals::dark()
@@ -74,7 +73,7 @@ impl StatusBar for MainStatusBar {
                                             .lvl
                                         {
                                             crate::usb_hw::diag_usb::EspLogLevel::Info => {
-                                                Color32::from_rgb(0, 255, 0)
+                                                Color32::from_rgb(0, 100, 0)
                                             }
                                             crate::usb_hw::diag_usb::EspLogLevel::Warn => {
                                                 Color32::from_rgb(255, 215, 0)
