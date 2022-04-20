@@ -38,6 +38,7 @@ impl ConfigPage {
             global_tp_id: 0,
             tester_present_interval_ms: 2000,
             tester_present_require_response: true,
+            global_session_control: false
         };
         let mut kwp = Kwp2000DiagnosticServer::new_over_iso_tp(
             server_settings,
