@@ -4,15 +4,16 @@ use std::{
     sync::{
         atomic::{AtomicBool, AtomicU32, Ordering},
         Arc, Mutex,
-    },
+    }, num::Wrapping, ops::DerefMut,
 };
 
+use ecu_diagnostics::{kwp2000::{Kwp2000DiagnosticServer, SessionType, ResetMode}, DiagServerResult, DiagnosticServer, DiagError};
 use egui::*;
 use epi::*;
 use nfd::Response;
 
 use crate::{
-    usb_hw::{diag_usb::Nag52USB, flasher},
+    usb_hw::{diag_usb::Nag52USB, flasher::{self, bin::{Firmware, load_binary}}},
     window::{InterfacePage, PageAction},
 };
 
@@ -37,10 +38,10 @@ impl Default for FlashDataFormatted {
 }
 
 pub struct FwUpdateUI {
-    usb: Arc<Mutex<Nag52USB>>,
+    server: Arc<Mutex<Kwp2000DiagnosticServer>>,
     elf_path: Option<String>,
     flashing: Arc<AtomicBool>,
-    info_data: FlashDataFormatted,
+    firmware: Option<Firmware>,
     progress: Arc<AtomicU32>,
     //flash_err: Arc<Mutex<Option<std::result::Result<(), espflash_un52::Error>>>>,
     reconnect: Arc<AtomicBool>,
@@ -49,15 +50,38 @@ pub struct FwUpdateUI {
 pub struct FlasherMutate {}
 
 impl FwUpdateUI {
-    pub fn new(arc: Arc<Mutex<Nag52USB>>) -> Self {
+    pub fn new(server:Arc<Mutex<Kwp2000DiagnosticServer>>) -> Self {
         Self {
-            usb: arc,
+            server,
             elf_path: None,
             flashing: Arc::new(AtomicBool::new(false)),
-            info_data: FlashDataFormatted::default(),
+            firmware: None,
             progress: Arc::new(AtomicU32::new(0)),
             //flash_err: Arc::new(Mutex::new(None)),
             reconnect: Arc::new(AtomicBool::new(false)),
+        }
+    }
+
+    fn init_flash_mode(&self, server: &mut Kwp2000DiagnosticServer, flash_size: u32) -> DiagServerResult<u32> {
+        server.set_diagnostic_session_mode(SessionType::Reprogramming)?;
+        let mut req: Vec<u8> = vec![0x34, 0x00, 0x00, 0x00, 0x00];
+        req.push((flash_size >> 16) as u8);
+        req.push((flash_size >> 8 ) as u8);
+        req.push((flash_size) as u8);
+        let resp = server.send_byte_array_with_response(&req)?;
+        let bs = (resp[1] as u16) << 8 | resp[2] as u16;
+        Ok(bs as u32)
+    }
+
+    fn on_flash_end(&self, server: &mut Kwp2000DiagnosticServer) -> DiagServerResult<()> {
+        server.send_byte_array_with_response(&[0x37])?;
+        let status = server.send_byte_array_with_response(&[0x31, 0xE1])?;
+        if status[1] == 0x00 {
+            eprintln!("ECU Flash check OK! Rebooting");
+            return server.reset_ecu(ResetMode::PowerOnReset)
+        } else {
+            eprintln!("ECU Flash check failed :(");
+            return Err(DiagError::NotSupported)
         }
     }
 }
@@ -72,79 +96,62 @@ impl InterfacePage for FwUpdateUI {
         ui.label(
             RichText::new("Caution! Only use when car is off").color(Color32::from_rgb(255, 0, 0)),
         );
-        if ui.button("Select ELF file").clicked() {
-            match nfd::open_file_dialog(Some("elf"), None) {
+        if ui.button("Select BIN firmware file").clicked() {
+            match nfd::open_file_dialog(Some("bin"), None) {
                 Ok(f) => {
                     if let Response::Okay(path) = f {
-                        self.elf_path = Some(path);
+                        self.elf_path = Some(path.clone());
+                        match load_binary(path) {
+                            Ok(f) => self.firmware = Some(f),
+                            Err(e) => {
+                                eprintln!("E loading binary! {}", e)
+                            }
+                        }
                     }
                 }
                 Err(_) => {}
             }
         }
-        if let Some(path) = &self.elf_path {
-            ui.label(RichText::new(format!("Firmware path: {}", path)));
+        if let Some(firmware) = &self.firmware {
+            ui.label(RichText::new(format!(
+"Firmware size: {} bytes
+
+Version: {}
+IDF Version: {}
+Compile time: {} on {}
+",
+firmware.raw.len(),
+firmware.header.get_version(),
+firmware.header.get_idf_version(),
+firmware.header.get_time(),
+firmware.header.get_date()
+            )));
             if !self.flashing.load(Ordering::Relaxed) {
                 if ui.button("Flash firmware").clicked() {
-                    let elf = flasher::elf_file::EspElfFile::new(&self.elf_path.clone().unwrap());
-                    if let Err(e) = elf {
-                        println!("ELF ERROR {}", e);
-                    }
-                    let port = self.usb.lock().unwrap().on_flash_begin();
-                    let mut loader = flasher::esp_loader::EspLoader::new(port);
-                    loader.connect(10);
-                    /*
-                    match espflash_un52::Flasher::connect(port, info, Some(115200)) {
-                        Ok(mut flasher) => {
-                            let mut tmp = Vec::new();
-                            let mut f = File::open(self.elf_path.clone().unwrap()).unwrap();
-                            f.read_to_end(&mut tmp).unwrap();
-                            // Flasher thread
-
-                            let flashing_t = self.flashing.clone();
-                            let flashing_err_t = self.flash_err.clone();
-                            let reconnect_t = self.reconnect.clone();
-                            match espflash_un52::FirmwareImage::from_data(&tmp) {
-                                Err(e) => *self.flash_err.lock().unwrap() = Some(Err(e)),
-                                Ok(f) => {
-                                    std::thread::spawn(move || {
-                                        flashing_t.store(true, Ordering::Relaxed);
-                                        *flashing_err_t.lock().unwrap() =
-                                            Some(flasher.load_elf_to_flash(&tmp, None, None));
-                                        flashing_t.store(false, Ordering::Relaxed);
-                                        reconnect_t.store(true, Ordering::Relaxed);
-                                        //std::mem::drop(flasher);
-                                    });
+                    let mut lock = self.server.lock().unwrap();
+                    match self.init_flash_mode(&mut lock.deref_mut(), firmware.raw.len() as u32) {
+                        Err(e) => eprintln!("ECU flash mode reject! {}", e),
+                        Ok(size) => {
+                            // Start the flasher!
+                            let arr = firmware.raw.chunks(size as usize);
+                            let mut failure = false;
+                            for (block_id, block) in arr.enumerate() {
+                                let mut req = vec![0x36, ((block_id+1) & 0xFF) as u8]; // [Transfer data request, block counter]
+                                req.extend_from_slice(block); // Block to transfer
+                                if let Err(e) = lock.send_byte_array_with_response(&req) {
+                                    eprintln!("Writing failed! Error {}", e);
+                                    failure = true;
+                                    break;
+                                }
+                            }
+                            if !failure {
+                                if let Err(e) = self.on_flash_end(&mut lock) {
+                                    eprintln!("ECU flash check error {}", e)
                                 }
                             }
                         }
-                        Err(e) => {
-                            eprintln!("Cannot create ESP flasher: {}", e);
-                            *self.flash_err.lock().unwrap() = Some(Err(e))
-                        }
-                    }
-                    */
-                }
-                /*
-                if let Some(res) = self.flash_err.lock().unwrap().as_ref() {
-                    match res {
-                        Ok(_) => ui.label(
-                            RichText::new("Flashing completed OK!")
-                                .color(Color32::from_rgb(0, 255, 0)),
-                        ),
-                        Err(e) => ui.label(
-                            RichText::new(format!("Flashing failed! Error: {}", e))
-                                .color(Color32::from_rgb(255, 0, 0)),
-                        ),
-                    };
-                    if self.reconnect.load(Ordering::Relaxed) {
-                        if self.usb.lock().unwrap().on_flash_end().is_ok() {
-                            println!("OK!")
-                        }
-                        self.reconnect.store(false, Ordering::Relaxed);
                     }
                 }
-                */
             } else {
                 ui.label("Flashing in progress...");
                 ui.label("DO NOT EXIT THE APP");

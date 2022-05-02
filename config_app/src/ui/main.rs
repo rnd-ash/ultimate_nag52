@@ -22,14 +22,43 @@ pub struct MainPage {
     dev: Arc<Mutex<Nag52USB>>,
     bar: MainStatusBar,
     show_about_ui: bool,
+    diag_server: Arc<Mutex<Kwp2000DiagnosticServer>>
 }
 
 impl MainPage {
     pub fn new(dev: Arc<Mutex<Nag52USB>>) -> Self {
+
+        let mut channel = Hardware::create_iso_tp_channel(dev.clone()).unwrap();
+        let channel_cfg = ecu_diagnostics::channel::IsoTPSettings {
+            block_size: 8,
+            st_min: 20,
+            extended_addressing: false,
+            pad_frame: true,
+            can_speed: 500_000,
+            can_use_ext_addr: false,
+        };
+        let server_settings = Kwp2000ServerOptions {
+            send_id: 0x07E1,
+            recv_id: 0x07E9,
+            read_timeout_ms: 2000,
+            write_timeout_ms: 2000,
+            global_tp_id: 0,
+            tester_present_interval_ms: 2000,
+            tester_present_require_response: true,
+            global_session_control: false
+        };
+        let mut kwp = Kwp2000DiagnosticServer::new_over_iso_tp(
+            server_settings,
+            channel,
+            channel_cfg,
+            Kwp2000VoidHandler {},
+        ).unwrap();
+
         Self {
             dev: dev.clone(),
             bar: MainStatusBar::new(dev),
             show_about_ui: false,
+            diag_server: Arc::new(Mutex::new(kwp))
         }
     }
 }
@@ -57,15 +86,15 @@ impl InterfacePage for MainPage {
         ui.vertical(|v| {
             v.heading("Utilities");
             if v.button("Firmware updater").on_disabled_hover_ui(|u| {u.label("Broken, will be added soon!");}).clicked() {
-                create_page = Some(PageAction::Add(Box::new(FwUpdateUI::new(self.dev.clone()))));
+                create_page = Some(PageAction::Add(Box::new(FwUpdateUI::new(self.diag_server.clone()))));
             }
             if v.button("Diagnostics").clicked() {
-                create_page = Some(PageAction::Add(Box::new(DiagnosticsPage::new(self.dev.clone(), self.bar.clone()))));
+                create_page = Some(PageAction::Add(Box::new(DiagnosticsPage::new(self.diag_server.clone(), self.bar.clone()))));
             }
             if v.button("Map tuner").clicked() {}
             if v.button("Configure drive profiles").clicked() {}
             if v.button("Configure vehicle / gearbox").clicked() {
-                create_page = Some(PageAction::Add(Box::new(ConfigPage::new(self.dev.clone(), self.bar.clone()))));
+                create_page = Some(PageAction::Add(Box::new(ConfigPage::new(self.diag_server.clone(), self.bar.clone()))));
             }
         });
         if let Some(page) = create_page {

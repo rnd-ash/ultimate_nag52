@@ -26,9 +26,8 @@ pub enum CommandStatus {
 }
 
 pub struct DiagnosticsPage{
-    nag: Arc<Mutex<Nag52USB>>,
     bar: MainStatusBar,
-    server: Kwp2000DiagnosticServer,
+    server: Arc<Mutex<Kwp2000DiagnosticServer>>,
     last_req_time: Instant,
     text: CommandStatus,
     record_data: Option<LocalRecordData>,
@@ -40,37 +39,9 @@ pub struct DiagnosticsPage{
 }
 
 impl DiagnosticsPage {
-    pub fn new(nag: Arc<Mutex<Nag52USB>>, bar: MainStatusBar) -> Self {
-
-        let mut channel = Hardware::create_iso_tp_channel(nag.clone()).unwrap();
-        let channel_cfg = ecu_diagnostics::channel::IsoTPSettings {
-            block_size: 8,
-            st_min: 20,
-            extended_addressing: false,
-            pad_frame: true,
-            can_speed: 500_000,
-            can_use_ext_addr: false,
-        };
-        let server_settings = Kwp2000ServerOptions {
-            send_id: 0x07E1,
-            recv_id: 0x07E9,
-            read_timeout_ms: 2000,
-            write_timeout_ms: 2000,
-            global_tp_id: 0,
-            tester_present_interval_ms: 2000,
-            tester_present_require_response: true,
-            global_session_control: false
-        };
-        let mut kwp = Kwp2000DiagnosticServer::new_over_iso_tp(
-            server_settings,
-            channel,
-            channel_cfg,
-            Kwp2000VoidHandler {},
-        ).unwrap();
-
+    pub fn new(server: Arc<Mutex<Kwp2000DiagnosticServer>>, bar: MainStatusBar) -> Self {
         Self {
-            server: kwp,
-            nag,
+            server,
             bar,
             last_req_time: Instant::now(),
             text: CommandStatus::Ok("".into()),
@@ -90,7 +61,7 @@ impl crate::window::InterfacePage for DiagnosticsPage {
         ui.heading("This is experimental, use with MOST up-to-date firmware");
 
         if ui.button("Query ECU Serial number").clicked() {
-            match self.server.read_ecu_serial_number() {
+            match self.server.lock().unwrap().read_ecu_serial_number() {
                 Ok(b) => {
                     self.text = CommandStatus::Ok(format!("ECU Serial: {}", String::from_utf8_lossy(&b).to_string()))
                 },
@@ -99,7 +70,7 @@ impl crate::window::InterfacePage for DiagnosticsPage {
         }
 
         if ui.button("Query ECU data").clicked() {
-            match self.server.read_daimler_identification() {
+            match self.server.lock().unwrap().read_daimler_identification() {
                 Ok(b) => {
                     self.text = CommandStatus::Ok(format!(
                         r#"
@@ -156,7 +127,7 @@ impl crate::window::InterfacePage for DiagnosticsPage {
             self.last_query_time = Instant::now();
             self.chart_idx += 100;
             if let Some(rid) = self.record_to_query {
-                if let Ok(r) = rid.query_ecu(&mut self.server) {
+                if let Ok(r) = rid.query_ecu(&mut self.server.lock().unwrap()) {
                     self.record_data = Some(r)
                 }
             }

@@ -120,6 +120,7 @@ impl Nag52USB {
                                 tag: split.0.split_once(")").unwrap().1.to_string(),
                                 msg: split.1.to_string(),
                             };
+                            println!("{:?}", msg);
                             read_tx_log.send(msg);
                         }
                     }

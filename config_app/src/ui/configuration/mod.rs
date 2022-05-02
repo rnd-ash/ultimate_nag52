@@ -12,44 +12,16 @@ use super::{status_bar::MainStatusBar, StatusText};
 pub mod cfg_structs;
 
 pub struct ConfigPage {
-    nag: Arc<Mutex<Nag52USB>>,
+    server: Arc<Mutex<Kwp2000DiagnosticServer>>,
     bar: MainStatusBar,
-    server: Kwp2000DiagnosticServer,
     status: StatusText,
     scn: Option<TcmCoreConfig>
 }
 
 impl ConfigPage {
-    pub fn new(nag: Arc<Mutex<Nag52USB>>, bar: MainStatusBar) -> Self {
-        let mut channel = Hardware::create_iso_tp_channel(nag.clone()).unwrap();
-        let channel_cfg = ecu_diagnostics::channel::IsoTPSettings {
-            block_size: 8,
-            st_min: 20,
-            extended_addressing: false,
-            pad_frame: true,
-            can_speed: 500_000,
-            can_use_ext_addr: false,
-        };
-        let server_settings = Kwp2000ServerOptions {
-            send_id: 0x07E1,
-            recv_id: 0x07E9,
-            read_timeout_ms: 2000,
-            write_timeout_ms: 2000,
-            global_tp_id: 0,
-            tester_present_interval_ms: 2000,
-            tester_present_require_response: true,
-            global_session_control: false
-        };
-        let mut kwp = Kwp2000DiagnosticServer::new_over_iso_tp(
-            server_settings,
-            channel,
-            channel_cfg,
-            Kwp2000VoidHandler {},
-        ).unwrap();
-
+    pub fn new(server: Arc<Mutex<Kwp2000DiagnosticServer>>, bar: MainStatusBar) -> Self {
         Self {
-            server: kwp,
-            nag,
+            server,
             bar,
             status: StatusText::Ok("".into()),
             scn: None
@@ -64,7 +36,7 @@ impl crate::window::InterfacePage for ConfigPage {
 
 
         if ui.button("Read Configuration").clicked() {
-            match self.server.read_custom_local_identifier(0xFE) {
+            match self.server.lock().unwrap().read_custom_local_identifier(0xFE) {
                 Ok(res) => {
                     self.scn = Some(TcmCoreConfig::from_bytes(res.try_into().unwrap()));
                     self.status = StatusText::Ok(format!("Read OK!"));
@@ -191,9 +163,9 @@ impl crate::window::InterfacePage for ConfigPage {
                 let res = {
                     let mut x: Vec<u8> = vec![0x3B, 0xFE];
                     x.extend_from_slice(&scn.clone().into_bytes());
-                    self.server.set_diagnostic_session_mode(SessionType::ExtendedDiagnostics);
-                    self.server.send_byte_array_with_response(&x);
-                    self.server.reset_ecu(ResetMode::PowerOnReset);
+                    self.server.lock().unwrap().set_diagnostic_session_mode(SessionType::ExtendedDiagnostics);
+                    self.server.lock().unwrap().send_byte_array_with_response(&x);
+                    self.server.lock().unwrap().reset_ecu(ResetMode::PowerOnReset);
                 };
             }
         }

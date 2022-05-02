@@ -1,5 +1,7 @@
-use std::iter;
+#[macro_use]
+extern crate static_assertions;
 
+use std::iter;
 use egui::FontDefinitions;
 use epi::App;
 use ui::launcher::Launcher;
