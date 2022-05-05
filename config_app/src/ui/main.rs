@@ -13,7 +13,7 @@ use crate::{
     window::{InterfacePage, PageAction, StatusBar},
 };
 
-use super::{firmware_update::FwUpdateUI, status_bar::MainStatusBar, configuration::ConfigPage};
+use super::{firmware_update::FwUpdateUI, status_bar::MainStatusBar, configuration::ConfigPage, crashanalyzer::CrashAnalyzerUI};
 
 use ecu_diagnostics::kwp2000::*;
 use crate::ui::diagnostics::DiagnosticsPage;
@@ -87,6 +87,9 @@ impl InterfacePage for MainPage {
             v.heading("Utilities");
             if v.button("Firmware updater").on_disabled_hover_ui(|u| {u.label("Broken, will be added soon!");}).clicked() {
                 create_page = Some(PageAction::Add(Box::new(FwUpdateUI::new(self.diag_server.clone()))));
+            }
+            if v.button("Crash analyzer").clicked() {
+                create_page = Some(PageAction::Add(Box::new(CrashAnalyzerUI::new(self.diag_server.clone()))));
             }
             if v.button("Diagnostics").clicked() {
                 create_page = Some(PageAction::Add(Box::new(DiagnosticsPage::new(self.diag_server.clone(), self.bar.clone()))));

@@ -3,7 +3,7 @@ use std::{
     io::Read,
     sync::{
         atomic::{AtomicBool, AtomicU32, Ordering},
-        Arc, Mutex,
+        Arc, Mutex, RwLock,
     }, num::Wrapping, ops::DerefMut,
 };
 
@@ -37,14 +37,34 @@ impl Default for FlashDataFormatted {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub enum FlashState {
+    None,
+    Prepare,
+    WritingBlock { id: u32, out_of: u32, bytes_written: u32 },
+    Verify,
+    Completed,
+    Aborted(String)
+}
+
+impl FlashState {
+    pub fn is_done(&self) -> bool {
+        match self {
+            FlashState::None => true,
+            FlashState::Prepare => false,
+            FlashState::WritingBlock { id, out_of, bytes_written } => false,
+            FlashState::Verify => false,
+            FlashState::Completed => true,
+            FlashState::Aborted(_) => true,
+        }
+    }
+}
+
 pub struct FwUpdateUI {
     server: Arc<Mutex<Kwp2000DiagnosticServer>>,
     elf_path: Option<String>,
-    flashing: Arc<AtomicBool>,
     firmware: Option<Firmware>,
-    progress: Arc<AtomicU32>,
-    //flash_err: Arc<Mutex<Option<std::result::Result<(), espflash_un52::Error>>>>,
-    reconnect: Arc<AtomicBool>,
+    flash_state: Arc<RwLock<FlashState>>,
 }
 
 pub struct FlasherMutate {}
@@ -54,35 +74,32 @@ impl FwUpdateUI {
         Self {
             server,
             elf_path: None,
-            flashing: Arc::new(AtomicBool::new(false)),
             firmware: None,
-            progress: Arc::new(AtomicU32::new(0)),
-            //flash_err: Arc::new(Mutex::new(None)),
-            reconnect: Arc::new(AtomicBool::new(false)),
+            flash_state: Arc::new(RwLock::new(FlashState::None)),
         }
     }
+}
 
-    fn init_flash_mode(&self, server: &mut Kwp2000DiagnosticServer, flash_size: u32) -> DiagServerResult<u32> {
-        server.set_diagnostic_session_mode(SessionType::Reprogramming)?;
-        let mut req: Vec<u8> = vec![0x34, 0x00, 0x00, 0x00, 0x00];
-        req.push((flash_size >> 16) as u8);
-        req.push((flash_size >> 8 ) as u8);
-        req.push((flash_size) as u8);
-        let resp = server.send_byte_array_with_response(&req)?;
-        let bs = (resp[1] as u16) << 8 | resp[2] as u16;
-        Ok(bs as u32)
-    }
+fn init_flash_mode(server: &mut Kwp2000DiagnosticServer, flash_size: u32) -> DiagServerResult<u32> {
+    server.set_diagnostic_session_mode(SessionType::Reprogramming)?;
+    let mut req: Vec<u8> = vec![0x34, 0x00, 0x00, 0x00, 0x00];
+    req.push((flash_size >> 16) as u8);
+    req.push((flash_size >> 8 ) as u8);
+    req.push((flash_size) as u8);
+    let resp = server.send_byte_array_with_response(&req)?;
+    let bs = (resp[1] as u16) << 8 | resp[2] as u16;
+    Ok(bs as u32)
+}
 
-    fn on_flash_end(&self, server: &mut Kwp2000DiagnosticServer) -> DiagServerResult<()> {
-        server.send_byte_array_with_response(&[0x37])?;
-        let status = server.send_byte_array_with_response(&[0x31, 0xE1])?;
-        if status[1] == 0x00 {
-            eprintln!("ECU Flash check OK! Rebooting");
-            return server.reset_ecu(ResetMode::PowerOnReset)
-        } else {
-            eprintln!("ECU Flash check failed :(");
-            return Err(DiagError::NotSupported)
-        }
+fn on_flash_end(server: &mut Kwp2000DiagnosticServer) -> DiagServerResult<()> {
+    server.send_byte_array_with_response(&[0x37])?;
+    let status = server.send_byte_array_with_response(&[0x31, 0xE1])?;
+    if status[2] == 0x00 {
+        eprintln!("ECU Flash check OK! Rebooting");
+        return server.reset_ecu(ResetMode::PowerOnReset)
+    } else {
+        eprintln!("ECU Flash check failed :(");
+        return Err(DiagError::NotSupported)
     }
 }
 
@@ -126,37 +143,77 @@ firmware.header.get_idf_version(),
 firmware.header.get_time(),
 firmware.header.get_date()
             )));
-            if !self.flashing.load(Ordering::Relaxed) {
+            let state = self.flash_state.read().unwrap();
+            if state.is_done() {
                 if ui.button("Flash firmware").clicked() {
-                    let mut lock = self.server.lock().unwrap();
-                    match self.init_flash_mode(&mut lock.deref_mut(), firmware.raw.len() as u32) {
-                        Err(e) => eprintln!("ECU flash mode reject! {}", e),
-                        Ok(size) => {
-                            // Start the flasher!
-                            let arr = firmware.raw.chunks(size as usize);
-                            let mut failure = false;
-                            for (block_id, block) in arr.enumerate() {
-                                let mut req = vec![0x36, ((block_id+1) & 0xFF) as u8]; // [Transfer data request, block counter]
-                                req.extend_from_slice(block); // Block to transfer
-                                if let Err(e) = lock.send_byte_array_with_response(&req) {
-                                    eprintln!("Writing failed! Error {}", e);
-                                    failure = true;
-                                    break;
+                    let c = self.server.clone();
+                    let state_c = self.flash_state.clone();
+                    let fw = firmware.clone();
+                    std::thread::spawn(move|| {
+                        let mut lock = c.lock().unwrap();
+                        *state_c.write().unwrap() = FlashState::Prepare;
+                        match init_flash_mode(&mut lock.deref_mut(), fw.raw.len() as u32) {
+                            Err(e) => {
+                                *state_c.write().unwrap() = FlashState::Aborted(format!("ECU rejected flash programming mode: {}", e))
+                            },
+                            Ok(size) => {
+                                // Start the flasher!
+                                let arr = fw.raw.chunks(size as usize);
+                                let total_blocks = arr.len() as u32;
+                                let mut failure = false;
+                                let mut bytes_written = 0;
+                                for (block_id, block) in arr.enumerate() {
+                                    let mut req = vec![0x36, ((block_id+1) & 0xFF) as u8]; // [Transfer data request, block counter]
+                                    req.extend_from_slice(block); // Block to transfer
+                                    if let Err(e) = lock.send_byte_array_with_response(&req) {
+                                        *state_c.write().unwrap() = FlashState::Aborted(format!("ECU failed to write data to flash: {}", e));
+                                        eprintln!("Writing failed! Error {}", e);
+                                        failure = true;
+                                        break;
+                                    } else {
+                                        bytes_written += block.len() as u32;
+                                        *state_c.write().unwrap() = FlashState::WritingBlock { id: (block_id+1) as u32, out_of: total_blocks, bytes_written }
+                                    }
                                 }
-                            }
-                            if !failure {
-                                if let Err(e) = self.on_flash_end(&mut lock) {
-                                    eprintln!("ECU flash check error {}", e)
+                                if !failure {
+                                    *state_c.write().unwrap() = FlashState::Verify;
+                                    if let Err(e) = on_flash_end(&mut lock) {
+                                        *state_c.write().unwrap() = FlashState::Aborted(format!("ECU failed to verify flash: {}", e))
+                                    } else {
+                                        *state_c.write().unwrap() = FlashState::Completed;
+                                    }
                                 }
                             }
                         }
-                    }
+                    });
                 }
             } else {
                 ui.label("Flashing in progress...");
                 ui.label("DO NOT EXIT THE APP");
-                return PageAction::SetBackButtonState(false);
+                ui.ctx().request_repaint();
             }
+            match self.flash_state.read().unwrap().clone() {
+                FlashState::None => {},
+                FlashState::Prepare => {
+                    egui::widgets::ProgressBar::new(0.0).show_percentage().desired_width(300.0).ui(ui);
+                    ui.label("Preparing ECU...");
+                },
+                FlashState::WritingBlock { id, out_of, bytes_written } => {
+                    egui::widgets::ProgressBar::new((id as f32)/(out_of as f32)).show_percentage().desired_width(300.0).ui(ui);
+                    ui.label(format!("Bytes written: {}", bytes_written));
+                },
+                FlashState::Verify => {
+                    egui::widgets::ProgressBar::new(100.0).show_percentage().desired_width(300.0).ui(ui);
+                    ui.label("Verifying written data...");
+                },
+                FlashState::Completed => {
+                    ui.label(RichText::new("Flashing completed successfully!").color(Color32::from_rgb(0, 255, 0)));
+                },
+                FlashState::Aborted(r) => {
+                    ui.label(RichText::new(format!("Flashing was ABORTED! Reason: {}", r)).color(Color32::from_rgb(255, 0, 0)));
+                },
+            }
+            return PageAction::SetBackButtonState(false);
         }
         return PageAction::SetBackButtonState(true);
     }
