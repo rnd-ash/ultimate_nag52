@@ -199,7 +199,7 @@ firmware.header.get_date()
                     ui.label("Preparing ECU...");
                 },
                 FlashState::WritingBlock { id, out_of, bytes_written } => {
-                    egui::widgets::ProgressBar::new((id as f32)/(out_of as f32)).show_percentage().desired_width(300.0).ui(ui);
+                    egui::widgets::ProgressBar::new((id as f32)/(out_of as f32)).show_percentage().desired_width(300.0).animate(true).ui(ui);
                     ui.label(format!("Bytes written: {}", bytes_written));
                 },
                 FlashState::Verify => {

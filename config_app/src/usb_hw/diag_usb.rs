@@ -37,15 +37,12 @@ pub struct EspLogMessage {
 
 pub struct Nag52USB {
     port: Option<Box<dyn SerialPort>>,
-    port_info: PortInfo,
-    port_name: String,
     info: HardwareInfo,
     rx_log: mpsc::Receiver<EspLogMessage>,
     rx_diag: mpsc::Receiver<(u32, Vec<u8>)>,
     is_running: Arc<AtomicBool>,
     tx_id: u32,
     rx_id: u32,
-    r_handle: Option<JoinHandle<()>>
 }
 
 unsafe impl Sync for Nag52USB {}
@@ -120,7 +117,6 @@ impl Nag52USB {
                                 tag: split.0.split_once(")").unwrap().1.to_string(),
                                 msg: split.1.to_string(),
                             };
-                            println!("{:?}", msg);
                             read_tx_log.send(msg);
                         }
                     }
@@ -131,8 +127,6 @@ impl Nag52USB {
 
         Ok(Self {
             port: Some(port),
-            port_name: path.into(),
-            port_info: info,
             is_running,
             info: HardwareInfo {
                 name: "Ultimate-Nag52 USB interface".to_string(),
@@ -155,7 +149,6 @@ impl Nag52USB {
             rx_diag: read_rx_diag,
             tx_id: 0,
             rx_id: 0,
-            r_handle: Some(reader_thread)
         })
     }
 
@@ -165,24 +158,6 @@ impl Nag52USB {
 
     pub fn is_connected(&self) -> bool {
         self.is_running.load(Ordering::Relaxed)
-    }
-
-    pub fn get_usb_path(&self) -> &str {
-        &self.port_name
-    }
-
-    pub fn on_flash_begin(&mut self) -> Box<dyn SerialPort> {
-        self.is_running.store(false, Ordering::Relaxed);
-        if let Some(handle) = self.r_handle.take() {
-            handle.join().expect("Could not terminate reader thread!");
-        }
-        return self.port.take().unwrap()
-    }
-
-    pub fn on_flash_end(&mut self) -> HardwareResult<()> {
-        let new = Self::new(&self.port_name, self.port_info.clone())?;
-        let _ = std::mem::replace(self, new);
-        Ok(())
     }
 }
 
@@ -276,7 +251,7 @@ impl PayloadChannel for Nag52USB {
                 }
                 buf.push('\n');
                 let mut writer = BufWriter::new(&mut p);
-                writer.write(buf.as_bytes()).map_err(|e| ChannelError::IOError(e))?;
+                writer.write_all(buf.as_bytes()).map_err(|e| ChannelError::IOError(e))?;
                 Ok(())
             }
             None => Err(ChannelError::InterfaceNotOpen),
