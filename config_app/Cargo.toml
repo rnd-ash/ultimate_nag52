@@ -6,7 +6,7 @@ resolver = "2"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-ecu_diagnostics="0.90.33"
+ecu_diagnostics="0.90.41"
 #egui="0.15.0"
 image = "0.24.1"
 #serialport = {git = "https://github.com/rnd-ash/serialport-rs"} # For manual USB connection
