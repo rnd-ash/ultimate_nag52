@@ -97,7 +97,7 @@ impl InterfacePage for CrashAnalyzerUI {
         ui.label(
             RichText::new("Caution! Only use when car is off").color(Color32::from_rgb(255, 0, 0)),
         );
-        let state = self.read_state.read().unwrap();
+        let state = self.read_state.read().unwrap().clone();
         if state.is_done() {
             if ui.button("Read coredump ELF").clicked() {
                 let c = self.server.clone();
@@ -145,14 +145,14 @@ impl InterfacePage for CrashAnalyzerUI {
             ui.ctx().request_repaint();
         }
 
-        match self.read_state.read().unwrap().clone() {
+        match &state {
             ReadState::None => {},
             ReadState::Prepare => {
-                egui::widgets::ProgressBar::new(0.0).show_percentage().desired_width(300.0).ui(ui);
+                egui::widgets::ProgressBar::new(0.0).show_percentage().animate(true).desired_width(300.0).ui(ui);
                 ui.label("Preparing ECU...");
             },
             ReadState::ReadingBlock { id, out_of, bytes_written } => {
-                egui::widgets::ProgressBar::new((id as f32) / (out_of as f32)).show_percentage().desired_width(300.0).ui(ui);
+                egui::widgets::ProgressBar::new((*id as f32) / (*out_of as f32)).show_percentage().animate(true).desired_width(300.0).ui(ui);
                 ui.label(format!("Bytes read: {}", bytes_written));
             },
             ReadState::Completed => {

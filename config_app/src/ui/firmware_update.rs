@@ -4,7 +4,7 @@ use std::{
     sync::{
         atomic::{AtomicBool, AtomicU32, Ordering},
         Arc, Mutex, RwLock,
-    }, num::Wrapping, ops::DerefMut,
+    }, num::Wrapping, ops::DerefMut, time::Instant,
 };
 
 use ecu_diagnostics::{kwp2000::{Kwp2000DiagnosticServer, SessionType, ResetMode}, DiagServerResult, DiagnosticServer, DiagError};
@@ -16,26 +16,6 @@ use crate::{
     usb_hw::{diag_usb::Nag52USB, flasher::{self, bin::{Firmware, load_binary}}},
     window::{InterfacePage, PageAction},
 };
-
-pub struct FlashDataFormatted {
-    freq: String,
-    size: String,
-    features: String,
-    mac: String,
-    revision: String,
-}
-
-impl Default for FlashDataFormatted {
-    fn default() -> Self {
-        Self {
-            freq: "Unknown Mhz".into(),
-            size: "Unknown MB".into(),
-            features: "N/A".into(),
-            mac: "00-00-00-00-00-00".into(),
-            revision: "N/A".into(),
-        }
-    }
-}
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum FlashState {
@@ -65,6 +45,10 @@ pub struct FwUpdateUI {
     elf_path: Option<String>,
     firmware: Option<Firmware>,
     flash_state: Arc<RwLock<FlashState>>,
+    flash_start: Instant,
+    flash_measure: Instant,
+    flash_speed: u32,
+    flash_eta: u32,
 }
 
 pub struct FlasherMutate {}
@@ -76,6 +60,10 @@ impl FwUpdateUI {
             elf_path: None,
             firmware: None,
             flash_state: Arc::new(RwLock::new(FlashState::None)),
+            flash_start: Instant::now(),
+            flash_measure: Instant::now(),
+            flash_speed: 0,
+            flash_eta: 0
         }
     }
 }
@@ -143,7 +131,7 @@ firmware.header.get_idf_version(),
 firmware.header.get_time(),
 firmware.header.get_date()
             )));
-            let state = self.flash_state.read().unwrap();
+            let state = self.flash_state.read().unwrap().clone();
             if state.is_done() {
                 if ui.button("Flash firmware").clicked() {
                     let c = self.server.clone();
@@ -190,17 +178,29 @@ firmware.header.get_date()
             } else {
                 ui.label("Flashing in progress...");
                 ui.label("DO NOT EXIT THE APP");
-                ui.ctx().request_repaint();
             }
-            match self.flash_state.read().unwrap().clone() {
+            match &state {
                 FlashState::None => {},
                 FlashState::Prepare => {
-                    egui::widgets::ProgressBar::new(0.0).show_percentage().desired_width(300.0).ui(ui);
+                    egui::widgets::ProgressBar::new(0.0).show_percentage().animate(true).desired_width(300.0).ui(ui);
                     ui.label("Preparing ECU...");
+                    self.flash_start = Instant::now();
+                    self.flash_measure = Instant::now();
+                    self.flash_speed = 0;
+                    self.flash_eta = 0;
                 },
                 FlashState::WritingBlock { id, out_of, bytes_written } => {
-                    egui::widgets::ProgressBar::new((id as f32)/(out_of as f32)).show_percentage().desired_width(300.0).animate(true).ui(ui);
-                    ui.label(format!("Bytes written: {}", bytes_written));
+                    egui::widgets::ProgressBar::new((*id as f32)/(*out_of as f32)).show_percentage().desired_width(300.0).animate(true).ui(ui);
+                    let spd = (1000.0 * *bytes_written as f32 / self.flash_start.elapsed().as_millis() as f32) as u32;
+                    
+                    if self.flash_measure.elapsed().as_millis() > 1000 {
+                        self.flash_measure = Instant::now();
+                        self.flash_speed = spd;
+                        self.flash_eta = (firmware.raw.len() as u32 - *bytes_written) / spd;
+                    }
+                    
+                    ui.label(format!("Bytes written: {}. Avg {:.0} bytes/sec", bytes_written, self.flash_speed));
+                    ui.label(format!("ETA: {} seconds remaining", self.flash_eta));
                 },
                 FlashState::Verify => {
                     egui::widgets::ProgressBar::new(100.0).show_percentage().desired_width(300.0).ui(ui);
@@ -213,7 +213,7 @@ firmware.header.get_date()
                     ui.label(RichText::new(format!("Flashing was ABORTED! Reason: {}", r)).color(Color32::from_rgb(255, 0, 0)));
                 },
             }
-            return PageAction::SetBackButtonState(false);
+            return PageAction::SetBackButtonState(state.is_done());
         }
         return PageAction::SetBackButtonState(true);
     }

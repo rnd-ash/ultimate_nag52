@@ -140,7 +140,7 @@ impl ChartData {
 }
 
 #[bitfield]
-#[derive(Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq)]
+#[derive(Debug, Default, Copy, Clone, Ord, PartialOrd, Eq, PartialEq)]
 pub struct DataSolenoids {
     pub spc_pwm: u16,
     pub mpc_pwm: u16,

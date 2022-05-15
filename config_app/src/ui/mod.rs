@@ -9,6 +9,7 @@ pub mod status_bar;
 pub mod diagnostics;
 pub mod configuration;
 pub mod crashanalyzer;
+pub mod kwp_event;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum StatusText {

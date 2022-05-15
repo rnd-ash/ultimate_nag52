@@ -14,6 +14,7 @@ use crate::window::{PageAction, StatusBar};
 
 pub mod rli;
 pub mod data;
+pub mod solenoids;
 use crate::usb_hw::diag_usb::Nag52USB;
 use ecu_diagnostics::{kwp2000::*, bcd_decode};
 use crate::ui::diagnostics::rli::{DataCanDump, DataGearboxSensors, DataSolenoids, LocalRecordData, RecordIdents};

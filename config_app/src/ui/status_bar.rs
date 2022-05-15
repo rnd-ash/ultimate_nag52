@@ -3,7 +3,7 @@ use egui::*;
 use epi::*;
 use std::{
     collections::VecDeque,
-    sync::{Arc, Mutex, RwLock}, borrow::BorrowMut,
+    sync::{Arc, Mutex, RwLock, mpsc}, borrow::BorrowMut,
 };
 
 use crate::{
@@ -13,33 +13,37 @@ use crate::{
 
 #[derive(Clone)]
 pub struct MainStatusBar {
-    dev: Arc<Mutex<Nag52USB>>,
     show_log_view: bool,
     msgs: VecDeque<EspLogMessage>,
+    receiver: Option<Arc<mpsc::Receiver<EspLogMessage>>>,
+    hw_name: String,
     auto_scroll: bool,
     use_light_theme: bool
 }
 
 impl MainStatusBar {
-    pub fn new(dev: Arc<Mutex<Nag52USB>>) -> Self {
+    pub fn new(logger: Option<mpsc::Receiver<EspLogMessage>>, hw_name: String) -> Self {
         Self {
-            dev,
             show_log_view: false,
             msgs: VecDeque::new(),
             auto_scroll: true,
-            use_light_theme: false
+            use_light_theme: false,
+            receiver: match logger {
+                Some(l) => Some(Arc::new(l)),
+                None => None,
+            },
+            hw_name
         }
     }
 }
 
 impl StatusBar for MainStatusBar {
     fn draw(&mut self, ui: &mut egui::Ui, ctx: &egui::Context) {
-        match self.dev.lock().unwrap().is_connected() {
-            true => ui.label("Connected"),
-            false => ui.label("Disconnected"),
-        };
-        if ui.button("TCM log view").clicked() {
-            self.show_log_view = true;
+        ui.label(format!("Connected via {}", self.hw_name));
+        if self.receiver.is_some() {
+            if ui.button("TCM log view").clicked() {
+                self.show_log_view = true;
+            }
         }
 
         if ui.checkbox(&mut self.use_light_theme, "Light theme").clicked() {
@@ -86,12 +90,12 @@ impl StatusBar for MainStatusBar {
                                     );
                                 }
                             });
-                        while let Some(msg) = self.dev.lock().unwrap().read_log_msg() {
-                            if self.msgs.len() >= 1000 {
-                                self.msgs.pop_front();
-                            }
-                            self.msgs.push_back(msg);
-                        }
+                        //while let Some(msg) = self.dev.lock().unwrap().read_log_msg() {
+                        //    if self.msgs.len() >= 1000 {
+                        //        self.msgs.pop_front();
+                        //    }
+                        //    self.msgs.push_back(msg);
+                        //}
                     });
 
                     if log_view.button("Clear log view").clicked() {
