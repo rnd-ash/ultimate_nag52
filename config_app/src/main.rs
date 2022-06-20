@@ -2,6 +2,7 @@
 extern crate static_assertions;
 
 use std::iter;
+use std::env;
 use egui::FontDefinitions;
 use epi::App;
 use ui::launcher::Launcher;
@@ -14,6 +15,7 @@ use winit::event_loop::ControlFlow;
 mod ui;
 mod usb_hw;
 mod window;
+
 
 // IMPORTANT. On windows, only the i686-pc-windows-msvc target is supported (Due to limitations with J2534 and D-PDU!
 #[cfg(all(target_arch = "x86_64", target_os = "windows"))]
@@ -32,6 +34,8 @@ impl epi::backend::RepaintSignal for RepaintSignal {
 }
 
 fn main() {
+    //force use xwayland since stupid gnome developers does not want to support Server Side Decorations
+    env::set_var("WINIT_UNIX_BACKEND", "x11");
 
     let event_loop = winit::event_loop::EventLoop::with_user_event();
     let window = winit::window::WindowBuilder::new()
