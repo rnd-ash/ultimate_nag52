@@ -1,103 +1,56 @@
 # Ultimate NAG52
-An open implementation of NAG52 (722.6 Transmission controller), complete with KWP2000 diagnostics and CANBUS support
+An open implementation of NAG52 (722.6 Transmission controller), complete with KWP2000 diagnostics and CANBUS support, with support for all cars that came with the EGS51, EGS52 or EGS53 TCU.
+
+## IMPORTANT Disclaimer
+
+By running this board in your car, you accept that there will be 0 liability for anything that goes wrong. Whilst official firmware releases will be tested thoroughly on simulations first to ensure that they are safe for daily and long term driving, if you modify the firmware yourself and kill your car or engine, DO NOT blame the board, or me!
+
+Boards sold through me will come with a warranty in case of any hardware failure specific to the board itself. If you choose to assemble a board yourself, or fabricate your own using the schematics and Gerber however, those will NOT come with any warranty. **YOU ARE ON YOUR OWN**.
 
 ## PCB Schematics
-Check the [PCB](PCB/) folder for schematics, and **NOW GERBER FILES!**
+
+Check the [PCB](PCB/) folder for schematics, and **NOW GERBER FILES**
 
 ## Video playlist
 
 See the following [youtube playlist](https://youtube.com/playlist?list=PLxrw-4Vt7xtu9d8lCkMCG0_K7oHcsSMtF)
 An alternative series can be found on Odysee (Ad free) [here](https://odysee.com/@rand_ash:58/ultimagenag52:f)
 
-NOTE: This repo is a placeholder for holding schematics and misc data about the project. For the firmware itself,
-see the repository list below!
+## Additional resources
 
-## Repository list
+* [TCU firmware repository](https://github.com/rnd-ash/ultimate-nag52-fw)
 
-* [FIRMWARE for ESP32 PCB](https://github.com/rnd-ash/ultimate-nag52-fw)
 
 ## Who is this project for?
 
-| TCM status | Development status |
-|----|----|
-|EGS52| Early WIP (Check firmware) |
-|EGS53| Not started yet |
+**For now, I am only officially supporting Daimler made vehicles.** Vehicles that come with the 722.6 transmission (Mercedes 5-speed automatic gearbox) are supported. This project aims to create a drop-in replacement TCM that works with all 3 TCM iterations that Mercedes had for this gearbox:
 
-The 722.6 (NAG1/2) gearbox is used in many vehicles, main Mercedes, however other car manufacturers use it!
+### EGS51 
 
-The controller comes in 2 flavours (EGS52, the older model used between 2000-2007), and EGS53, used in 2008 and newer vehicles.
+<img src="images/egs51.jpg" alt="EGS51 TCM" width="400"/>
 
-Below are a list of vehicles that support the 722.6 gearbox, either with the EGS52 or EGS53 TCM. **NOTE** that some vehicles offer different gearboxes on different engines, so please check your own car to see if it has a 722.6 transmission!
+EGS51 is found in most Mercedes vehicles with the 722.6 made before 2000. It has the legacy shifter module (Where the gear selector is wired to the TCM directly)
 
-### EGS52 TCM
-* Mercedes
-    * W203 (2000-2006 C class)
-    * W211 (2002-2006 E class)
-    * W215 (2000-2006 CL class)
-    * W220 (1999-2005 S class)
-    * W209 (2003-2005 CLK class)
-    * W163 (1998-2005 ML class)
-    * W463 (1996-2006 G class)
-    * R170 (1997-2003 SLK)
-    * R230 (2001-2006 SL)
-* Maybach
-    * 57 (2002-2006 Mayback 57)
-    * 62 (2002-2006 Mayback 62)
-* Dodge
-    * Magnum (2005-2008)
-    * Charger (2006-2008)
-    * Sprinter (2003-2006)
-* Chrysler
-    * Crossfire (2004-2008)
-    * 300 (2005-2008)
-* Jaguar
-    * X308 (1998-2003)
-    * XK (1998-2002 X100)
-* Porsche
-    * 911 (1997-2006)
+### EGS52
 
-### EGS53 TCM
-* Mercedes
-    * W221 (2006-2013 S class)
-    * C216 (2007-2014 CL class)
-    * W212 (2009-2011 E class)
-    * W204 (2007-2011 C class)
-    * W209 (2006-2009 CLK class)
-    * W463 (2007-2012 G class)
-    * R171 (2007-2010 SLK class)
-    * R230 (2007-2011 SL class)
-    * W199 (2005-2009 SLR class)
-* Maybach
-    * 57 (2007-2013 Mayback 57)
-    * 62 (2007-2013 Mayback 62)
-* Dodge
-    * Nitro (2007-2011)
-    * Challenger (2009-2014)
-    * Durango (2011-2012)
-* Chrysler
-    * 300 (2008-2014)
-* Ssangyong
-    * Kyron (2006-Today)
-    * Actyon sport (2014-Today)
+<img src="images/egs52.jpg" alt="EGS52 TCM" width="400"/>
 
-Below are images showing the differences between EGS52 and EGS53 PCBs:
+EGS52 is found in most Mercedes vehicles with the 722.6 made between 2000 and 2008. It supports both the legacy shifter module (Mentioned above) and the newer CAN style gear shifter (Where the gear selector is another ECU on CANBUS and communicates over CANBUS with the TCM)
 
-EGS52:
+### EGS53 
 
-<img src="images/egs52.png" alt="EGS52 PCB (from 2006 W203)" width="200"/>
+<img src="images/egs53.jpg" alt="EGS53 TCM" width="400"/>
 
+EGS53 is found in any Mercedes vehicles with the 722.6 made after 2008. It is the latest design iteration of the TCM, and only supports the CANBUS shifter module.
 
-## How to begin?
+### How come other custom TCMs do not support all 3 TCMs?
 
-Currently there are 2 main routes for starting with ultimate-nag52. Firstly, you can order a working PCB! - This PCB will come with no firmware pre-installed, but will be fully working. Just requires flashing to get started. This board would have been fully tested so its guaranteed to work electrically.
+Short answer. Who knows. This project was made from the ground up to be modular such that the same controller could be used as a drop-in for all 3 TCMs. With my extensive CAN documentation on these Mercedes vehicles though, I have been able to reverse engineer the entire CAN-C network which allows for my controller to work perfectly in all cars which require CAN communication with the TCM in order to avoid going into limp mode. This has the additional benefits that other custom TCMs seemingly don't support:
 
-The second option is to use the schematics (TO BE ADDED) to order your own PCB and solder all the components. This is only recommended for users who are very good with soldering! If you choose this path and your PCB blows up your car, I am **NOT** responsible for **YOUR** soldering mistakes!
+* Torque requesting
+* Monitoring of ESP events and acting accordingly
+* Full diagnostic compatibility with the OEM EGS52 and EGS53 TCUs (CAN only). This means that my TCM works with DAS/Vediamo diagnostic tools, and identifies itself as the OEM TCM!
 
-### Option 1 - Ordering PCB
-TBA
+### What issues does this project aim to fix compared to the stock TCMs?
 
-### Option 2 - Making PCB
-TBA
-
-### Uploading firmware
-TBA
+Simply put, as the controller for this TCM (The ESP32) is much faster when compared to all the OEM TCMs, and has a lot more RAM, it has allowed for a much more complex shift adaptation system to be coded for it, allowing for a lot more parameters of each gearshift to be modified, which in the long term fixes issues like rough shifting or flaring when changing gears which the original TCMs will not be able to adapt to unless someone manually edits the shift pressure maps.
