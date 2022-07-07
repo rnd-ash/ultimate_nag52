@@ -5,6 +5,14 @@ In this folder you will find all the design iterations the PCB for Ultimate-NAG5
 
 ## PCB Changelog
 
+### V1.2 (First production release)
+
+#### Changes
+
+* Replaced TFT Pullup resistor (R6) from 10K to 2K
+* Minor silkscreen fixes
+* Added teardrops
+
 ### V1.1 (First release)
 
 #### Changes
