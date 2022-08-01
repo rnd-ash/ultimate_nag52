@@ -1,4 +1,5 @@
-use egui::Color32;
+use eframe::egui::Color32;
+use eframe::egui;
 
 use crate::window::InterfacePage;
 
@@ -10,6 +11,9 @@ pub mod diagnostics;
 pub mod configuration;
 pub mod crashanalyzer;
 pub mod kwp_event;
+pub mod io_maipulator;
+pub mod routine_tests;
+pub mod widgets;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum StatusText {

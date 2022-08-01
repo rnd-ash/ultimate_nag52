@@ -1,19 +1,15 @@
 use std::{
     fs::File,
-    io::{Read, Write},
+    io::Write,
     sync::{
-        atomic::{AtomicBool, AtomicU32, Ordering},
         Arc, Mutex, RwLock,
-    }, num::Wrapping, ops::DerefMut,
+    }, ops::DerefMut,
 };
 
-use ecu_diagnostics::{kwp2000::{Kwp2000DiagnosticServer, SessionType, ResetMode}, DiagServerResult, DiagnosticServer, DiagError};
-use egui::*;
-use epi::*;
-use nfd::Response;
+use ecu_diagnostics::{kwp2000::{Kwp2000DiagnosticServer, SessionType}, DiagServerResult, DiagnosticServer, DiagError};
+use eframe::egui::{self, *};
 
 use crate::{
-    usb_hw::{diag_usb::Nag52USB, flasher::{self, bin::{Firmware, load_binary}}},
     window::{InterfacePage, PageAction},
 };
 
@@ -91,7 +87,7 @@ impl InterfacePage for CrashAnalyzerUI {
     fn make_ui(
         &mut self,
         ui: &mut egui::Ui,
-        frame: &epi::Frame,
+        frame: &eframe::Frame,
     ) -> crate::window::PageAction {
         ui.heading("Crash Analyzer");
         ui.label(

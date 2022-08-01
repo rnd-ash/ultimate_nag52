@@ -1,10 +1,7 @@
 use std::{borrow::BorrowMut, collections::VecDeque};
 
-use ecu_diagnostics::hardware::Hardware;
-use egui::*;
-use epi::*;
-
 use crate::ui::status_bar::{self};
+use eframe::egui;
 
 pub struct MainWindow {
     pages: VecDeque<Box<dyn InterfacePage>>,
@@ -37,14 +34,13 @@ impl MainWindow {
     }
 }
 
-impl epi::App for MainWindow {
-    fn update(&mut self, ctx: &egui::Context, frame: &epi::Frame) {
+impl eframe::App for MainWindow {
+    fn update(&mut self, ctx: &eframe::egui::Context, frame: &mut eframe::Frame) {
         let stack_size = self.pages.len();
         if stack_size > 0 {
             let mut pop_page = false;
             if let Some(status_bar) = self.bar.borrow_mut() {
                 egui::TopBottomPanel::bottom("NAV")
-                    .default_height(800.0)
                     .show(ctx, |nav| {
                         nav.horizontal(|row| {
                             status_bar.draw(row, ctx);
@@ -78,16 +74,7 @@ impl epi::App for MainWindow {
         }
         //ctx.request_repaint(); // Continuous mode
     }
-
-    fn name(&self) -> &str {
-        if self.pages.len() > 0 {
-            self.pages[0].get_title()
-        } else {
-            "Ultimate-Nag52 configuration utility"
-        }
-    }
 }
-
 pub enum PageAction {
     None,
     Destroy,
@@ -98,7 +85,7 @@ pub enum PageAction {
 }
 
 pub trait InterfacePage {
-    fn make_ui(&mut self, ui: &mut egui::Ui, frame: &epi::Frame) -> PageAction;
+    fn make_ui(&mut self, ui: &mut egui::Ui, frame: &eframe::Frame) -> PageAction;
     fn get_title(&self) -> &'static str;
     fn get_status_bar(&self) -> Option<Box<dyn StatusBar>>;
 }

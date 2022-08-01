@@ -1,6 +1,5 @@
 use ecu_diagnostics::hardware::Hardware;
-use egui::*;
-use epi::*;
+use eframe::egui::*;
 use std::{
     collections::VecDeque,
     sync::{Arc, Mutex, RwLock, mpsc}, borrow::BorrowMut,
@@ -10,6 +9,7 @@ use crate::{
     usb_hw::diag_usb::{EspLogMessage, Nag52USB},
     window::{InterfacePage, StatusBar},
 };
+use eframe::egui;
 
 #[derive(Clone)]
 pub struct MainStatusBar {

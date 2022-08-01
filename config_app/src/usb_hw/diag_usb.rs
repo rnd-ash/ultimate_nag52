@@ -9,14 +9,13 @@ use std::{
         mpsc::{self},
         Arc,
     },
-    time::{Instant, Duration},
+    time::{Instant, Duration}, panic::catch_unwind,
 };
 use std::fmt::Write as SWrite;
 use ecu_diagnostics::{
     channel::{IsoTPChannel, PayloadChannel, ChannelError},
     hardware::{HardwareInfo, HardwareResult,  HardwareError},
 };
-use egui::mutex::Mutex;
 use serial_rs::{SerialPort, PortInfo, SerialPortSettings, FlowControl};
 
 #[derive(Debug, Clone, Copy)]
@@ -66,6 +65,8 @@ impl Nag52USB {
 
         let is_running = Arc::new(AtomicBool::new(true));
         let is_running_r = is_running.clone();
+        port.clear_input_buffer();
+        port.clear_output_buffer();
         let mut port_clone = port.try_clone().unwrap();
 
         // Create 2 threads, one to read the port, one to write to it
@@ -75,57 +76,36 @@ impl Nag52USB {
                 let mut reader = BufReader::new(&mut port_clone);
                 let mut line = String::new();
                 loop {
+                    line.clear();
                     if reader.read_line(&mut line).is_ok() {
-                        let _ = line.pop();
-                        if line.chars().next().unwrap() == '#' {
+                        line.pop();
+                        println!("LINE: {}", line);
+                        if line.is_empty() {continue;}
+                        if line.starts_with("#") || line.starts_with("07E9") {
                             // First char is #, diag message
                             // Diag message
-                            if line.len() % 2 == 0 {
+                            if line.starts_with("#") {
+                                line.remove(0);
+                            }
+                            if line.len() % 2 != 0 {
                                 eprintln!("Discarding invalid diag msg '{}'", line);
                             } else {
-                                //println!("Read diag payload {:?} from Nag52 USB", line);
-                                let contents: &str = &line[1..];
-                                let can_id = u32::from_str_radix(&contents[0..4], 16).unwrap();
-                                let payload: Vec<u8> = (4..contents.len())
-                                    .step_by(2)
-                                    .map(|i| u8::from_str_radix(&contents[i..i + 2], 16).unwrap())
-                                    .collect();
-                                read_tx_diag.send((can_id, payload));
+                                let can_id = u32::from_str_radix(&line[0..4], 16).unwrap();
+                                if let Ok(p) = catch_unwind(||{
+                                    let payload: Vec<u8> = (4..line.len())
+                                        .step_by(2)
+                                        .map(|i| u8::from_str_radix(&line[i..i + 2], 16).unwrap())
+                                        .collect();
+                                    payload
+                                }) {
+                                    read_tx_diag.send((can_id, p));
+                                }
                             }
                         } else {
-                            // This is a log message
-                            if line.len() < 5 {
-                                continue;
-                            }
-                            if !line.contains("(") || !line.contains(")") {
-                                println!("EEE {}", line);
-                                continue;
-                            }
-                            let lvl = match line.chars().next().unwrap() {
-                                'I' => EspLogLevel::Info,
-                                'W' => EspLogLevel::Warn,
-                                'E' => EspLogLevel::Error,
-                                'D' => EspLogLevel::Debug,
-                                _ => continue,
-                            };
-                            let timestamp = u128::from_str_radix(
-                                line.split_once(")").unwrap().0.split_once("(").unwrap().1,
-                                10,
-                            )
-                            .unwrap();
-                            let split = line.split_once(": ").unwrap();
-                            let msg = EspLogMessage {
-                                lvl,
-                                timestamp,
-                                tag: split.0.split_once(")").unwrap().1.to_string(),
-                                msg: split.1.to_string(),
-                            };
-                            println!("{:?}", msg);
-                            read_tx_log.send(msg);
+                            //read_tx_log.send(msg);
                         }
                         line.clear();
                     }
-                    //std::thread::sleep(from_millis(10));
                 }
             }
             println!("Serial reader stop");
@@ -233,7 +213,7 @@ impl PayloadChannel for Nag52USB {
     fn read_bytes(&mut self, timeout_ms: u32) -> ecu_diagnostics::channel::ChannelResult<Vec<u8>> {
         let now = Instant::now();
         while now.elapsed().as_millis() < timeout_ms as u128 {
-            if let Ok((id, data)) = self.rx_diag.recv() {
+            if let Ok((id, data)) = self.rx_diag.try_recv() {
                 if id == self.rx_id {
                     return Ok(data);
                 }

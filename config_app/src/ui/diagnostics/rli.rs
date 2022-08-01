@@ -1,10 +1,11 @@
 //! Read data by local identifier data structures
 //! Based on diag_data.h in TCM source code
+//! 
+use std::borrow::Borrow;
 
-use std::mem::size_of;
 use ecu_diagnostics::{DiagError, DiagServerResult};
 use ecu_diagnostics::kwp2000::{Kwp2000DiagnosticServer};
-use egui::{Color32, InnerResponse, RichText, Ui};
+use eframe::egui::{self, Color32, InnerResponse, RichText, Ui};
 use modular_bitfield::{bitfield, BitfieldSpecifier};
 
 #[repr(u8)]
@@ -14,6 +15,8 @@ pub enum RecordIdents {
     SolenoidStatus = 0x21,
     CanDataDump = 0x22,
     SysUsage = 0x23,
+    PressureStatus = 0x25,
+    DmaDump = 0x26,
 }
 
 impl RecordIdents {
@@ -24,6 +27,14 @@ impl RecordIdents {
             Self::SolenoidStatus => Ok(LocalRecordData::Solenoids(DataSolenoids::from_bytes(resp.try_into().map_err(|_| DiagError::InvalidResponseLength )?))),
             Self::CanDataDump => Ok(LocalRecordData::Canbus(DataCanDump::from_bytes(resp.try_into().map_err(|_| DiagError::InvalidResponseLength )?))),
             Self::SysUsage => Ok(LocalRecordData::SysUsage(DataSysUsage::from_bytes(resp.try_into().map_err(|_| DiagError::InvalidResponseLength )?))),
+            Self::PressureStatus => Ok(LocalRecordData::Pressures(DataPressures::from_bytes(resp.try_into().map_err(|_| DiagError::InvalidResponseLength )?))),
+            Self::DmaDump => {
+                let res = DataDmaDump {
+                    adc_detect: u16::from_le_bytes([resp[0], resp[1]]),
+                    dma_buffer: resp[2..].chunks_exact(2).into_iter().map(|x| u16::from_le_bytes([x[0], x[1]]) & 0x0FFF).collect(),
+                };
+                Ok(LocalRecordData::Dma(res))
+            }
         }
     }
 }
@@ -33,7 +44,9 @@ pub enum LocalRecordData {
     Sensors(DataGearboxSensors),
     Solenoids(DataSolenoids),
     Canbus(DataCanDump),
-    SysUsage(DataSysUsage)
+    SysUsage(DataSysUsage),
+    Pressures(DataPressures),
+    Dma(DataDmaDump)
 }
 
 impl LocalRecordData {
@@ -42,7 +55,12 @@ impl LocalRecordData {
             LocalRecordData::Sensors(s) => s.to_table(ui),
             LocalRecordData::Solenoids(s) => s.to_table(ui),
             LocalRecordData::Canbus(s) => s.to_table(ui),
-            LocalRecordData::SysUsage(s) => s.to_table(ui)
+            LocalRecordData::SysUsage(s) => s.to_table(ui),
+            LocalRecordData::Pressures(s) => s.to_table(ui),
+            _ => {
+                egui::Grid::new("DGS").striped(true).show(ui, |ui| {
+                })
+            }
         }
     }
 
@@ -52,10 +70,55 @@ impl LocalRecordData {
             LocalRecordData::Solenoids(s) => s.to_chart_data(),
             LocalRecordData::Canbus(s) => s.to_chart_data(),
             LocalRecordData::SysUsage(s) => s.to_chart_data(),
+            LocalRecordData::Pressures(s) => s.to_chart_data(),
             _ => vec![]
         }
     }
 }
+
+#[bitfield]
+#[derive(Debug, Clone, Ord, PartialOrd, Eq, PartialEq)]
+pub struct DataPressures {
+    pub spc_pwm: u16,
+    pub mpc_pwm: u16,
+    pub tcc_pwm: u16,
+    pub spc_pressure: u16,
+    pub mpc_pressure: u16,
+    pub tcc_pressure: u16
+}
+
+impl DataPressures {
+    pub fn to_table(&self, ui: &mut Ui) -> InnerResponse<()> {
+        egui::Grid::new("DGS").striped(true).show(ui, |ui| {
+            ui.label("Shift pressure");
+            ui.label(if self.spc_pressure() == u16::MAX { make_text("ERROR", true) } else { make_text(format!("{} mBar", self.spc_pressure()), false) });
+            ui.end_row();
+
+            ui.label("Modulating pressure");
+            ui.label(if self.mpc_pressure() == u16::MAX { make_text("ERROR", true) } else { make_text(format!("{} mBar", self.mpc_pressure()), false) });
+            ui.end_row();
+
+            ui.label("Torque converter pressure");
+            ui.label(if self.tcc_pressure() == u16::MAX { make_text("ERROR", true) } else { make_text(format!("{} mBar", self.tcc_pressure()), false) });
+            ui.end_row();
+        })
+    }
+
+    pub fn to_chart_data(&self) -> Vec<ChartData> {
+        vec![
+            ChartData::new(
+                "Requested pressures".into(),
+                vec![
+                    ("SPC pressure", self.spc_pressure() as f32, None),
+                    ("MPC pressure", self.mpc_pressure() as f32, None),
+                    ("TCC pressure", self.tcc_pressure() as f32, None),
+                ],
+                Some((0.0, 0.0))
+            ),
+        ]
+    }
+}
+
 
 #[bitfield]
 #[derive(Debug, Clone, Ord, PartialOrd, Eq, PartialEq)]
@@ -101,7 +164,7 @@ impl DataGearboxSensors {
             ui.end_row();
 
             ui.label("ATF Oil temperature\n(Only when parking lock off)");
-            ui.label(if self.atf_temp_c() as i32 == u16::MAX as i32 { make_text("Cannot read\nParking lock engaged", true) } else { make_text(format!("{} *C", self.atf_temp_c() as i32), false) });
+            ui.label(if self.parking_lock() != 0x00 { make_text("Cannot read\nParking lock engaged", true) } else { make_text(format!("{} *C", self.atf_temp_c() as i32), false) });
             ui.end_row();
 
             ui.label("Parking lock");
@@ -139,6 +202,12 @@ impl ChartData {
     }
 }
 
+#[derive(Debug, Clone, Ord, PartialOrd, Eq, PartialEq)]
+pub struct DataDmaDump {
+    pub adc_detect: u16,
+    pub dma_buffer: Vec<u16>
+}
+
 #[bitfield]
 #[derive(Debug, Default, Copy, Clone, Ord, PartialOrd, Eq, PartialEq)]
 pub struct DataSolenoids {
@@ -151,6 +220,10 @@ pub struct DataSolenoids {
     pub spc_current: u16,
     pub mpc_current: u16,
     pub tcc_current: u16,
+    pub targ_spc_current: u16,
+    pub targ_mpc_current: u16,
+    pub adjustment_spc: u16,
+    pub adjustment_mpc: u16,
     pub y3_current: u16,
     pub y4_current: u16,
     pub y5_current: u16
@@ -160,11 +233,13 @@ impl DataSolenoids {
     pub fn to_table(&self, ui: &mut Ui) -> InnerResponse<()> {
         egui::Grid::new("DGS").striped(true).show(ui, |ui| {
             ui.label("MPC Solenoid");
-            ui.label(format!("PWM {:>4}/4096, Est current {} mA", self.mpc_pwm(), self.mpc_current()));
+            ui.label(format!("PWM {:>4}/4096, Est current {} mA. Targ current {} mA. PWM Trim {:.2} %", self.mpc_pwm(), self.mpc_current(), self.targ_mpc_current(),
+               (self.adjustment_mpc() as f32 / 10.0) -100.0));
             ui.end_row();
 
             ui.label("SPC Solenoid");
-            ui.label(format!("PWM {:>4}/4096, Est current {} mA", self.spc_pwm(), self.spc_current()));
+            ui.label(format!("PWM {:>4}/4096, Est current {} mA. Targ current {} mA. PWM Trim {:.2} %", self.spc_pwm(), self.spc_current(), self.targ_spc_current(),
+                (self.adjustment_spc() as f32 / 10.0) -100.0));
             ui.end_row();
 
             ui.label("TCC Solenoid");
@@ -185,12 +260,12 @@ impl DataSolenoids {
 
             ui.label("Total current consumption");
             ui.label(format!("{} mA",
-                             self.y5_current() +
-                             self.y4_current() +
-                             self.y3_current() +
-                             self.mpc_current() +
-                             self.spc_current() +
-                             self.tcc_current()
+                             self.y5_current()  as u32 +
+                             self.y4_current()  as u32 +
+                             self.y3_current()  as u32 +
+                             self.mpc_current() as u32 +
+                             self.spc_current() as u32 +
+                             self.tcc_current() as u32 
             ));
             ui.end_row();
         })
@@ -250,6 +325,10 @@ pub enum ShifterPosition {
     Drive,
     Plus,
     Minus,
+    Four,
+    Three,
+    Two,
+    One,
     SNV = 0xFF
 }
 
@@ -339,14 +418,24 @@ impl DataCanDump {
 pub struct DataSysUsage {
     core1_usage: u16,
     core2_usage: u16,
-    free_heap: u32,
+    free_ram: u32,
+    total_ram: u32,
     free_psram: u32,
+    total_psram: u32,
     num_tasks: u32,
 }
 
 impl DataSysUsage {
     pub fn to_table(&self, ui: &mut Ui) -> InnerResponse<()> {
         println!("{:#?}", self);
+        let r_f = self.free_ram() as f32;
+        let r_t = self.total_ram() as f32;
+        let p_f = self.free_psram() as f32;
+        let p_t = self.total_psram() as f32;
+
+        let used_ram_perc = 100f32 * (r_t-r_f) / r_t;
+        let used_psram_perc = 100f32 * (p_t-p_f) / p_t;
+
         egui::Grid::new("DGS").striped(true).show(ui, |ui| {
             ui.label("Core 1 usage");
             ui.label(format!("{:.1} %", self.core1_usage() as f32 / 10.0));
@@ -356,12 +445,16 @@ impl DataSysUsage {
             ui.label(format!("{:.1} %", self.core2_usage() as f32 / 10.0));
             ui.end_row();
 
-            ui.label("Free Heap");
-            ui.label(format!("{:.1} Kb", self.free_heap() as f32 / 1024.0));
+            ui.label("Free internal RAM");
+            ui.label(format!("{:.1} Kb ({:.1}% Used)", self.free_ram() as f32 / 1024.0, used_ram_perc));
             ui.end_row();
 
             ui.label("Free PSRAM");
-            ui.label(format!("{:.1} Kb", self.free_psram() as f32 / 1024.0));
+            ui.label(format!("{:.1} Kb ({:.1}% Used)", self.free_psram() as f32 / 1024.0, used_psram_perc));
+            ui.end_row();
+
+            ui.label("Num. OS Tasks");
+            ui.label(format!("{}", self.num_tasks()));
             ui.end_row();
         })
     }

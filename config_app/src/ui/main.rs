@@ -1,21 +1,17 @@
 use std::sync::{Arc, Mutex, mpsc};
 
 use ecu_diagnostics::{
-    hardware::Hardware,
-    DiagnosticServer,
-    kwp2000::{self, Kwp2000DiagnosticServer, Kwp2000ServerOptions, Kwp2000VoidHandler}, channel::IsoTPChannel,
+    kwp2000::{Kwp2000DiagnosticServer, Kwp2000ServerOptions, Kwp2000VoidHandler}, channel::IsoTPChannel,
 };
-use egui::*;
-use epi::Frame;
+use eframe::egui;
+use eframe::Frame;
 
 use crate::{
-    usb_hw::diag_usb::{Nag52USB, EspLogMessage},
-    window::{InterfacePage, PageAction, StatusBar},
+    usb_hw::diag_usb::{EspLogMessage},
+    window::{InterfacePage, PageAction},
 };
 
-use super::{firmware_update::FwUpdateUI, status_bar::MainStatusBar, configuration::ConfigPage, crashanalyzer::CrashAnalyzerUI, diagnostics::solenoids::SolenoidPage, };
-
-use ecu_diagnostics::kwp2000::*;
+use super::{firmware_update::FwUpdateUI, status_bar::MainStatusBar, configuration::ConfigPage, crashanalyzer::CrashAnalyzerUI, diagnostics::{solenoids::SolenoidPage, shift_reporter::ShiftReportPage}, io_maipulator::IoManipulatorPage, routine_tests::RoutinePage, };
 use crate::ui::diagnostics::DiagnosticsPage;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
@@ -37,7 +33,7 @@ impl MainPage {
         let channel_cfg = ecu_diagnostics::channel::IsoTPSettings {
             block_size: 0,
             st_min: 0,
-            extended_addressing: false,
+            extended_addresses: None,
             pad_frame: true,
             can_speed: 500_000,
             can_use_ext_addr: false,
@@ -45,8 +41,8 @@ impl MainPage {
         let server_settings = Kwp2000ServerOptions {
             send_id: 0x07E1,
             recv_id: 0x07E9,
-            read_timeout_ms: 5000,
-            write_timeout_ms: 5000,
+            read_timeout_ms: if logger.is_some() { 1000 } else { 5000 }, // 250ms for USB, 5 seconds for CAN
+            write_timeout_ms: if logger.is_some() { 1000 } else { 5000 }, // 250ms for USB, 5 seconds for CAN
             global_tp_id: 0,
             tester_present_interval_ms: 2000,
             tester_present_require_response: true,
@@ -72,7 +68,7 @@ impl InterfacePage for MainPage {
     fn make_ui(
         &mut self,
         ui: &mut egui::Ui,
-        frame: &epi::Frame,
+        frame: &Frame,
     ) -> crate::window::PageAction {
         // UI context menu
         egui::menu::bar(ui, |bar_ui| {
@@ -110,6 +106,15 @@ impl InterfacePage for MainPage {
             }
             if v.button("Solenoid live view").clicked() {
                 create_page = Some(PageAction::Add(Box::new(SolenoidPage::new(self.diag_server.clone(), self.bar.clone()))));
+            }
+            if v.button("Shift report history viewer").clicked() {
+                create_page = Some(PageAction::Add(Box::new(ShiftReportPage::new(self.diag_server.clone(), self.bar.clone()))));
+            }
+            if v.button("IO Manipulator").clicked() {
+                create_page = Some(PageAction::Add(Box::new(IoManipulatorPage::new(self.diag_server.clone(), self.bar.clone()))));
+            }
+            if v.button("Diagnostic routine executor").clicked() {
+                create_page = Some(PageAction::Add(Box::new(RoutinePage::new(self.diag_server.clone(), self.bar.clone()))));
             }
             if v.button("Map tuner").clicked() {}
             if v.button("Configure drive profiles").clicked() {}

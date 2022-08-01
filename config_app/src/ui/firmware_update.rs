@@ -1,19 +1,16 @@
 use std::{
-    fs::File,
-    io::Read,
     sync::{
-        atomic::{AtomicBool, AtomicU32, Ordering},
         Arc, Mutex, RwLock,
-    }, num::Wrapping, ops::DerefMut, time::Instant,
+    }, ops::DerefMut, time::Instant,
 };
 
 use ecu_diagnostics::{kwp2000::{Kwp2000DiagnosticServer, SessionType, ResetMode}, DiagServerResult, DiagnosticServer, DiagError};
-use egui::*;
-use epi::*;
+use eframe::egui::*;
+use eframe::egui;
 use nfd::Response;
 
 use crate::{
-    usb_hw::{diag_usb::Nag52USB, flasher::{self, bin::{Firmware, load_binary}}},
+    usb_hw::flasher::{bin::{Firmware, load_binary}},
     window::{InterfacePage, PageAction},
 };
 
@@ -95,7 +92,7 @@ impl InterfacePage for FwUpdateUI {
     fn make_ui(
         &mut self,
         ui: &mut egui::Ui,
-        frame: &epi::Frame,
+        frame: &eframe::Frame,
     ) -> crate::window::PageAction {
         ui.heading("Firmware update");
         ui.label(
@@ -137,11 +134,16 @@ firmware.header.get_date()
                     let c = self.server.clone();
                     let state_c = self.flash_state.clone();
                     let fw = firmware.clone();
+                    let mut old_timeouts = (0, 0);
                     std::thread::spawn(move|| {
                         let mut lock = c.lock().unwrap();
                         *state_c.write().unwrap() = FlashState::Prepare;
+                        old_timeouts = (lock.get_read_timeout(), lock.get_write_timeout());
+                        lock.set_rw_timeout(10000, 10000);
+
                         match init_flash_mode(&mut lock.deref_mut(), fw.raw.len() as u32) {
                             Err(e) => {
+                                lock.set_rw_timeout(old_timeouts.0, old_timeouts.1);
                                 *state_c.write().unwrap() = FlashState::Aborted(format!("ECU rejected flash programming mode: {}", e))
                             },
                             Ok(size) => {
@@ -156,6 +158,7 @@ firmware.header.get_date()
                                     if let Err(e) = lock.send_byte_array_with_response(&req) {
                                         *state_c.write().unwrap() = FlashState::Aborted(format!("ECU failed to write data to flash: {}", e));
                                         eprintln!("Writing failed! Error {}", e);
+                                        lock.set_rw_timeout(old_timeouts.0, old_timeouts.1);
                                         failure = true;
                                         break;
                                     } else {
@@ -166,11 +169,13 @@ firmware.header.get_date()
                                 if !failure {
                                     *state_c.write().unwrap() = FlashState::Verify;
                                     if let Err(e) = on_flash_end(&mut lock) {
+                                        lock.set_rw_timeout(old_timeouts.0, old_timeouts.1);
                                         *state_c.write().unwrap() = FlashState::Aborted(format!("ECU failed to verify flash: {}", e))
                                     } else {
                                         *state_c.write().unwrap() = FlashState::Completed;
                                     }
                                 }
+                                lock.set_rw_timeout(old_timeouts.0, old_timeouts.1);
                             }
                         }
                     });

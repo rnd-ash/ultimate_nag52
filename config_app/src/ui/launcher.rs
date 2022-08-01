@@ -1,8 +1,8 @@
-use std::{sync::{Arc, Mutex, mpsc}, ops::Deref};
+use std::{sync::{Arc, Mutex, mpsc}, ops::RangeInclusive};
 
-use ecu_diagnostics::{hardware::{HardwareResult, HardwareScanner, passthru::{PassthruScanner, PassthruDevice}, Hardware, HardwareInfo}, channel::{PayloadChannel, IsoTPChannel}};
-use egui::*;
-use epi::*;
+use ecu_diagnostics::{hardware::{HardwareResult, HardwareScanner, passthru::{PassthruScanner, PassthruDevice}, Hardware}, channel::IsoTPChannel};
+use eframe::egui::*;
+use eframe::egui;
 
 #[cfg(unix)]
 use ecu_diagnostics::hardware::socketcan::{SocketCanScanner, SocketCanDevice};
@@ -12,6 +12,8 @@ use crate::{
     usb_hw::{diag_usb::{Nag52USB, EspLogMessage}, scanner::Nag52UsbScanner},
     window::{InterfacePage, PageAction},
 };
+
+use super::widgets::range_display::range_display;
 
 type ScanResult = std::result::Result<Vec<String>, String>;
 
@@ -53,6 +55,7 @@ impl DynamicDevice {
     pub fn create_isotp_channel(&mut self) -> HardwareResult<Box<dyn IsoTPChannel>> {
         match self {
             DynamicDevice::Passthru(pt) => {
+                PassthruDevice::toggle_sw_channel_raw(pt, true);
                 Hardware::create_iso_tp_channel(pt.clone())
             },
             DynamicDevice::Usb(usb) => {
@@ -102,7 +105,7 @@ impl Launcher {
 }
 
 impl InterfacePage for Launcher {
-    fn make_ui(&mut self, ui: &mut Ui, frame: &epi::Frame) -> crate::window::PageAction {
+    fn make_ui(&mut self, ui: &mut Ui, frame: &eframe::Frame) -> crate::window::PageAction {
         ui.label("Ultimate-Nag52 configuration utility!");
         ui.label("Please plug in your TCM via USB and select the correct port, or select another API");
 
@@ -157,6 +160,9 @@ impl InterfacePage for Launcher {
         if let Some(e) = &self.launch_err {
             ui.label(RichText::new(format!("Error: {}", e)).color(Color32::from_rgb(255, 0, 0)));
         }
+
+        range_display(ui, 65.0, 50.0, 70.0, 0.0, 100.0);
+
         crate::window::PageAction::None
     }
 

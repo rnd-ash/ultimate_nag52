@@ -1,9 +1,9 @@
 use std::{sync::{Arc, Mutex}, borrow::BorrowMut};
 
-use ecu_diagnostics::{hardware::Hardware, kwp2000::{Kwp2000DiagnosticServer, Kwp2000ServerOptions, Kwp2000VoidHandler, SessionType, ResetMode}, DiagnosticServer};
-use egui::{Ui, Label};
-use epi::Frame;
-use crate::{usb_hw::diag_usb::Nag52USB, window::PageAction};
+use ecu_diagnostics::{kwp2000::{Kwp2000DiagnosticServer, SessionType, ResetMode}, DiagnosticServer};
+use eframe::egui::Ui;
+use eframe::egui::{self, *};
+use crate::window::PageAction;
 
 use self::cfg_structs::{TcmCoreConfig, DefaultProfile, EngineType};
 
@@ -31,7 +31,7 @@ impl ConfigPage {
 
 
 impl crate::window::InterfacePage for ConfigPage {
-    fn make_ui(&mut self, ui: &mut Ui, frame: &Frame) -> PageAction {
+    fn make_ui(&mut self, ui: &mut Ui, frame: &eframe::Frame) -> PageAction {
         ui.heading("TCM Configuration");
 
 
