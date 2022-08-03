@@ -1,0 +1,15 @@
+EspLogMessage { lvl: Info, timestamp: 121, tag: " esp_image", msg: "segment 0: paddr=00010020 vaddr=3f400020 size=10400h ( 66560) map" }
+EspLogMessage { lvl: Info, timestamp: 128, tag: " esp_image", msg: "segment 1: paddr=00020428 vaddr=3ffbdb60 size=04a74h ( 19060) load" }
+EspLogMessage { lvl: Info, timestamp: 137, tag: " esp_image", msg: "segment 2: paddr=00024ea4 vaddr=40080000 size=0b174h ( 45428) load" }
+EspLogMessage { lvl: Info, timestamp: 147, tag: " esp_image", msg: "segment 3: paddr=00030020 vaddr=400d0020 size=33764h (210788) map" }
+EspLogMessage { lvl: Info, timestamp: 151, tag: " esp_image", msg: "segment 4: paddr=0006378c vaddr=4008b174 size=07990h ( 31120) load" }
+EspLogMessage { lvl: Info, timestamp: 161, tag: " esp_image", msg: "segment 5: paddr=0006b124 vaddr=50000000 size=00010h (    16) load" }
+
+
+EspLogMessage { lvl: Info, timestamp: 88887, tag: " esp_image", msg: "segment 0: paddr=00110020 vaddr=3f400020 size=0fd88h ( 64904) map" }
+EspLogMessage { lvl: Info, timestamp: 88903, tag: " esp_image", msg: "segment 1: paddr=0011fdb0 vaddr=3ffbdb60 size=00268h (   616) " }
+EspLogMessage { lvl: Info, timestamp: 88909, tag: " esp_image", msg: "segment 2: paddr=00120020 vaddr=400d0020 size=32f58h (208728) map" }
+EspLogMessage { lvl: Info, timestamp: 88948, tag: " esp_image", msg: "segment 3: paddr=00152f80 vaddr=3ffbddc8 size=04184h ( 16772) " }
+EspLogMessage { lvl: Info, timestamp: 88956, tag: " esp_image", msg: "segment 4: paddr=0015710c vaddr=40080000 size=12aach ( 76460) " }
+EspLogMessage { lvl: Info, timestamp: 88974, tag: " esp_image", msg: "segment 5: paddr=00169bc0 vaddr=50000000 size=00010h (    16) " }
+EspLogMessage { lvl: Error, timestamp: 88980, tag: " FLASHER", msg: "Set boot partition failed! ESP_ERR_OTA_VALIDATE_FAILED" }

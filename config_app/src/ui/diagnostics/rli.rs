@@ -343,7 +343,8 @@ pub struct DataCanDump {
     pub right_rear_rpm: u16,
     pub shift_profile_pressed: u8,
     pub selector_position: ShifterPosition,
-    pub paddle_position: PaddlePosition
+    pub paddle_position: PaddlePosition,
+    pub engine_rpm: u16
 }
 
 impl DataCanDump {
@@ -351,6 +352,10 @@ impl DataCanDump {
         egui::Grid::new("DGS").striped(true).show(ui, |ui| {
             ui.label("Accelerator pedal position");
             ui.label(if self.pedal_position() == u8::MAX { make_text("Signal not available", true) } else { make_text(format!("{:.1} %", self.pedal_position() as f32 / 250.0 * 100.0), false) });
+            ui.end_row();
+
+            ui.label("Engine RPM");
+            ui.label(if self.engine_rpm() == u16::MAX { make_text("Signal not available", true) } else { make_text(format!("{} RPM", self.engine_rpm() as f32), false) });
             ui.end_row();
 
             ui.label("Engine minimum torque");
