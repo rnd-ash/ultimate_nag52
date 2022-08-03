@@ -1,7 +1,7 @@
 use std::{sync::{Arc, atomic::{AtomicBool, Ordering}, RwLock, Mutex}, thread, time::Duration};
 
 use ecu_diagnostics::{kwp2000::{Kwp2000DiagnosticServer, SessionType, KWP2000Error}, DiagnosticServer};
-use eframe::{egui::{plot::{Plot, Points, Value, Line, Values, LinkedAxisGroup, VLine, Text, LineStyle, PlotUi, Corner}, RichText}, epaint::{Stroke, Color32}};
+use eframe::{egui::{plot::{Plot, Points, Line, LinkedAxisGroup, VLine, Text, LineStyle, PlotUi, Corner, Value, Values}, RichText}, epaint::{Stroke, Color32}};
 use modular_bitfield::bitfield;
 use serde::{Serialize, Deserialize};
 

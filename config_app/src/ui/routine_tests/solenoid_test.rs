@@ -1,7 +1,7 @@
 use std::{sync::{Arc, Mutex, atomic::{AtomicBool, Ordering, AtomicU64, AtomicU8}, RwLock}, thread, time::{Duration, Instant}, char::MAX, collections::btree_map::Range, ops::RangeInclusive};
 
 use ecu_diagnostics::{kwp2000::{Kwp2000DiagnosticServer, SessionType}, DiagServerResult, DiagnosticServer, DiagError};
-use eframe::egui::{plot::{Plot, Legend, Line, Values, Value}, widgets, Color32, RichText, self};
+use eframe::egui::{plot::{Plot, Legend, Line}, widgets, Color32, RichText, self};
 
 use crate::{ui::status_bar::MainStatusBar, window::PageAction};
 
