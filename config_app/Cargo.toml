@@ -8,8 +8,8 @@ resolver = "2"
 [dependencies]
 serde_json = { version = "1.0.79" }
 serde = { version = "1.0.137", features = ["derive"] }
-#ecu_diagnostics="0.90.41"
-ecu_diagnostics = {path="../../ecu_diagnostics"}
+ecu_diagnostics="0.90.51"
+#ecu_diagnostics = {path="../../ecu_diagnostics"}
 image = "0.24.1"
 serial-rs = {git="https://github.com/rnd-ash/serial-rs"}
 nfd="0.0.4"
