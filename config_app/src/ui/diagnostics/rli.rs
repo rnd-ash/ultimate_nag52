@@ -370,11 +370,11 @@ impl DataCanDump {
             ui.label(if self.static_torque() == u16::MAX { make_text("Signal not available", true) } else { make_text(format!("{:.1} Nm", self.static_torque() as f32 / 4.0 - 500.0), false) });
             ui.end_row();
 
-            ui.label("Rear left wheel speed");
+            ui.label("Rear right wheel speed");
             ui.label(if self.right_rear_rpm() == u16::MAX { make_text("Signal not available", true) } else { make_text(format!("{:.1} RPM", self.right_rear_rpm() as f32 / 2.0), false) });
             ui.end_row();
 
-            ui.label("Left left wheel speed");
+            ui.label("Rear left wheel speed");
             ui.label(if self.left_rear_rpm() == u16::MAX { make_text("Signal not available", true) } else { make_text(format!("{:.1} RPM", self.left_rear_rpm() as f32 / 2.0), false) });
             ui.end_row();
 
