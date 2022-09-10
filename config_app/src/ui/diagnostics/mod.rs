@@ -4,7 +4,7 @@ use std::hash::{Hash, Hasher};
 use std::sync::{Arc, Mutex};
 use std::time::Instant;
 use ecu_diagnostics::kwp2000::Kwp2000DiagnosticServer;
-use eframe::egui::plot::{Plot, Line, Legend, Values, Value};
+use eframe::egui::plot::{Plot, Line, Legend};
 use eframe::egui::{Ui, RichText, Color32};
 use crate::ui::status_bar::MainStatusBar;
 use crate::window::{PageAction, StatusBar};
@@ -25,7 +25,6 @@ pub enum CommandStatus {
 pub struct DiagnosticsPage{
     bar: MainStatusBar,
     server: Arc<Mutex<Kwp2000DiagnosticServer>>,
-    last_req_time: Instant,
     text: CommandStatus,
     record_data: Option<LocalRecordData>,
     record_to_query: Option<RecordIdents>,
@@ -40,7 +39,6 @@ impl DiagnosticsPage {
         Self {
             server,
             bar,
-            last_req_time: Instant::now(),
             text: CommandStatus::Ok("".into()),
             record_data: None,
             record_to_query: None,
@@ -54,7 +52,7 @@ impl DiagnosticsPage {
 
 
 impl crate::window::InterfacePage for DiagnosticsPage {
-    fn make_ui(&mut self, ui: &mut Ui, frame: &eframe::Frame) -> PageAction {
+    fn make_ui(&mut self, ui: &mut Ui, _frame: &eframe::Frame) -> PageAction {
         let mut pending = false;
         ui.heading("This is experimental, use with MOST up-to-date firmware");
 
@@ -151,19 +149,19 @@ impl crate::window::InterfacePage for DiagnosticsPage {
         if let Some(data) = &self.record_data  {
             data.to_table(ui);
             if let LocalRecordData::Dma(dma) = data {
-                let mut points: Vec<Value> = Vec::new();
+                let mut points: Vec<[f64; 2]> = Vec::new();
                 for (idx, y) in dma.dma_buffer.clone().iter().enumerate() {
-                    points.push(Value::new(idx as f64, *y));
+                    points.push([idx as f64, *y as f64]);
                 }
-                let avg = dma.adc_detect;
+                let avg = dma.adc_detect as f64;
                 Plot::new("I2S DMA")
                     .allow_drag(false)
                     .include_x(0)
                     .include_x(1000)
                     .include_y(3300)
                     .show(ui, |plot_ui| {
-                        plot_ui.line(Line::new(Values::from_values(points)));
-                        plot_ui.line(Line::new(Values::from_values(vec![Value::new(0, avg), Value::new(1000, avg) ])).highlight(true))
+                        plot_ui.line(Line::new(points));
+                        plot_ui.line(Line::new(vec![[0.0, avg], [1000.0, avg]]).highlight(true))
                     });
 
             } else {
@@ -184,17 +182,17 @@ impl crate::window::InterfacePage for DiagnosticsPage {
                     // Can guarantee everything in `self.charting_data` will have the SAME length
                     // as `d`
                     let mut lines = Vec::new();
-                    let mut legend = Legend::default();
+                    let legend = Legend::default();
 
                     for (idx, (key, _, _)) in d.data.iter().enumerate() {
-                        let mut points: Vec<Value> = Vec::new();
+                        let mut points: Vec<[f64; 2]> = Vec::new();
                         for (timestamp, point) in &self.charting_data {
-                            points.push(Value::new(*timestamp as f64, point.data[idx].1))
+                            points.push([*timestamp as f64, point.data[idx].1 as f64])
                         }
                         let mut key_hasher = DefaultHasher::default();
                         key.hash(&mut key_hasher);
                         let r = key_hasher.finish();
-                        lines.push(Line::new(Values::from_values(points)).name(key.clone()).color(Color32::from_rgb((r & 0xFF) as u8, ((r >> 8) & 0xFF) as u8, ((r >> 16) & 0xFF) as u8)))
+                        lines.push(Line::new(points).name(key.clone()).color(Color32::from_rgb((r & 0xFF) as u8, ((r >> 8) & 0xFF) as u8, ((r >> 16) & 0xFF) as u8)))
                     }
 
                     let mut plot = Plot::new(d.group_name.clone())

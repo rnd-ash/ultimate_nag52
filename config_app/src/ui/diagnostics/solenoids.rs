@@ -1,7 +1,7 @@
-use std::{sync::{Arc, Mutex, atomic::{AtomicBool, Ordering, AtomicU64}, RwLock}, thread, time::{Duration, Instant}, char::MAX};
+use std::{sync::{Arc, Mutex, atomic::{AtomicBool, Ordering, AtomicU64}, RwLock}, thread, time::{Duration, Instant}};
 
 use ecu_diagnostics::kwp2000::{Kwp2000DiagnosticServer, SessionType};
-use eframe::egui::plot::{Plot, Legend, Line, Values, Value};
+use eframe::egui::plot::{Plot, Legend, Line, PlotPoints};
 
 use crate::{ui::status_bar::MainStatusBar, window::PageAction};
 
@@ -66,46 +66,46 @@ impl SolenoidPage {
     }
 }
 
-const GRAPH_TIME_MS: u16 = 100;
+const GRAPH_TIME_MS: f64 = 100.0;
 const MAX_DUTY: u16 = 0xFFF; // 12bit pwm (4096)
 
-const VOLTAGE_HIGH: u16  = 12;
-const VOLTAGE_LOW: u16 = 0;
+const VOLTAGE_HIGH: f64  = 12.0;
+const VOLTAGE_LOW: f64 = 0.0;
 
-fn make_line_duty_pwm(duty: f32, freq: u16, x_off: f64, y_off: f64) -> Values {
+fn make_line_duty_pwm(duty: f32, freq: u16, x_off: f64, y_off: f64) -> PlotPoints {
     let num_pulses = freq / GRAPH_TIME_MS as u16;
-    let pulse_width = GRAPH_TIME_MS as f32 / num_pulses as f32;
-    let pulse_on_width = (duty as f32/4096f32) * pulse_width;
+    let pulse_width = GRAPH_TIME_MS as f64 / num_pulses as f64;
+    let pulse_on_width = (duty as f64/4096.0) * pulse_width;
     let pulse_off_width = pulse_width - pulse_on_width;
 
-    let mut points: Vec<Value> = Vec::new();
-    let mut curr_x_pos = 0f32;
+    let mut points: Vec<[f64; 2]> = Vec::new();
+    let mut curr_x_pos = 0f64;
 
     // Shortcut
     if duty as u16 == MAX_DUTY {
-        points.push(Value::new(0, VOLTAGE_LOW));
-        points.push(Value::new(GRAPH_TIME_MS, VOLTAGE_LOW));
+        points.push([0.0, VOLTAGE_LOW]);
+        points.push([GRAPH_TIME_MS, VOLTAGE_LOW]);
     } else if duty as u16 == 0 {
-        points.push(Value::new(0, VOLTAGE_HIGH));
-        points.push(Value::new(GRAPH_TIME_MS, VOLTAGE_HIGH));
+        points.push([0.0, VOLTAGE_HIGH]);
+        points.push([GRAPH_TIME_MS, VOLTAGE_HIGH]);
     } else {
         for i in 0..num_pulses {
             // Start at 12V (High - Solenoid off)
-            points.push(Value::new(curr_x_pos, VOLTAGE_HIGH)); // High, left
+            points.push([curr_x_pos, VOLTAGE_HIGH]); // High, left
             curr_x_pos += pulse_off_width;
-            points.push(Value::new(curr_x_pos, VOLTAGE_HIGH)); // High, right
+            points.push([curr_x_pos, VOLTAGE_HIGH]); // High, right
             // Now vertical line
-            points.push(Value::new(curr_x_pos, VOLTAGE_LOW));
+            points.push([curr_x_pos, VOLTAGE_LOW]);
             curr_x_pos += pulse_on_width;
-            points.push(Value::new(curr_x_pos, VOLTAGE_LOW));
+            points.push([curr_x_pos, VOLTAGE_LOW]);
             // Now draw at 0V (Low - Solenoid on)
         }
     }
     for p in points.iter_mut() {
-        p.x += x_off;
-        p.y += y_off;
+        p[0] += x_off;
+        p[1] += y_off;
     }
-    Values::from_values(points)
+    points.into()
 }
 
 

@@ -65,7 +65,7 @@ impl StatusBar for MainStatusBar {
                         egui::containers::ScrollArea::new([false, true])
                             .max_height(300f32)
                             .auto_shrink([false, false])
-                            .stick_to_bottom()
+                            .stick_to_bottom(true)
                             .show(l_view, |scroll| {
                                 for msg in &self.msgs {
                                     scroll.label(
