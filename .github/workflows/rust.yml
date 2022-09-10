@@ -54,7 +54,7 @@ jobs:
       - uses: actions/upload-artifact@v3
         with:
           name: config-app-exe
-          path: config_app/target/release/*.exe
+          path: config_app/target/**/*.exe
       
           
        
