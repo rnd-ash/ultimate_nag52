@@ -5,6 +5,10 @@ edition = "2021"
 resolver = "2"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[[bin]]
+name = "config_app"
+path = "src/main.rs"
+
 [dependencies]
 serde_json = { version = "1.0.79" }
 serde = { version = "1.0.137", features = ["derive"] }
