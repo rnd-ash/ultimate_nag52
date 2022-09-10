@@ -5,10 +5,6 @@ use std::iter;
 use eframe::{NativeOptions, Renderer};
 use ui::launcher::Launcher;
 use window::MainWindow;
-use egui_wgpu::renderer::{RenderPass, ScreenDescriptor};
-use egui_winit_platform::{Platform, PlatformDescriptor};
-use winit::event::Event::*;
-use winit::event_loop::ControlFlow;
 
 mod ui;
 mod usb_hw;

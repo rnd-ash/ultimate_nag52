@@ -8,18 +8,18 @@ resolver = "2"
 [dependencies]
 serde_json = { version = "1.0.79" }
 serde = { version = "1.0.137", features = ["derive"] }
-#ecu_diagnostics="0.90.41"
-ecu_diagnostics = {path="../../ecu_diagnostics"}
+ecu_diagnostics="0.90.51"
+#ecu_diagnostics = {path="../../ecu_diagnostics"}
 image = "0.24.1"
 serial-rs = {git="https://github.com/rnd-ash/serial-rs"}
 nfd="0.0.4"
-egui_winit_platform = "0.14.0"
+#egui_winit_platform = "0.14.0"
 pollster = "0.2.5"
-eframe = {git = "https://github.com/emilk/egui", features=["wgpu"] }
-wgpu = "0.12"
-winit = "0.26.1"
-egui-wgpu = "0.18.0"
-egui-winit = "0.18.0"
+eframe = {git = "https://github.com/emilk/egui", features=["wgpu"], rev="cf591da1a0bdb57c9495a3dcf0448b3c0d8e64e0" }
+#wgpu = "0.12"
+#winit = "0.26.1"
+#egui-wgpu = "0.18.0"
+#egui-winit = "0.18.0"
 modular-bitfield = "0.11.2"
 static_assertions = "1.1.0"
 env_logger="0.9.0"

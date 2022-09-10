@@ -4,7 +4,7 @@ use std::hash::{Hash, Hasher};
 use std::sync::{Arc, Mutex};
 use std::time::Instant;
 use ecu_diagnostics::kwp2000::Kwp2000DiagnosticServer;
-use eframe::egui::plot::{Plot, Value, Line, Values, Legend};
+use eframe::egui::plot::{Plot, Line, Legend, Values, Value};
 use eframe::egui::{Ui, RichText, Color32};
 use crate::ui::status_bar::MainStatusBar;
 use crate::window::{PageAction, StatusBar};

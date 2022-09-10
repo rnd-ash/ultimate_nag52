@@ -77,10 +77,10 @@ impl Nag52USB {
                 let mut line = String::new();
                 loop {
                     line.clear();
-                    if reader.read_line(&mut line).is_ok() {
+                    if reader.read_line(&mut line).is_ok() {      
                         line.pop();
-                        println!("LINE: {}", line);
                         if line.is_empty() {continue;}
+                        //println!("LINE: {}", line);
                         if line.starts_with("#") || line.starts_with("07E9") {
                             // First char is #, diag message
                             // Diag message
@@ -102,6 +102,7 @@ impl Nag52USB {
                                 }
                             }
                         } else {
+                            println!("{}", line );
                             //read_tx_log.send(msg);
                         }
                         line.clear();
