@@ -505,6 +505,32 @@ impl super::InterfacePage for MapEditor {
                 self.car_config.as_ref().unwrap().red_line_petrolrpm()
             } as i16;
 
+
+            ui.horizontal(|row| {
+                if row.button("Write maps to ECU").clicked() {
+                    self.e_msg = None;
+                    if let Err(e) = self.write_maps() {
+                        self.e_msg = Some(format!("Error writing maps: {}", e));
+                    } else {
+                        self.e_msg = Some(format!("Map write OK!"));
+                    }
+                    self.read_maps();
+                }
+                if row.button("Reset to default (W/O write to ECU)").clicked() {
+                    if let Some(us) = self.upshift_map_data.borrow_mut() {
+                        us.0 = us.1;
+                    }
+                    if let Some(us) = self.downshift_map_data.borrow_mut() {
+                        us.0 = us.1;
+                    }
+                }
+            });
+            if let Some(msg) = &self.e_msg {
+                ui.label(msg);
+            } 
+
+
+
             let mut lines: Vec<Line> = Vec::new();
 
             let cfg = self.car_config.as_ref().unwrap();
@@ -543,21 +569,7 @@ impl super::InterfacePage for MapEditor {
                     for shift_line in lines {
                         plot_ui.line(shift_line);
                     }
-                });
-
-            if ui.button("Write maps to ECU").clicked() {
-                self.e_msg = None;
-                if let Err(e) = self.write_maps() {
-                    self.e_msg = Some(format!("Error writing maps: {}", e));
-                } else {
-                    println!("Write OK!");
-                }
-                self.read_maps();
-            }
-        }
-
-        if let Some(msg) = &self.e_msg {
-            ui.label(msg);
+                });           
         }
         crate::window::PageAction::None
     }
