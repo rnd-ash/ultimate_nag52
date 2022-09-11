@@ -297,27 +297,27 @@ impl MapEditor {
     pub fn write_maps(&mut self) -> DiagServerResult<()> {
         let is_diesel = self.car_config.as_ref().unwrap().engine_type() == EngineType::Diesel;
         let prof = self.current_grp;
-        let map_ids: [u8; 2] = match prof {
+        let map_ids: [u8; 3] = match prof {
             MapGroup::None => panic!("Cannot write with no maps!"),
             MapGroup::Standard => {
                 if (is_diesel) { 
-                    [MapId::S_DIESEL_UPSHIFT as u8, MapId::S_DIESEL_DOWNSHIFT as u8] 
+                    [MapId::S_DIESEL_UPSHIFT as u8, MapId::S_DIESEL_DOWNSHIFT as u8, 0] 
                 } else {
-                    [MapId::S_PETROL_UPSHIFT as u8, MapId::S_PETROL_DOWNSHIFT as u8]
+                    [MapId::S_PETROL_UPSHIFT as u8, MapId::S_PETROL_DOWNSHIFT as u8, 0]
                 }
             },
             MapGroup::Comfort => {
                 if (is_diesel) { 
-                    [MapId::C_DIESEL_UPSHIFT as u8, MapId::C_DIESEL_DOWNSHIFT as u8] 
+                    [MapId::C_DIESEL_UPSHIFT as u8, MapId::C_DIESEL_DOWNSHIFT as u8, 1] 
                 } else {
-                    [MapId::C_PETROL_UPSHIFT as u8, MapId::C_PETROL_DOWNSHIFT as u8]
+                    [MapId::C_PETROL_UPSHIFT as u8, MapId::C_PETROL_DOWNSHIFT as u8, 1]
                 }
             },
             MapGroup::Agility => {
                 if (is_diesel) { 
-                    [MapId::A_DIESEL_UPSHIFT as u8, MapId::A_DIESEL_DOWNSHIFT as u8] 
+                    [MapId::A_DIESEL_UPSHIFT as u8, MapId::A_DIESEL_DOWNSHIFT as u8, 2] 
                 } else {
-                    [MapId::A_PETROL_UPSHIFT as u8, MapId::A_PETROL_DOWNSHIFT as u8]
+                    [MapId::A_PETROL_UPSHIFT as u8, MapId::A_PETROL_DOWNSHIFT as u8, 2]
                 }
             },
         };
@@ -343,6 +343,15 @@ impl MapEditor {
             bytes.push((b >> 8) as u8);
         }
         lock.send_byte_array_with_response(&bytes)?;
+
+        // Reload MAPS
+        bytes.clear();
+        bytes.push(0x3B); // Write data by local ident
+        bytes.push(0x19); // Map editor
+        bytes.push(0xFF); // RELOAD
+        bytes.push(map_ids[2]); // Reload profileID
+        lock.send_byte_array_with_response(&bytes)?;
+
         Ok(())
     }
 
