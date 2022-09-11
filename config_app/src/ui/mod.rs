@@ -14,6 +14,7 @@ pub mod kwp_event;
 pub mod io_maipulator;
 pub mod routine_tests;
 pub mod widgets;
+pub mod map_editor;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum StatusText {

@@ -11,7 +11,7 @@ use crate::{
     window::{InterfacePage, PageAction},
 };
 
-use super::{firmware_update::FwUpdateUI, status_bar::MainStatusBar, configuration::ConfigPage, crashanalyzer::CrashAnalyzerUI, diagnostics::{solenoids::SolenoidPage, shift_reporter::ShiftReportPage}, io_maipulator::IoManipulatorPage, routine_tests::RoutinePage, };
+use super::{firmware_update::FwUpdateUI, status_bar::MainStatusBar, configuration::ConfigPage, crashanalyzer::CrashAnalyzerUI, diagnostics::{solenoids::SolenoidPage, shift_reporter::ShiftReportPage}, io_maipulator::IoManipulatorPage, routine_tests::RoutinePage, map_editor::MapEditor, };
 use crate::ui::diagnostics::DiagnosticsPage;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
@@ -116,7 +116,9 @@ impl InterfacePage for MainPage {
             if v.button("Diagnostic routine executor").clicked() {
                 create_page = Some(PageAction::Add(Box::new(RoutinePage::new(self.diag_server.clone(), self.bar.clone()))));
             }
-            if v.button("Map tuner").clicked() {}
+            if v.button("Map tuner").clicked() {
+                create_page = Some(PageAction::Add(Box::new(MapEditor::new(self.diag_server.clone(), self.bar.clone()))));
+            }
             if v.button("Configure drive profiles").clicked() {}
             if v.button("Configure vehicle / gearbox").clicked() {
                 create_page = Some(PageAction::Add(Box::new(ConfigPage::new(self.diag_server.clone(), self.bar.clone()))));
