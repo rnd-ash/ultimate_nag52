@@ -315,9 +315,9 @@ impl MapEditor {
             },
             MapGroup::Agility => {
                 if (is_diesel) { 
-                    [MapId::A_DIESEL_UPSHIFT as u8, MapId::A_DIESEL_DOWNSHIFT as u8, 2] 
+                    [MapId::A_DIESEL_UPSHIFT as u8, MapId::A_DIESEL_DOWNSHIFT as u8, 3] 
                 } else {
-                    [MapId::A_PETROL_UPSHIFT as u8, MapId::A_PETROL_DOWNSHIFT as u8, 2]
+                    [MapId::A_PETROL_UPSHIFT as u8, MapId::A_PETROL_DOWNSHIFT as u8, 3]
                 }
             },
         };
