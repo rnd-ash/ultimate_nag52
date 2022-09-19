@@ -3,6 +3,7 @@ use std::{sync::{Mutex, Arc}, fmt::Display, borrow::BorrowMut};
 use ecu_diagnostics::{kwp2000::{Kwp2000DiagnosticServer, VehicleInfo, SessionType}, DiagServerResult, DiagnosticServer, DiagError};
 use eframe::{egui::{self, Layout, TextEdit, plot::{Line, HLine, LineStyle, Legend}}, epaint::Stroke};
 use egui_extras::{Size, TableBuilder, Table};
+use egui_toast::ToastKind;
 
 use crate::window::PageAction;
 
@@ -130,8 +131,7 @@ pub struct MapEditor {
     down_edit_text: Option<String>,
     down_edit_idx: usize,
     show_default: bool,
-    display_mode : TableCalc,
-    e_msg: Option<String>
+    display_mode : TableCalc
 }
 
 
@@ -152,8 +152,7 @@ impl MapEditor {
             down_edit_text: None,
             down_edit_idx: 999,
             show_default: false,
-            display_mode: TableCalc::InputRpm,
-            e_msg: None
+            display_mode: TableCalc::InputRpm
         }
     }
 
@@ -414,6 +413,7 @@ impl MapEditor {
 
 impl super::InterfacePage for MapEditor {
     fn make_ui(&mut self, ui: &mut eframe::egui::Ui, frame: &eframe::Frame) -> crate::window::PageAction {
+        let mut show_notification: Option<(String, ToastKind)> = None;
         if let Err(e) = &self.car_config {
             ui.label(
                 format!("
@@ -432,159 +432,155 @@ impl super::InterfacePage for MapEditor {
                 self.car_config = self.server.lock().unwrap().read_custom_local_identifier(0xFE)
                 .map(|b| TcmCoreConfig::from_bytes(b.try_into().unwrap()));
             }
-            return PageAction::None;
-        }
-
-
-        let mut current_group = self.current_grp;
-        egui::menu::bar(ui, |bar| {
-            bar.label("Select profile: ");
-            if bar.selectable_label(current_group == MapGroup::Standard, "Standard (S)").clicked() {
-                current_group = MapGroup::Standard;
-            }
-            if bar.selectable_label(current_group == MapGroup::Comfort, "Comfort (C)").clicked() {
-                current_group = MapGroup::Comfort;
-            }
-            if bar.selectable_label(current_group == MapGroup::Agility, "Agility (A)").clicked() {
-                current_group = MapGroup::Agility;
-            }
-            if bar.button("Reset adaptation data").clicked() {
-                match self.reset_adaptation_data() {
-                    Ok(_) => {
-                        self.e_msg = Some(format!("Adaptation reset OK!"));
-                    },
-                    Err(e) => {
-                        self.e_msg = Some(format!("Error resetting adaptation data: {}", e));
+        } else {
+            let mut current_group = self.current_grp;
+            egui::menu::bar(ui, |bar| {
+                bar.label("Select profile: ");
+                if bar.selectable_label(current_group == MapGroup::Standard, "Standard (S)").clicked() {
+                    current_group = MapGroup::Standard;
+                }
+                if bar.selectable_label(current_group == MapGroup::Comfort, "Comfort (C)").clicked() {
+                    current_group = MapGroup::Comfort;
+                }
+                if bar.selectable_label(current_group == MapGroup::Agility, "Agility (A)").clicked() {
+                    current_group = MapGroup::Agility;
+                }
+                if bar.button("Reset adaptation data").clicked() {
+                    match self.reset_adaptation_data() {
+                        Ok(_) => {
+                            show_notification = Some(("Adaptation reset OK".into(), ToastKind::Info));
+                        },
+                        Err(e) => {
+                            show_notification = Some((format!("Adaptation reset error: {}", e), ToastKind::Error));
+                        }
                     }
                 }
-            }
-        });
+            });
 
-        if self.current_grp != current_group {
-            // Query ECU
-            self.current_grp = current_group;
-            self.read_maps();
-        }
-
-        if self.current_grp == MapGroup::None {
-            return PageAction::None;
-        }
-
-        if self.upshift_map_data.is_none() || self.downshift_map_data.is_none() {
-            ui.label(
-                "
-                An error occurred trying to read map data from the ECU. Please try again.
-                "
-            );
-            if ui.button("Try to query maps again").clicked() {
+            if self.current_grp != current_group {
+                // Query ECU
+                self.current_grp = current_group;
                 self.read_maps();
             }
-        } else {
-            // SHOW THE UI!
-            ui.checkbox(&mut self.show_default, "Show default maps");
 
-
-            let mut curr_display_mode = self.display_mode;
-
-            egui::ComboBox::new("DispMode", "Value representation")
-                .selected_text(format!("{}", self.display_mode))
-                .show_ui(ui, |menu| {
-                menu.selectable_value(&mut curr_display_mode, TableCalc::InputRpm, format!("{}", TableCalc::InputRpm));
-                menu.selectable_value(&mut curr_display_mode, TableCalc::OutputRpm, format!("{}", TableCalc::OutputRpm));
-                // TODO Handle 4Matic configs
-                if self.car_config.as_ref().unwrap().is_four_matic() == 0 {
-                    menu.selectable_value(&mut curr_display_mode, TableCalc::SpeedKmh, format!("{}", TableCalc::SpeedKmh));
-                    menu.selectable_value(&mut curr_display_mode, TableCalc::SpeedMph, format!("{}", TableCalc::SpeedMph));
-                }
-            });
-            if (self.display_mode != curr_display_mode) {
-                self.up_edit_idx = 999;
-                self.up_edit_text = None;
-                self.down_edit_idx = 999;
-                self.down_edit_text = None;
-                self.display_mode = curr_display_mode;
-            }
-
-
-            ui.heading("Upshift table");
-            self.upshift_map_data.as_mut().unwrap().0 = self.gen_shift_table(ui, true);
-
-            ui.heading("Downshift table");
-            self.downshift_map_data.as_mut().unwrap().0 = self.gen_shift_table(ui, false);
-
-            let redline = if self.car_config.as_ref().unwrap().engine_type() == EngineType::Diesel {
-                self.car_config.as_ref().unwrap().red_line_dieselrpm()
-            } else {
-                self.car_config.as_ref().unwrap().red_line_petrolrpm()
-            } as i16;
-
-
-            ui.horizontal(|row| {
-                if row.button("Write maps to ECU").clicked() {
-                    self.e_msg = None;
-                    if let Err(e) = self.write_maps() {
-                        self.e_msg = Some(format!("Error writing maps: {}", e));
-                    } else {
-                        self.e_msg = Some(format!("Map write OK!"));
-                    }
+            if self.current_grp == MapGroup::None {
+                ui.label("Nothing queried yet");
+            } else if self.upshift_map_data.is_none() || self.downshift_map_data.is_none() {
+                ui.label(
+                    "
+                    An error occurred trying to read map data from the ECU. Please try again.
+                    "
+                );
+                if ui.button("Try to query maps again").clicked() {
                     self.read_maps();
                 }
-                if row.button("Reset to default (W/O write to ECU)").clicked() {
-                    if let Some(us) = self.upshift_map_data.borrow_mut() {
-                        us.0 = us.1;
+            } else {
+                // SHOW THE UI!
+                ui.checkbox(&mut self.show_default, "Show default maps");
+
+
+                let mut curr_display_mode = self.display_mode;
+
+                egui::ComboBox::new("DispMode", "Value representation")
+                    .selected_text(format!("{}", self.display_mode))
+                    .show_ui(ui, |menu| {
+                    menu.selectable_value(&mut curr_display_mode, TableCalc::InputRpm, format!("{}", TableCalc::InputRpm));
+                    menu.selectable_value(&mut curr_display_mode, TableCalc::OutputRpm, format!("{}", TableCalc::OutputRpm));
+                    // TODO Handle 4Matic configs
+                    if self.car_config.as_ref().unwrap().is_four_matic() == 0 {
+                        menu.selectable_value(&mut curr_display_mode, TableCalc::SpeedKmh, format!("{}", TableCalc::SpeedKmh));
+                        menu.selectable_value(&mut curr_display_mode, TableCalc::SpeedMph, format!("{}", TableCalc::SpeedMph));
                     }
-                    if let Some(us) = self.downshift_map_data.borrow_mut() {
-                        us.0 = us.1;
+                });
+                if (self.display_mode != curr_display_mode) {
+                    self.up_edit_idx = 999;
+                    self.up_edit_text = None;
+                    self.down_edit_idx = 999;
+                    self.down_edit_text = None;
+                    self.display_mode = curr_display_mode;
+                }
+
+
+                ui.heading("Upshift table");
+                self.upshift_map_data.as_mut().unwrap().0 = self.gen_shift_table(ui, true);
+
+                ui.heading("Downshift table");
+                self.downshift_map_data.as_mut().unwrap().0 = self.gen_shift_table(ui, false);
+
+                let redline = if self.car_config.as_ref().unwrap().engine_type() == EngineType::Diesel {
+                    self.car_config.as_ref().unwrap().red_line_dieselrpm()
+                } else {
+                    self.car_config.as_ref().unwrap().red_line_petrolrpm()
+                } as i16;
+
+
+                ui.horizontal(|row| {
+                    if row.button("Write maps to ECU").clicked() {
+                        if let Err(e) = self.write_maps() {
+                            show_notification = Some((format!("Error writing maps: {}", e), ToastKind::Error));
+                        } else {
+                            show_notification = Some((format!("Map write OK!"), ToastKind::Info));
+                        }
+                        self.read_maps();
                     }
+                    if row.button("Reset to default (W/O write to ECU)").clicked() {
+                        if let Some(us) = self.upshift_map_data.borrow_mut() {
+                            us.0 = us.1;
+                        }
+                        if let Some(us) = self.downshift_map_data.borrow_mut() {
+                            us.0 = us.1;
+                        }
+                    }
+                });
+
+
+
+                let mut lines: Vec<Line> = Vec::new();
+
+                let cfg = self.car_config.as_ref().unwrap();
+                let upshift_data = self.upshift_map_data.map(|(x, d) | {
+                    if self.show_default { d } else {x}
+                }).unwrap();
+                
+                let downshift_data = self.downshift_map_data.map(|(x, d) | {
+                    if self.show_default { d } else {x}
+                }).unwrap();
+
+                for x in (0..4) {
+                    let mut points: Vec<[f64; 2]> = Vec::new();
+                    for ped in (0..=10).step_by(1) {
+                        points.push([10.0*ped as f64, self.display_mode.convert_input_rpm_to_parsed(upshift_data[x*11 + ped], (x+1) as u8, cfg) as f64]);
+                    }
+                    lines.push(Line::new(points).name(format!("Upshift {}-{}", x+1, x+2)))
                 }
-            });
 
-
-
-            let mut lines: Vec<Line> = Vec::new();
-
-            let cfg = self.car_config.as_ref().unwrap();
-            let upshift_data = self.upshift_map_data.map(|(x, d) | {
-                if self.show_default { d } else {x}
-            }).unwrap();
-            
-            let downshift_data = self.downshift_map_data.map(|(x, d) | {
-                if self.show_default { d } else {x}
-            }).unwrap();
-
-            for x in (0..4) {
-                let mut points: Vec<[f64; 2]> = Vec::new();
-                for ped in (0..=10).step_by(1) {
-                    points.push([10.0*ped as f64, self.display_mode.convert_input_rpm_to_parsed(upshift_data[x*11 + ped], (x+1) as u8, cfg) as f64]);
+                for x in (0..4) {
+                    let mut points: Vec<[f64; 2]> = Vec::new();
+                    for ped in (0..=10).step_by(1) {
+                        points.push([10.0*ped as f64, self.display_mode.convert_input_rpm_to_parsed(downshift_data[x*11 + ped], (x+1) as u8, cfg) as f64]);
+                    }
+                    lines.push(Line::new(points).style(LineStyle::Dashed { length: 5.0 }).name(format!("Downshift {}-{}", x+2, x+1)))
                 }
-                lines.push(Line::new(points).name(format!("Upshift {}-{}", x+1, x+2)))
+
+
+                egui::plot::Plot::new("Shift zones")
+                    .include_x(0)
+                    .include_y(0)
+                    .include_x(100)
+                    .legend(Legend::default())
+                    .show(ui, |plot_ui| {
+                        plot_ui.hline(HLine::new(self.display_mode.convert_input_rpm_to_parsed(redline, 5, &self.car_config.as_ref().unwrap())));
+                        for shift_line in lines {
+                            plot_ui.line(shift_line);
+                        }
+                    });           
             }
-
-            for x in (0..4) {
-                let mut points: Vec<[f64; 2]> = Vec::new();
-                for ped in (0..=10).step_by(1) {
-                    points.push([10.0*ped as f64, self.display_mode.convert_input_rpm_to_parsed(downshift_data[x*11 + ped], (x+1) as u8, cfg) as f64]);
-                }
-                lines.push(Line::new(points).style(LineStyle::Dashed { length: 5.0 }).name(format!("Downshift {}-{}", x+2, x+1)))
-            }
-
-
-            egui::plot::Plot::new("Shift zones")
-                .include_x(0)
-                .include_y(0)
-                .include_x(100)
-                .legend(Legend::default())
-                .show(ui, |plot_ui| {
-                    plot_ui.hline(HLine::new(self.display_mode.convert_input_rpm_to_parsed(redline, 5, &self.car_config.as_ref().unwrap())));
-                    for shift_line in lines {
-                        plot_ui.line(shift_line);
-                    }
-                });           
         }
-        if let Some(msg) = &self.e_msg {
-            ui.label(msg);
-        } 
-        crate::window::PageAction::None
+        if let Some(notification) = show_notification {
+            crate::window::PageAction::SendNotification { text: notification.0, kind: notification.1 }
+        } else {
+            crate::window::PageAction::None
+        }
     }
 
     fn get_title(&self) -> &'static str {
