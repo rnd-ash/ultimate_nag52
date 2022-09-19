@@ -294,6 +294,13 @@ impl MapEditor {
         res
     }
 
+    pub fn reset_adaptation_data(&mut self) -> DiagServerResult<()> {
+        println!("Resetting adapt data");
+        let mut lock = self.server.lock().unwrap();
+        lock.set_diagnostic_session_mode(SessionType::ExtendedDiagnostics)?;
+        lock.send_byte_array_with_response(&[0x31, 0xDD]).map(|_| ())
+    }
+
     pub fn write_maps(&mut self) -> DiagServerResult<()> {
         let is_diesel = self.car_config.as_ref().unwrap().engine_type() == EngineType::Diesel;
         let prof = self.current_grp;
@@ -391,10 +398,6 @@ impl MapEditor {
 
         let downshift = lock.send_byte_array_with_response(&[0x21, 0x19, map_ids[1]]).and_then(|x| Self::process_map_response(x));
         let downshift_default = lock.send_byte_array_with_response(&[0x21, 0x19, map_ids[1] | 0x80]).and_then(|x| Self::process_map_response(x));
-        println!("Upshift: {:?}", upshift);
-        println!("Upshift_DEF: {:?}", upshift_default);
-        println!("Downshift: {:?}", downshift);
-        println!("Downshift_DEF: {:?}", downshift_default);
 
         if upshift.is_ok() && upshift_default.is_ok() && downshift.is_ok() && downshift_default.is_ok() {
             self.upshift_map_data = Some((upshift.unwrap(), upshift_default.unwrap()));
@@ -445,9 +448,19 @@ impl super::InterfacePage for MapEditor {
             if bar.selectable_label(current_group == MapGroup::Agility, "Agility (A)").clicked() {
                 current_group = MapGroup::Agility;
             }
+            if bar.button("Reset adaptation data").clicked() {
+                match self.reset_adaptation_data() {
+                    Ok(_) => {
+                        self.e_msg = Some(format!("Adaptation reset OK!"));
+                    },
+                    Err(e) => {
+                        self.e_msg = Some(format!("Error resetting adaptation data: {}", e));
+                    }
+                }
+            }
         });
 
-        if (self.current_grp != current_group) {
+        if self.current_grp != current_group {
             // Query ECU
             self.current_grp = current_group;
             self.read_maps();
@@ -525,9 +538,6 @@ impl super::InterfacePage for MapEditor {
                     }
                 }
             });
-            if let Some(msg) = &self.e_msg {
-                ui.label(msg);
-            } 
 
 
 
@@ -571,6 +581,9 @@ impl super::InterfacePage for MapEditor {
                     }
                 });           
         }
+        if let Some(msg) = &self.e_msg {
+            ui.label(msg);
+        } 
         crate::window::PageAction::None
     }
 
