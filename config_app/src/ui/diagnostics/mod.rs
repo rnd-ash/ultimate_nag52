@@ -107,12 +107,11 @@ impl crate::window::InterfacePage for DiagnosticsPage {
             self.charting_data.clear();
             self.record_data = None;
         }
-        if ui.button("Query i2S DMA data").clicked() {
-            self.record_to_query = Some(RecordIdents::DmaDump);
+        if ui.button("Query Shift data").clicked() {
+            self.record_to_query = Some(RecordIdents::SSData);
             self.chart_idx = 0;
             self.charting_data.clear();
             self.record_data = None;
-            pending = true;
         }
 
         if ui.button("Query Performance metrics").clicked() {

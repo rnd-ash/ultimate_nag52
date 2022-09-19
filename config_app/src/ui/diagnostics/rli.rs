@@ -17,6 +17,7 @@ pub enum RecordIdents {
     SysUsage = 0x23,
     PressureStatus = 0x25,
     DmaDump = 0x26,
+    SSData = 0x27,
 }
 
 impl RecordIdents {
@@ -28,6 +29,7 @@ impl RecordIdents {
             Self::CanDataDump => Ok(LocalRecordData::Canbus(DataCanDump::from_bytes(resp.try_into().map_err(|_| DiagError::InvalidResponseLength )?))),
             Self::SysUsage => Ok(LocalRecordData::SysUsage(DataSysUsage::from_bytes(resp.try_into().map_err(|_| DiagError::InvalidResponseLength )?))),
             Self::PressureStatus => Ok(LocalRecordData::Pressures(DataPressures::from_bytes(resp.try_into().map_err(|_| DiagError::InvalidResponseLength )?))),
+            Self::SSData => Ok(LocalRecordData::ShiftMonitorLive(DataShiftManager::from_bytes(resp.try_into().map_err(|_| DiagError::InvalidResponseLength )?))),
             Self::DmaDump => {
                 let res = DataDmaDump {
                     adc_detect: u16::from_le_bytes([resp[0], resp[1]]),
@@ -46,7 +48,8 @@ pub enum LocalRecordData {
     Canbus(DataCanDump),
     SysUsage(DataSysUsage),
     Pressures(DataPressures),
-    Dma(DataDmaDump)
+    Dma(DataDmaDump),
+    ShiftMonitorLive(DataShiftManager)
 }
 
 impl LocalRecordData {
@@ -57,6 +60,7 @@ impl LocalRecordData {
             LocalRecordData::Canbus(s) => s.to_table(ui),
             LocalRecordData::SysUsage(s) => s.to_table(ui),
             LocalRecordData::Pressures(s) => s.to_table(ui),
+            LocalRecordData::ShiftMonitorLive(s) => s.to_table(ui),
             _ => {
                 egui::Grid::new("DGS").striped(true).show(ui, |ui| {
                 })
@@ -71,6 +75,7 @@ impl LocalRecordData {
             LocalRecordData::Canbus(s) => s.to_chart_data(),
             LocalRecordData::SysUsage(s) => s.to_chart_data(),
             LocalRecordData::Pressures(s) => s.to_chart_data(),
+            LocalRecordData::ShiftMonitorLive(s) => s.to_chart_data(),
             _ => vec![]
         }
     }
@@ -344,7 +349,8 @@ pub struct DataCanDump {
     pub shift_profile_pressed: u8,
     pub selector_position: ShifterPosition,
     pub paddle_position: PaddlePosition,
-    pub engine_rpm: u16
+    pub engine_rpm: u16,
+    pub fuel_flow: u16
 }
 
 impl DataCanDump {
@@ -384,6 +390,10 @@ impl DataCanDump {
 
             ui.label("Shift paddle position");
             ui.label(if self.paddle_position() == PaddlePosition::SNV { make_text("Signal not available", true) } else { make_text(format!("{:?}", self.paddle_position()), false) });
+            ui.end_row();
+
+            ui.label("Fuel flow");
+            ui.label(format!("{} ul/s", self.fuel_flow()));
             ui.end_row();
         })
     }
@@ -473,6 +483,100 @@ impl DataSysUsage {
                     ("Core 2", self.core2_usage() as f32 / 10.0, None),
                 ],
                 Some((0.0, 100.0))
+            ),
+        ]
+    }
+}
+
+#[repr(u8)]
+pub enum ShiftIdx {
+    NoShift = 0,
+    OneTwo = 1,
+    TwoThree = 2,
+    ThreeFour = 3,
+    FourFive = 4,
+    FiveFour = 5,
+    FourThree = 6,
+    ThreeTwo = 7,
+    TwoOne = 8,
+    Unknown = 0xFF
+}
+
+#[bitfield]
+#[derive(Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq)]
+pub struct DataShiftManager {
+    pub spc_pressure_mbar: u16,
+    pub mpc_pressure_mbar: u16,
+    pub tcc_pressure_mbar: u16,
+    pub shift_solenoid_pos: u8,
+    pub input_rpm: u16,
+    pub engine_rpm: u16,
+    pub output_rpm: u16,
+    pub engine_torque: u16,
+    pub req_engine_torque: u16,
+    pub atf_temp: u8,
+    pub shift_idx: u8,
+}
+
+impl DataShiftManager {
+    pub fn to_table(&self, ui: &mut Ui) -> InnerResponse<()> {
+
+        egui::Grid::new("SM").striped(true).show(ui, |ui| {
+            ui.label("SPC Pressure");
+            ui.label(format!("{} mBar", self.spc_pressure_mbar()));
+            ui.end_row();
+
+            ui.label("MPC pressure");
+            ui.label(format!("{} mBar", self.mpc_pressure_mbar()));
+            ui.end_row();
+
+            ui.label("TCC pressure");
+            ui.label(format!("{} mBar", self.tcc_pressure_mbar()));
+            ui.end_row();
+
+            ui.label("Shift solenoid pos");
+            ui.label(format!("{}/255", self.shift_solenoid_pos()));
+            ui.end_row();
+
+            ui.label("Input shaft speed");
+            ui.label(format!("{} RPM", self.input_rpm()));
+            ui.end_row();
+
+            ui.label("Engine speed");
+            ui.label(format!("{} RPM", self.engine_rpm()));
+            ui.end_row();
+
+            ui.label("Output shaft speed");
+            ui.label(format!("{} RPM", self.output_rpm()));
+            ui.end_row();
+
+            ui.label("Shift state");
+            ui.label(match self.shift_idx() {
+                0 => "None",
+                1 => "1 -> 2",
+                2 => "2 -> 3",
+                3 => "3 -> 4",
+                4 => "4 -> 5",
+                5 => "5 -> 4",
+                6 => "4 -> 3",
+                7 => "3 -> 2",
+                8 => "2 -> 1",
+                _ => "UNKNOWN"
+            });
+            ui.end_row();
+            
+        })
+    }
+
+    pub fn to_chart_data(&self) -> Vec<ChartData> {
+        vec![
+            ChartData::new(
+                "RPMs".into(),
+                vec![
+                    ("Input", self.input_rpm() as f32, None),
+                    ("Engine", self.engine_rpm() as f32, None),
+                ],
+                None
             ),
         ]
     }
