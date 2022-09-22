@@ -1,7 +1,7 @@
 #[macro_use]
 extern crate static_assertions;
 
-use std::iter;
+use std::{iter, env};
 use eframe::{NativeOptions, Renderer};
 use ui::launcher::Launcher;
 use window::MainWindow;
@@ -29,6 +29,9 @@ fn main() {
         .build(&event_loop)
         .unwrap();
     */
+    #[cfg(unix)]
+    std::env::set_var("WINIT_UNIX_BACKEND", "x11");
+
     let mut app = window::MainWindow::new();
     app.add_new_page(Box::new(Launcher::new()));
     let mut native_options = NativeOptions::default();
