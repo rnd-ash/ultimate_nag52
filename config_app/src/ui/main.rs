@@ -7,7 +7,7 @@ use eframe::egui;
 use eframe::Frame;
 
 use crate::{
-    usb_hw::diag_usb::{EspLogMessage},
+    usb_hw::{diag_usb::{EspLogMessage}, KwpEventLevel, KwpEventHandler},
     window::{InterfacePage, PageAction},
 };
 
@@ -48,15 +48,18 @@ impl MainPage {
             tester_present_require_response: true,
             global_session_control: false
         };
-        let mut kwp = Kwp2000DiagnosticServer::new_over_iso_tp(
+        let (evt_sender, evt_receiver) = mpsc::channel::<(KwpEventLevel, String)>();
+        let kwp = Kwp2000DiagnosticServer::new_over_iso_tp(
             server_settings,
             channel,
             channel_cfg,
-            Kwp2000VoidHandler {},
+            KwpEventHandler::new(evt_sender),
         ).unwrap();
 
+        
+
         Self {
-            bar: MainStatusBar::new(logger, hw_name),
+            bar: MainStatusBar::new(evt_receiver, hw_name),
             show_about_ui: false,
             diag_server: Arc::new(Mutex::new(kwp)),
             dev_info: DevInfo { compat_mode: "UNKNOWN".into(), fw_version: "UNKNOWN".into(), fw_date: "UNKNOWN".into() }
