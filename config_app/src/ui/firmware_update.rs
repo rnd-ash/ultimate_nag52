@@ -118,11 +118,14 @@ impl InterfacePage for FwUpdateUI {
             ui.label(RichText::new(format!(
 "Firmware size: {} bytes
 
+Firmware type: {}
 Version: {}
 IDF Version: {}
 Compile time: {} on {}
 ",
+
 firmware.raw.len(),
+firmware.header.get_fw_name(),
 firmware.header.get_version(),
 firmware.header.get_idf_version(),
 firmware.header.get_time(),

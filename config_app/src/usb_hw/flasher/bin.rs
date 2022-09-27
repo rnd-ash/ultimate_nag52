@@ -31,6 +31,9 @@ impl FirmwareHeader {
     pub fn get_time(&self) -> String {
         String::from_utf8_lossy(&self.time).to_string()
     }
+    pub fn get_fw_name(&self) -> String {
+        String::from_utf8_lossy(&self.project_name).to_string()
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -59,7 +62,7 @@ impl std::fmt::Display for FirmwareLoadError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             FirmwareLoadError::InvalidHeader => write!(f, "Invalid firmware header"),
-            FirmwareLoadError::NotValid(r) => write!(f, "Invalid firwmare: {}", r),
+            FirmwareLoadError::NotValid(r) => write!(f, "Invalid firmware: {}", r),
             FirmwareLoadError::IoError(io) => write!(f, "IO Error {}", io),
         }
     }
@@ -91,7 +94,6 @@ pub fn load_binary(path: String) -> FirwmareLoadResult<Firmware> {
     }
     // Ok, read the header
     let header: FirmwareHeader = unsafe { std::ptr::read(buf[header_start_idx..].as_ptr() as *const _ ) };
-    println!("BUF {:02X?}", &buf[0..24]);
     Ok(
         Firmware {
             raw: buf,
