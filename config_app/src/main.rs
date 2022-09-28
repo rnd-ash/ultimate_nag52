@@ -2,7 +2,7 @@
 extern crate static_assertions;
 
 use std::{iter, env};
-use eframe::{NativeOptions, Renderer};
+use eframe::{NativeOptions, Renderer, IconData, epaint::Vec2};
 use ui::launcher::Launcher;
 use window::MainWindow;
 
@@ -16,25 +16,22 @@ compile_error!("Windows can ONLY be built using the i686-pc-windows-msvc target!
 
 fn main() {
     env_logger::init();
-    /*
-    let event_loop = winit::event_loop::EventLoop::with_user_event();
-    let window = winit::window::WindowBuilder::new()
-        .with_decorations(true)
-        .with_resizable(true)
-        .with_title("Ultimate-NAG52 configuration utility")
-        .with_inner_size(winit::dpi::PhysicalSize {
-            width: 1280u32,
-            height: 720u32
-        })
-        .build(&event_loop)
-        .unwrap();
-    */
+
+    let icon = image::load_from_memory(include_bytes!("../logo.png")).unwrap().to_rgba8();
+    let (icon_w, icon_h) = icon.dimensions();
+
     #[cfg(unix)]
     std::env::set_var("WINIT_UNIX_BACKEND", "x11");
 
     let mut app = window::MainWindow::new();
     app.add_new_page(Box::new(Launcher::new()));
     let mut native_options = NativeOptions::default();
+    native_options.icon_data = Some(IconData{
+        rgba: icon.into_raw(),
+        width: icon_w,
+        height: icon_h,
+    });
+    native_options.initial_window_size = Some(Vec2::new(1280.0, 720.0));
     #[cfg(windows)]
     {
         native_options.renderer = Renderer::Wgpu;
