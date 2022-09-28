@@ -10,7 +10,7 @@ use eframe::egui;
 use nfd::Response;
 
 use crate::{
-    usb_hw::flasher::{bin::{Firmware, load_binary}},
+    usb_hw::flasher::{bin::{Firmware, load_binary, FirmwareHeader}},
     window::{InterfacePage, PageAction},
 };
 
@@ -46,6 +46,7 @@ pub struct FwUpdateUI {
     flash_measure: Instant,
     flash_speed: u32,
     flash_eta: u32,
+    curr_fw: Option<FirmwareHeader>
 }
 
 pub struct FlasherMutate {}
@@ -60,7 +61,8 @@ impl FwUpdateUI {
             flash_start: Instant::now(),
             flash_measure: Instant::now(),
             flash_speed: 0,
-            flash_eta: 0
+            flash_eta: 0,
+            curr_fw: None
         }
     }
 }
@@ -115,6 +117,7 @@ impl InterfacePage for FwUpdateUI {
             }
         }
         if let Some(firmware) = &self.firmware {
+            ui.heading("New firmware");
             ui.label(RichText::new(format!(
 "Firmware size: {} bytes
 
@@ -131,8 +134,46 @@ firmware.header.get_idf_version(),
 firmware.header.get_time(),
 firmware.header.get_date()
             )));
+
+            if let Some(c_fw) = self.curr_fw {
+                ui.heading("Current firmware");
+                ui.label(RichText::new(format!(
+"
+Firmware type: {}
+Version: {}
+IDF Version: {}
+Compile time: {} on {}
+",
+
+c_fw.get_fw_name(),
+c_fw.get_version(),
+c_fw.get_idf_version(),
+c_fw.get_time(),
+c_fw.get_date()
+                )));
+            }
+
             let state = self.flash_state.read().unwrap().clone();
             if state.is_done() {
+                if ui.button("Query current firmware").clicked() {
+                    let mut lock = self.server.lock().unwrap();
+                    match lock.read_custom_local_identifier(0x28)
+                        .and_then(|resp| {
+                            if resp.len() != std::mem::size_of::<FirmwareHeader>() {
+                                Err(DiagError::InvalidResponseLength)
+                            } else {
+                                Ok(unsafe { std::ptr::read::<FirmwareHeader>(resp.as_ptr() as *const _ ) })
+                            }
+                        } ) {
+                            Ok(header) => {
+                                self.curr_fw = Some(header)
+                            },
+                            Err(e) => {
+                                // TODO
+                            }
+                    }
+
+                }
                 if ui.button("Flash firmware").clicked() {
                     let c = self.server.clone();
                     let state_c = self.flash_state.clone();
