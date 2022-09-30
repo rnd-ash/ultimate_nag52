@@ -36,9 +36,8 @@ struct ShiftReport {
     engine_torque: [i16; MAX_POINTS_PER_SR_ARRAY],
     total_ms: u16,
     initial_mpc_pressure: u16,
-    hold1_data: ShiftPhase,
-    hold2_data: ShiftPhase,
-    hold3_data: ShiftPhase,
+    bleed_data: ShiftPhase,
+    fill_data: ShiftPhase,
     torque_data: ShiftPhase,
     overlap_data: ShiftPhase,
     max_pressure_data: ShiftPhase,
@@ -62,9 +61,8 @@ struct SerializedShiftReport {
     engine_torque: Vec<i16>,
     total_ms: u16,
     initial_mpc_pressure: u16,
-    hold1_data: ShiftPhase,
-    hold2_data: ShiftPhase,
-    hold3_data: ShiftPhase,
+    bleed_data: ShiftPhase,
+    fill_data: ShiftPhase,
     torque_data: ShiftPhase,
     overlap_data: ShiftPhase,
     max_pressure_data: ShiftPhase,
@@ -89,9 +87,8 @@ impl SerializedShiftReport {
             engine_torque: (&{rpt.engine_torque}).to_vec(),
             total_ms: rpt.total_ms,
             initial_mpc_pressure: rpt.initial_mpc_pressure,
-            hold1_data: rpt.hold1_data,
-            hold2_data: rpt.hold2_data,
-            hold3_data: rpt.hold3_data,
+            bleed_data: rpt.bleed_data,
+            fill_data: rpt.fill_data,
             torque_data: rpt.torque_data,
             overlap_data: rpt.overlap_data,
             max_pressure_data: rpt.max_pressure_data,
@@ -121,9 +118,8 @@ impl SerializedShiftReport {
             engine_torque: [0x00; MAX_POINTS_PER_SR_ARRAY],
             total_ms: self.total_ms,
             initial_mpc_pressure: self.initial_mpc_pressure,
-            hold1_data: self.hold1_data,
-            hold2_data: self.hold2_data,
-            hold3_data: self.hold3_data,
+            bleed_data: self.bleed_data,
+            fill_data: self.fill_data,
             torque_data: self.torque_data,
             overlap_data: self.overlap_data,
             max_pressure_data: self.max_pressure_data,
@@ -277,7 +273,7 @@ impl crate::window::InterfacePage for ShiftReportPage {
                 }
             );
             if report.timeout == 0 {
-                ui.label(format!("Gear transition period: {} ms", report.transition_end - report.transition_start));
+                ui.label(format!("Gear transition period: {} ms", report.transition_end as i64 - report.transition_start as i64));
             }
 
 
@@ -293,26 +289,19 @@ impl crate::window::InterfacePage for ShiftReportPage {
             pressure_spc_points.push([0.0, 0.0]); // Always
             pressure_mpc_points.push([0.0, report.initial_mpc_pressure as f64]);
 
-            time += report.hold1_data.ramp_time as f64;
-            pressure_spc_points.push([time, report.hold1_data.spc_pressure as f64]);
-            pressure_mpc_points.push([time, report.hold1_data.mpc_pressure as f64]);
-            time += report.hold1_data.hold_time as f64;
-            pressure_spc_points.push([time, report.hold1_data.spc_pressure as f64]);
-            pressure_mpc_points.push([time, report.hold1_data.mpc_pressure as f64]);
+            time += report.bleed_data.ramp_time as f64;
+            pressure_spc_points.push([time, report.bleed_data.spc_pressure as f64]);
+            pressure_mpc_points.push([time, report.bleed_data.mpc_pressure as f64]);
+            time += report.bleed_data.hold_time as f64;
+            pressure_spc_points.push([time, report.bleed_data.spc_pressure as f64]);
+            pressure_mpc_points.push([time, report.bleed_data.mpc_pressure as f64]);
 
-            time += report.hold2_data.ramp_time as f64;
-            pressure_spc_points.push([time, report.hold2_data.spc_pressure as f64]);
-            pressure_mpc_points.push([time, report.hold2_data.mpc_pressure as f64]);
-            time += report.hold2_data.hold_time as f64;
-            pressure_spc_points.push([time, report.hold2_data.spc_pressure as f64]);
-            pressure_mpc_points.push([time, report.hold2_data.mpc_pressure as f64]);
-
-            time += report.hold3_data.ramp_time as f64;
-            pressure_spc_points.push([time, report.hold3_data.spc_pressure as f64]);
-            pressure_mpc_points.push([time, report.hold3_data.mpc_pressure as f64]);
-            time += report.hold3_data.hold_time as f64;
-            pressure_spc_points.push([time, report.hold3_data.spc_pressure as f64]);
-            pressure_mpc_points.push([time, report.hold3_data.mpc_pressure as f64]);
+            time += report.fill_data.ramp_time as f64;
+            pressure_spc_points.push([time, report.fill_data.spc_pressure as f64]);
+            pressure_mpc_points.push([time, report.fill_data.mpc_pressure as f64]);
+            time += report.fill_data.hold_time as f64;
+            pressure_spc_points.push([time, report.fill_data.spc_pressure as f64]);
+            pressure_mpc_points.push([time, report.fill_data.mpc_pressure as f64]);
 
             time += report.torque_data.ramp_time as f64;
             pressure_spc_points.push([time, report.torque_data.spc_pressure as f64]);
@@ -359,12 +348,10 @@ impl crate::window::InterfacePage for ShiftReportPage {
             let torque_line = Line::new(torque_points).name("Engine torque (Nm)");
             
             time = 0.0;
-            time += (report.hold1_data.hold_time+report.hold1_data.ramp_time) as f64;
-            let hold1_end_time = time;
-            time += (report.hold2_data.hold_time+report.hold2_data.ramp_time) as f64;
-            let hold2_end_time = time;
-            time += (report.hold3_data.hold_time+report.hold3_data.ramp_time) as f64;
-            let hold3_end_time = time;
+            time += (report.bleed_data.hold_time+report.bleed_data.ramp_time) as f64;
+            let bleed_end_time = time;
+            time += (report.fill_data.hold_time+report.fill_data.ramp_time) as f64;
+            let fill_end_time = time;
 
             time += (report.torque_data.hold_time+report.torque_data.ramp_time) as f64;
             let torque_end_time = time;
@@ -380,9 +367,8 @@ impl crate::window::InterfacePage for ShiftReportPage {
             let legand = eframe::egui::plot::Legend::default().position(Corner::RightBottom);
             let timeout = report.timeout != 0;
             let add_shift_regions = |plot_ui: &mut PlotUi| {
-                plot_ui.vline(VLine::new(hold1_end_time).style(LineStyle::dashed_loose()).color(phase_colour));
-                plot_ui.vline(VLine::new(hold2_end_time).style(LineStyle::dashed_loose()).color(phase_colour));
-                plot_ui.vline(VLine::new(hold3_end_time).style(LineStyle::dashed_loose()).color(phase_colour));
+                plot_ui.vline(VLine::new(bleed_end_time).style(LineStyle::dashed_loose()).color(phase_colour));
+                plot_ui.vline(VLine::new(fill_end_time).style(LineStyle::dashed_loose()).color(phase_colour));
                 plot_ui.vline(VLine::new(torque_end_time).style(LineStyle::dashed_loose()).color(phase_colour));
                 plot_ui.vline(VLine::new(overlap_end_time).style(LineStyle::dashed_loose()).color(phase_colour));
                 plot_ui.vline(VLine::new(max_p_end_time).style(LineStyle::dashed_loose()).color(phase_colour));
@@ -402,10 +388,9 @@ impl crate::window::InterfacePage for ShiftReportPage {
                     plot_ui.line(spc_pressure_line);
                     plot_ui.line(mpc_pressure_line);
                     add_shift_regions(plot_ui);
-                    plot_ui.text(Text::new(PlotPoint::new((hold1_end_time)/2.0, 7700), "Bleed"));
-                    plot_ui.text(Text::new(PlotPoint::new((hold1_end_time+hold2_end_time)/2.0, 7700), "Fill"));
-                    plot_ui.text(Text::new(PlotPoint::new((hold2_end_time+hold3_end_time)/2.0, 7700), "Lock"));
-                    plot_ui.text(Text::new(PlotPoint::new((hold3_end_time+torque_end_time)/2.0, 7700), "Torque"));
+                    plot_ui.text(Text::new(PlotPoint::new(bleed_end_time/2.0, 7700), "Bleed"));
+                    plot_ui.text(Text::new(PlotPoint::new((bleed_end_time+fill_end_time)/2.0, 7700), "Fill"));
+                    plot_ui.text(Text::new(PlotPoint::new((fill_end_time+torque_end_time)/2.0, 7700), "Torque"));
                     plot_ui.text(Text::new(PlotPoint::new((torque_end_time+overlap_end_time)/2.0, 7700), "Overlap"));
                     plot_ui.text(Text::new(PlotPoint::new((overlap_end_time+max_p_end_time)/2.0, 7700), "Max P"));
                 });
