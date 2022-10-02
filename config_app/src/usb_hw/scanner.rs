@@ -13,8 +13,7 @@ pub struct Nag52UsbScanner {
 
 impl Nag52UsbScanner {
     pub fn new() -> Self {
-        Self {
-            ports: match serial_rs::list_ports() {
+        let mut tmp = match serial_rs::list_ports() {
                 Ok(ports) => ports
                     .iter()
                     .map(|i| (HardwareInfo {
@@ -36,8 +35,14 @@ impl Nag52UsbScanner {
                     }, i.clone()))
                     .collect::<Vec<(HardwareInfo, PortInfo)>>(),
                 Err(_) => Vec::new(),
-            },
-        }
+            };
+        
+        let l: Vec<(HardwareInfo, PortInfo)> = tmp.clone().iter_mut().map(|mut x| {
+            x.0.api_version = Some("Legacy".into());
+            x.clone()
+        }).collect();
+        tmp.extend_from_slice(&l);
+        Self {ports: tmp}
     }
 }
 
@@ -51,7 +56,7 @@ impl ecu_diagnostics::hardware::HardwareScanner<Nag52USB> for Nag52UsbScanner {
         idx: usize,
     ) -> ecu_diagnostics::hardware::HardwareResult<std::sync::Arc<std::sync::Mutex<Nag52USB>>> {
         match self.ports.get(idx) {
-            Some((p, port)) => Ok(Arc::new(Mutex::new(Nag52USB::new(&p.name, port.clone())?))),
+            Some((p, port)) => Ok(Arc::new(Mutex::new(Nag52USB::new(&p.name, port.clone(), false)?))),
             None => Err(HardwareError::DeviceNotFound),
         }
     }
@@ -61,7 +66,7 @@ impl ecu_diagnostics::hardware::HardwareScanner<Nag52USB> for Nag52UsbScanner {
         name: &str,
     ) -> ecu_diagnostics::hardware::HardwareResult<std::sync::Arc<std::sync::Mutex<Nag52USB>>> {
         match self.ports.iter().find(|(i, p)| i.name == name) {
-            Some((p, port)) => Ok(Arc::new(Mutex::new(Nag52USB::new(&p.name, port.clone())?))),
+            Some((p, port)) => Ok(Arc::new(Mutex::new(Nag52USB::new(&p.name, port.clone(), p.api_version.is_none())?))),
             None => Err(HardwareError::DeviceNotFound),
         }
     }

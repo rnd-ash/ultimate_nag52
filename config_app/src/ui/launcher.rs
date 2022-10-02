@@ -87,11 +87,16 @@ impl Launcher {
 
 impl Launcher {
     pub fn open_device(&self, name: &str) -> HardwareResult<DynamicDevice> {
+        let mut tmp = name.to_string();
+        if tmp.contains(" API") {
+            tmp = tmp.split(" API").next().unwrap().to_string();
+        }
+        println!("Opening '{}'", tmp);
         Ok(match self.curr_api_type {
-            DeviceType::Passthru => DynamicDevice::Passthru(self.pt_scanner.open_device_by_name(name)?),
+            DeviceType::Passthru => DynamicDevice::Passthru(self.pt_scanner.open_device_by_name(&tmp)?),
             #[cfg(unix)]
-            DeviceType::SocketCan => DynamicDevice::SocketCAN(self.scan_scanner.open_device_by_name(name)?),
-            DeviceType::Usb => DynamicDevice::Usb(self.usb_scanner.open_device_by_name(name)?),
+            DeviceType::SocketCan => DynamicDevice::SocketCAN(self.scan_scanner.open_device_by_name(&tmp)?),
+            DeviceType::Usb => DynamicDevice::Usb(self.usb_scanner.open_device_by_name(&tmp)?),
         })
     }
 
@@ -99,7 +104,13 @@ impl Launcher {
         return scanner
             .list_devices()
             .iter()
-            .map(|x| (x.name.clone()))
+            .map(|x| {
+                let mut s = x.name.clone();
+                if let Some(api) = &x.api_version {
+                    s.push_str(&format!(" API {}", api));
+                }
+                s
+            })
             .collect();
     }
 }

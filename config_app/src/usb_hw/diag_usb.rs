@@ -43,13 +43,14 @@ pub struct Nag52USB {
     is_running: Arc<AtomicBool>,
     tx_id: u32,
     rx_id: u32,
+    legacy_tx_mode: bool
 }
 
 unsafe impl Sync for Nag52USB {}
 unsafe impl Send for Nag52USB {}
 
 impl Nag52USB {
-    pub fn new(path: &str, info: PortInfo) -> HardwareResult<Self> {
+    pub fn new(path: &str, info: PortInfo, legacy_tx_mode: bool) -> HardwareResult<Self> {
         let mut port = serial_rs::new_from_path(path, Some(SerialPortSettings::default()
             .baud(921600)
             .read_timeout(Some(100))
@@ -136,6 +137,7 @@ impl Nag52USB {
             rx_log: Some(read_rx_log),
             tx_id: 0,
             rx_id: 0,
+            legacy_tx_mode
         })
     }
 
@@ -232,6 +234,7 @@ impl PayloadChannel for Nag52USB {
         // Just write buffer
         match self.port.as_mut() {
             Some(p) => {
+                if self.legacy_tx_mode {
                 let mut buf = String::with_capacity(buffer.len()*2 + 6);
                 write!(buf, "#{:04X}", addr);
                 for x in buffer {
@@ -239,6 +242,16 @@ impl PayloadChannel for Nag52USB {
                 }
                 write!(buf, "\n");
                 p.write_all(buf.as_bytes()).map_err(|e| ChannelError::IOError(e))?;
+            } else {
+                let mut to_write = Vec::with_capacity(buffer.len()+4);
+                let size: u16 = (buffer.len()+2) as u16;
+                to_write.push((size >> 8) as u8);
+                to_write.push((size & 0xFF) as u8);
+                to_write.push((addr >> 8) as u8);
+                to_write.push((addr & 0xFF) as u8);
+                to_write.extend_from_slice(&buffer);
+                p.write_all(&to_write)?;
+            }
                 Ok(())
             }
             None => Err(ChannelError::InterfaceNotOpen),
