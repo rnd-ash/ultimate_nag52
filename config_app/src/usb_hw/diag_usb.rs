@@ -250,7 +250,7 @@ impl PayloadChannel for Nag52USB {
                 to_write.push((addr >> 8) as u8);
                 to_write.push((addr & 0xFF) as u8);
                 to_write.extend_from_slice(&buffer);
-                p.write_all(&to_write)?;
+                p.write_all(&to_write).map_err(|e| ChannelError::IOError(e))?;
             }
                 Ok(())
             }
