@@ -344,6 +344,7 @@ pub struct DataCanDump {
     pub min_torque_ms: u16,
     pub max_torque_ms: u16,
     pub static_torque: u16,
+    pub driver_torque: u16,
     pub left_rear_rpm: u16,
     pub right_rear_rpm: u16,
     pub shift_profile_pressed: u8,
@@ -374,6 +375,10 @@ impl DataCanDump {
 
             ui.label("Engine static torque");
             ui.label(if self.static_torque() == u16::MAX { make_text("Signal not available", true) } else { make_text(format!("{:.1} Nm", self.static_torque() as f32 / 4.0 - 500.0), false) });
+            ui.end_row();
+
+            ui.label("Driver req torque");
+            ui.label(if self.driver_torque() == u16::MAX { make_text("Signal not available", true) } else { make_text(format!("{:.1} Nm", self.driver_torque() as f32 / 4.0 - 500.0), false) });
             ui.end_row();
 
             ui.label("Rear right wheel speed");
@@ -414,6 +419,11 @@ impl DataCanDump {
         } else {
             self.static_torque() as f32 / 4.0 - 500.0
         };
+        let drv = if self.driver_torque() == u16::MAX {
+            0.0
+        } else {
+            self.driver_torque() as f32 / 4.0 - 500.0
+        };
         vec![
             ChartData::new(
                 "Engine torque".into(),
@@ -421,6 +431,7 @@ impl DataCanDump {
                     ("Max", max, None),
                     ("Min", min, None),
                     ("Static", sta, None),
+                    ("Driver", drv, None)
                 ],
                 None
             ),
