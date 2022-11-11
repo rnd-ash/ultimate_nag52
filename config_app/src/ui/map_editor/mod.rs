@@ -1,586 +1,542 @@
-use std::{sync::{Mutex, Arc}, fmt::Display, borrow::BorrowMut};
+use std::{
+    borrow::BorrowMut,
+    collections::HashMap,
+    fmt::Display,
+    sync::{Arc, Mutex},
+};
 
-use ecu_diagnostics::{kwp2000::{Kwp2000DiagnosticServer, VehicleInfo, SessionType}, DiagServerResult, DiagnosticServer, DiagError};
-use eframe::{egui::{self, Layout, TextEdit, plot::{Line, HLine, LineStyle, Legend}}, epaint::Stroke};
-use egui_extras::{Size, TableBuilder, Table};
+use ecu_diagnostics::{
+    kwp2000::{
+        self, KWP2000Command, Kwp2000Cmd, Kwp2000DiagnosticServer, SessionType, VehicleInfo,
+    },
+    DiagError, DiagServerResult, DiagnosticServer,
+};
+use eframe::{
+    egui::{
+        self,
+        plot::{Bar, BarChart, CoordinatesFormatter, HLine, Legend, Line, LineStyle, PlotPoints},
+        Layout, TextEdit, RichText,
+    },
+    epaint::{vec2, Color32, Stroke, FontId, TextShape},
+};
+use egui_extras::{Size, Table, TableBuilder};
 use egui_toast::ToastKind;
+use nom::number::complete::le_u16;
+mod map_widget;
 
 use crate::window::PageAction;
 
-use super::{status_bar::MainStatusBar, configuration::{self, cfg_structs::{TcmCoreConfig, EngineType}}};
+use self::map_widget::MapWidget;
 
+use super::{
+    configuration::{
+        self,
+        cfg_structs::{EngineType, TcmCoreConfig},
+    },
+    status_bar::MainStatusBar,
+};
 
-pub const SHIFT_MAP_SIZE: usize = 44;
-
-pub const SHIFT_MAP_X_HEADERS: [u8; 11] = [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100];
-pub const UPSHIFT_MAP_Y_HEADER: [u8; 4] = [1,2,3,4];
-pub const DOWNSHIFT_MAP_Y_HEADER: [u8; 4] = [2,3,4,5];
-
-#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
-pub enum MapGroup {
-    None,
-    Comfort,
-    Standard,
-    Agility
-}
-
-pub const LARGE_FWD_RATIOS: [f32; 5] = [3.5876, 2.1862, 1.4054, 1.0000, 0.8314];
-pub const SMALL_FWD_RATIOS: [f32; 5] = [3.951, 2.423, 1.486, 1.000, 0.833];
-
-#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
-pub enum TableCalc {
-    InputRpm,
-    OutputRpm,
-    SpeedMph,
-    SpeedKmh
-}
-
-impl Display for TableCalc {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            TableCalc::InputRpm => f.write_str("Input RPM"),
-            TableCalc::OutputRpm => f.write_str("Output RPM"),
-            TableCalc::SpeedMph => f.write_str("Speed (Mph)"),
-            TableCalc::SpeedKmh => f.write_str("Speed (Kmh)"),
-        }
-    }
-}
-impl TableCalc {
-    pub fn convert_input_rpm_to_parsed(&self, raw: i16, gear: u8, cfg: &TcmCoreConfig) -> f32 {
-        match self {
-            TableCalc::InputRpm => raw as f32,
-            TableCalc::OutputRpm => {
-                let ratios = match cfg.is_large_nag() != 0 {
-                    true => LARGE_FWD_RATIOS, 
-                    false => SMALL_FWD_RATIOS
-                };
-                (raw as f32 / ratios[gear as usize-1])
-            },
-            TableCalc::SpeedMph => {
-                let mut wheel_rpm = Self::OutputRpm.convert_input_rpm_to_parsed(raw, gear, cfg) as f32;
-                wheel_rpm /= (cfg.diff_ratio() as f32) / 1000.0;
-                let meters_per_hr = 60.0 * wheel_rpm * (cfg.wheel_circumference() as f32 / 1000.0);
-                return (meters_per_hr * 0.000621372);
-            },
-            TableCalc::SpeedKmh => {
-                let mut wheel_rpm = Self::OutputRpm.convert_input_rpm_to_parsed(raw, gear, cfg) as f32;
-                wheel_rpm /= (cfg.diff_ratio() as f32) / 1000.0;
-                let meters_per_hr = 60.0 * wheel_rpm * (cfg.wheel_circumference() as f32 / 1000.0);
-                return (meters_per_hr * 0.001);
-            },
-        }
-    }
-
-    pub fn convert_parsed_to_raw_input(&self, parsed: i16, gear: u8, cfg: &TcmCoreConfig) -> f32 {
-        match self {
-            TableCalc::InputRpm => parsed as f32,
-            TableCalc::OutputRpm => {
-                let ratios = match cfg.is_large_nag() != 0 {
-                    true => LARGE_FWD_RATIOS, 
-                    false => SMALL_FWD_RATIOS
-                };
-                (parsed as f32 * ratios[gear as usize-1])
-            },
-            TableCalc::SpeedMph => {
-                let meters_per_hour = parsed as f32 / 0.000621372;
-                let mut wheel_rpm =  meters_per_hour / (60.0 * (cfg.wheel_circumference() as f32 / 1000.0));
-                wheel_rpm *= ((cfg.diff_ratio() as f32) / 1000.0);
-                return Self::OutputRpm.convert_parsed_to_raw_input(wheel_rpm as i16, gear, cfg)
-            },
-            TableCalc::SpeedKmh => {
-                let meters_per_hour = parsed as f32 / 0.001;
-                let mut wheel_rpm =  meters_per_hour / (60.0 * (cfg.wheel_circumference() as f32 / 1000.0));
-                wheel_rpm *= ((cfg.diff_ratio() as f32) / 1000.0);
-                return Self::OutputRpm.convert_parsed_to_raw_input(wheel_rpm as i16, gear, cfg)
-            },
-        }
-    }
-}
-
-
-
-#[derive(Debug, Clone, Copy)]
 #[repr(u8)]
-#[allow(non_camel_case_types)]
-pub enum MapId {
-    S_DIESEL_UPSHIFT = 0x01,
-    S_DIESEL_DOWNSHIFT = 0x02,
-    S_PETROL_UPSHIFT = 0x03,
-    S_PETROL_DOWNSHIFT = 0x04,
-
-    C_DIESEL_UPSHIFT = 0x05,
-    C_DIESEL_DOWNSHIFT = 0x06,
-    C_PETROL_UPSHIFT = 0x07,
-    C_PETROL_DOWNSHIFT = 0x08,
-
-    A_DIESEL_UPSHIFT = 0x09,
-    A_DIESEL_DOWNSHIFT = 0x0A,
-    A_PETROL_UPSHIFT = 0x0B,
-    A_PETROL_DOWNSHIFT = 0x0C,
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub enum MapCmd {
+    Read = 0x01,
+    ReadDefault = 0x02,
+    Write = 0x03,
+    Burn = 0x04,
+    ResetToFlash = 0x05,
+    Undo = 0x06,
+    ReadMeta = 0x07,
 }
 
-pub struct MapEditor {
-    bar: MainStatusBar,
-    server: Arc<Mutex<Kwp2000DiagnosticServer>>,
-    current_grp: MapGroup,
-    upshift_map_data: Option<([i16; SHIFT_MAP_SIZE], [i16; SHIFT_MAP_SIZE])>,
-    downshift_map_data: Option<([i16; SHIFT_MAP_SIZE], [i16; SHIFT_MAP_SIZE])>,
-    car_config: DiagServerResult<TcmCoreConfig>,
-    up_edit_text: Option<String>,
-    up_edit_idx: usize,
-    down_edit_text: Option<String>,
-    down_edit_idx: usize,
-    show_default: bool,
-    display_mode : TableCalc
+#[derive(Debug, Clone)]
+pub struct Map {
+    meta: MapData,
+    x_values: Vec<i16>,
+    y_values: Vec<i16>,
+    eeprom_key: String,
+    data_eeprom: Vec<i16>,
+    data_default: Vec<i16>,
+    data_modify: Vec<i16>,
+    showing_default: bool,
+    ecu_ref: Arc<Mutex<Kwp2000DiagnosticServer>>,
 }
 
+fn read_i16(a: &[u8]) -> DiagServerResult<(&[u8], i16)> {
+    if a.len() < 2 {
+        return Err(DiagError::InvalidResponseLength);
+    }
+    let r = i16::from_le_bytes(a[0..2].try_into().unwrap());
+    Ok((&a[2..], r))
+}
 
-impl MapEditor {
-    pub fn new(server: Arc<Mutex<Kwp2000DiagnosticServer>>, bar: MainStatusBar) -> Self {
-        let cfg = server.lock().unwrap().read_custom_local_identifier(0xFE)
-            .map(|b| TcmCoreConfig::from_bytes(b.try_into().unwrap()));
+fn read_u16(a: &[u8]) -> DiagServerResult<(&[u8], u16)> {
+    if a.len() < 2 {
+        return Err(DiagError::InvalidResponseLength);
+    }
+    let r = u16::from_le_bytes(a[0..2].try_into().unwrap());
+    Ok((&a[2..], r))
+}
 
-        Self {
-            bar, 
-            server,
-            current_grp: MapGroup::None,
-            upshift_map_data: None,
-            downshift_map_data: None,
-            car_config: cfg,
-            up_edit_text: None,
-            up_edit_idx: 999,
-            down_edit_text: None,
-            down_edit_idx: 999,
-            show_default: false,
-            display_mode: TableCalc::InputRpm
+impl Map {
+    pub fn new(
+        map_id: u8,
+        server: Arc<Mutex<Kwp2000DiagnosticServer>>,
+        meta: MapData,
+    ) -> DiagServerResult<Self> {
+        // Read metadata
+        let mut s = server.lock().unwrap();
+        let mut ecu_response = &s.send_byte_array_with_response(&[
+            KWP2000Command::ReadDataByLocalIdentifier.into(),
+            0x19,
+            map_id,
+            MapCmd::ReadMeta as u8,
+            0x00,
+            0x00,
+        ])?[1..];
+        let (data, data_len) = read_u16(ecu_response)?;
+        if data.len() != data_len as usize {
+            return Err(DiagError::InvalidResponseLength);
+        }
+        let (data, x_element_count) = read_u16(data)?;
+        let (data, y_element_count) = read_u16(data)?;
+        let (mut data, key_len) = read_u16(data)?;
+        if data.len() as u16 != ((x_element_count + y_element_count) * 2) + key_len {
+            return Err(DiagError::InvalidResponseLength);
+        }
+        let mut x_elements: Vec<i16> = Vec::new();
+        let mut y_elements: Vec<i16> = Vec::new();
+        for _ in 0..x_element_count {
+            let (d, v) = read_i16(data)?;
+            x_elements.push(v);
+            data = d;
+        }
+        for _ in 0..y_element_count {
+            let (d, v) = read_i16(data)?;
+            y_elements.push(v);
+            data = d;
+        }
+        let key = String::from_utf8(data.to_vec()).unwrap();
+
+        let mut default: Vec<i16> = Vec::new();
+        let mut current: Vec<i16> = Vec::new();
+
+        // Read current data
+        let ecu_response = &s.send_byte_array_with_response(&[
+            KWP2000Command::ReadDataByLocalIdentifier.into(),
+            0x19,
+            map_id,
+            MapCmd::Read as u8,
+            0x00,
+            0x00,
+        ])?[1..];
+        let (mut c_data, c_arr_size) = read_u16(ecu_response)?;
+        if c_data.len() != c_arr_size as usize {
+            return Err(DiagError::InvalidResponseLength);
+        }
+        for _ in 0..(c_arr_size / 2) {
+            let (d, v) = read_i16(c_data)?;
+            current.push(v);
+            c_data = d;
+        }
+
+        // Read default data
+        let ecu_response = &s.send_byte_array_with_response(&[
+            KWP2000Command::ReadDataByLocalIdentifier.into(),
+            0x19,
+            map_id,
+            MapCmd::ReadDefault as u8,
+            0x00,
+            0x00,
+        ])?[1..];
+        drop(s); // Drop Mutex lock
+        let (mut d_data, d_arr_size) = read_u16(ecu_response)?;
+        if d_data.len() != d_arr_size as usize {
+            return Err(DiagError::InvalidResponseLength);
+        }
+        for _ in 0..(d_arr_size / 2) {
+            let (d, v) = read_i16(d_data)?;
+            default.push(v);
+            d_data = d;
+        }
+        println!(
+            "({}x{}) Default len {}, current len {}",
+            x_element_count,
+            y_element_count,
+            default.len(),
+            current.len()
+        );
+        Ok(Self {
+            x_values: x_elements,
+            y_values: y_elements,
+            eeprom_key: key,
+            data_eeprom: current.clone(),
+            data_default: default,
+            data_modify: current,
+            meta,
+            showing_default: false,
+            ecu_ref: server,
+        })
+    }
+
+    fn get_x_label(&self, idx: usize) -> String {
+        if let Some(replace) = self.meta.x_replace {
+            format!("{}", replace.get(idx).unwrap_or(&"ERROR"))
+        } else {
+            format!("{} {}", self.x_values[idx], self.meta.x_unit)
         }
     }
 
-    pub fn process_map_response(data: Vec<u8>) -> DiagServerResult<[i16; SHIFT_MAP_SIZE]> {
-        let size = (data[1] as u16) << 8 | data[2] as u16;
-        if (size as usize != SHIFT_MAP_SIZE*2) {
-            return Err(DiagError::InvalidResponseLength);
+    fn get_y_label(&self, idx: usize) -> String {
+        if let Some(replace) = self.meta.y_replace {
+            format!("{}", replace.get(idx).unwrap_or(&"ERROR"))
+        } else {
+            format!("{} {}", self.y_values[idx], self.meta.y_unit)
         }
-        if (size as usize != data.len()-3) {
-            return Err(DiagError::InvalidResponseLength);
-        }
-
-        let mut res = [0; SHIFT_MAP_SIZE];
-
-        for x in (0..SHIFT_MAP_SIZE*2).step_by(2) {
-            res[x/2] = (data[x+4] as i16) << 8 | data[x+3] as i16;
-        }
-        Ok(res)
     }
 
-    fn gen_shift_table(&mut self, raw_ui: &mut egui::Ui, is_upshift: bool) -> [i16; SHIFT_MAP_SIZE] {
-        let cfg = self.car_config.as_ref().unwrap();
-        let (mut shift_table, shift_table_default) = match is_upshift {
-            true => self.upshift_map_data.unwrap(),
-            false => self.downshift_map_data.unwrap()
-        };
-        raw_ui.push_id(is_upshift, |ui| { 
-
-
-            let mut upshift_table_builder = egui_extras::TableBuilder::new(ui)
+    fn gen_edit_table(&mut self, raw_ui: &mut egui::Ui, showing_default: bool) {
+        let hash = if showing_default { &self.data_default } else { &self.data_eeprom };
+        let color = raw_ui.visuals().faint_bg_color;
+        
+        let resp = raw_ui.push_id(&hash, |ui| {
+            let mut table_builder = egui_extras::TableBuilder::new(ui)
                 .striped(true)
                 .scroll(false)
                 .cell_layout(Layout::left_to_right(egui::Align::Center).with_cross_align(egui::Align::Center))
                 .column(Size::initial(60.0).at_least(60.0));
-            for _ in 0..SHIFT_MAP_X_HEADERS.len() {
-                upshift_table_builder = upshift_table_builder.column(Size::initial(35.0).at_least(50.0));
+            for _ in 0..self.x_values.len() {
+                table_builder = table_builder.column(Size::initial(60.0).at_least(70.0));
             }
-
-            upshift_table_builder.header(15.0, |mut header | {
-                header.col(|u| {u.label("Pedal %");});
-                for percent in SHIFT_MAP_X_HEADERS {
-                    header.col(|u| {u.label(format!("{}%", percent));});
+            table_builder.header(15.0, |mut header | {
+                header.col(|u| {}); // Nothing in corner cell
+                for v in &self.x_values {
+                    header.col(|u| {
+                        u.label(RichText::new(format!("{}", v)).color(color));
+                    });
                 }
             }).body(|body| {
-                let mut map_idx = 0;
-                body.rows(18.0, 4, |row_id, mut row| {
-                    if (is_upshift) {
-                        row.col(|x| { x.label(format!("{} -> {}", row_id+1, row_id+2)); });
+                body.rows(18.0, self.y_values.len(), |row_id, mut row| {
+                    if let Some(replace) = self.meta.y_replace {
+                        row.col(|x| { x.label(format!("{}", replace.get(row_id).unwrap_or(&"ERROR"))); });
                     } else {
-                        row.col(|x| { x.label(format!("{} <- {}", row_id+1, row_id+2)); });
+                        row.col(|x| { x.label(format!("{}{}", self.y_values[row_id], self.meta.y_unit)); });
                     }
+                    for x_pos in 0..self.x_values.len() {
+                        row.col(|cell| {
 
-                    for _ in SHIFT_MAP_X_HEADERS {
-                        row.col(|x| {
-                            let gear = if (is_upshift) {
-                                (map_idx/11) + 1
-                            } else {
-                                (map_idx/11) + 2
-                            } as u8;
-
-                            let edit_idx = if is_upshift { self.up_edit_idx } else { self.down_edit_idx };
-                            let edit_text = if is_upshift { self.up_edit_text.borrow_mut() } else { self.down_edit_text.borrow_mut() };
-                            if self.show_default {
-                                x.label(format!("{}", self.display_mode.convert_input_rpm_to_parsed(shift_table_default[map_idx], gear, cfg) as i16));
-                            } else {
-                                let mut s = format!("{}", self.display_mode.convert_input_rpm_to_parsed(shift_table[map_idx], gear, cfg) as i16);
-                                if map_idx == edit_idx {
-                                    if let Some(e) = edit_text.clone() {
-                                        s = e;
-                                    }
-                                }
-
-                                let edit = TextEdit::singleline(&mut s);
-                                let response = x.add(edit);
-                                if response.gained_focus() || response.has_focus() {
-                                    if edit_idx != map_idx && edit_idx != 999 {
-                                        if let Some(edit) = &edit_text {
-                                            if let Ok(value) = i16::from_str_radix(&edit, 10) {
-                                                shift_table[edit_idx] = self.display_mode.convert_parsed_to_raw_input(value, gear, cfg) as i16;
-                                            }
-                                        }
-                                    }
-                                    if (is_upshift) {
-                                        self.up_edit_text = Some(s);
-                                        self.up_edit_idx = map_idx;
-                                    } else {
-                                        self.down_edit_text = Some(s);
-                                        self.down_edit_idx = map_idx;
-                                    }
-                                }
-                                else if response.lost_focus() {
-                                    if edit_idx != 999 {
-                                        if let Some(edit) = &edit_text {
-                                            if let Ok(value) = i16::from_str_radix(&edit, 10) {
-                                                shift_table[edit_idx] = self.display_mode.convert_parsed_to_raw_input(value, gear, cfg) as i16;
-                                            }
-                                        }
-                                    }
-                                }
-                            }
+                            let value = match showing_default {
+                                true => self.data_default.get((row_id*self.x_values.len())+x_pos).unwrap_or(&30000),
+                                false => self.data_eeprom.get((row_id*self.x_values.len())+x_pos).unwrap_or(&30000)
+                            };
+                                // Add X values
+                            cell.label(format!("{}", value));
                         });
-                        map_idx+=1;
                     }
-                });
+                })
             });
         });
 
-        return shift_table;
+        let line_visuals = raw_ui.visuals().text_color();
+        let size = resp.response.rect;
+       
+        //raw_ui.painter().add(TextShape {
+        //    pos: (size.left()-galley_y.size().x, size.bottom()).into(),
+        //    galley: galley_y,
+        //    underline: Stroke::none(),
+        //    override_text_color: None,
+        //    angle: -1.5708,
+        //});
+
+
     }
 
-    pub fn gen_shift_lines(&mut self, is_default: bool, is_upshift: bool) -> Line {
-        todo!()
-    }
-
-    pub fn parse_table_from_raw(&self, table: [i16; SHIFT_MAP_SIZE], display_mode: TableCalc, is_upshift: bool) -> [i16; SHIFT_MAP_SIZE] {
-        let cfg = self.car_config.as_ref().unwrap();
-        let mut res = [0; SHIFT_MAP_SIZE];
-
-        for gear_idx in (0..4) {
-            let gear = if (is_upshift) { gear_idx+1 } else { gear_idx+2 } as u8;
-            for (pedal_idx) in (0..11) {
-                res[gear_idx*11 + pedal_idx] = display_mode.convert_input_rpm_to_parsed(table[gear_idx*11 + pedal_idx], gear, cfg) as i16
+    fn generate_window_ui(&mut self, raw_ui: &mut egui::Ui) {
+        raw_ui.label(format!("EEPROM key: {}", self.eeprom_key));
+        raw_ui.label(format!(
+            "Map has {} elements",
+            self.x_values.len() * self.y_values.len()
+        ));
+        self.gen_edit_table(raw_ui, self.showing_default);
+        // Generate display chart
+        if self.x_values.len() == 1 {
+            // Bar chart
+            let mut bars = Vec::new();
+            for x in 0..self.y_values.len() {
+                // Distinct points
+                let value = if self.showing_default {
+                    self.data_default[x]
+                } else {
+                    self.data_modify[x]
+                };
+                let key = self.get_y_label(x);
+                bars.push(Bar::new(x as f64, value as f64).name(key))
             }
-        }
-        res
-    }
-
-    pub fn parse_table_to_raw(&self, table: [i16; SHIFT_MAP_SIZE], display_mode: TableCalc, is_upshift: bool) -> [i16; SHIFT_MAP_SIZE] {
-        let cfg = self.car_config.as_ref().unwrap();
-        let mut res = [0; SHIFT_MAP_SIZE];
-
-        for gear_idx in (0..4) {
-            let gear = if (is_upshift) { gear_idx+1 } else { gear_idx+2 } as u8;
-            for (pedal_idx) in (0..11) {
-                res[gear_idx*11 + pedal_idx] = display_mode.convert_parsed_to_raw_input(table[gear_idx*11 + pedal_idx], gear, cfg) as i16
+            egui::plot::Plot::new(format!("PLOT-{}", self.eeprom_key))
+                .allow_drag(false)
+                .allow_scroll(false)
+                .allow_zoom(false)
+                .height(150.0)
+                .include_x(0)
+                .include_y((self.y_values.len() + 1) as f64 * 1.5)
+                .show(raw_ui, |plot_ui| plot_ui.bar_chart(BarChart::new(bars)));
+        } else { // Line chart
+            let mut lines: Vec<Line> = Vec::new();
+            for (y_idx, key) in self.y_values.iter().enumerate() {
+                let mut points : Vec<[f64;2]> = Vec::new();
+                for (x_idx, key) in self.x_values.iter().enumerate() {
+                    let data = self.data_modify[(y_idx*self.x_values.len())+x_idx];
+                    points.push([*key as f64, data as f64]);
+                }
+                lines.push(
+                    Line::new(points).name(self.get_y_label(y_idx))
+                );
             }
+            egui::plot::Plot::new(format!("PLOT-{}", self.eeprom_key))
+                .allow_drag(false)
+                .allow_scroll(false)
+                .allow_zoom(false)
+                .height(150.0)
+                .show(raw_ui, |plot_ui| {
+                    for l in lines {
+                        plot_ui.line(l);
+                    }
+                });
+
         }
-        res
-    }
-
-    pub fn reset_adaptation_data(&mut self) -> DiagServerResult<()> {
-        println!("Resetting adapt data");
-        let mut lock = self.server.lock().unwrap();
-        lock.set_diagnostic_session_mode(SessionType::ExtendedDiagnostics)?;
-        lock.send_byte_array_with_response(&[0x31, 0xDD]).map(|_| ())
-    }
-
-    pub fn write_maps(&mut self) -> DiagServerResult<()> {
-        let is_diesel = self.car_config.as_ref().unwrap().engine_type() == EngineType::Diesel;
-        let prof = self.current_grp;
-        let map_ids: [u8; 3] = match prof {
-            MapGroup::None => panic!("Cannot write with no maps!"),
-            MapGroup::Standard => {
-                if (is_diesel) { 
-                    [MapId::S_DIESEL_UPSHIFT as u8, MapId::S_DIESEL_DOWNSHIFT as u8, 0] 
-                } else {
-                    [MapId::S_PETROL_UPSHIFT as u8, MapId::S_PETROL_DOWNSHIFT as u8, 0]
-                }
-            },
-            MapGroup::Comfort => {
-                if (is_diesel) { 
-                    [MapId::C_DIESEL_UPSHIFT as u8, MapId::C_DIESEL_DOWNSHIFT as u8, 1] 
-                } else {
-                    [MapId::C_PETROL_UPSHIFT as u8, MapId::C_PETROL_DOWNSHIFT as u8, 1]
-                }
-            },
-            MapGroup::Agility => {
-                if (is_diesel) { 
-                    [MapId::A_DIESEL_UPSHIFT as u8, MapId::A_DIESEL_DOWNSHIFT as u8, 3] 
-                } else {
-                    [MapId::A_PETROL_UPSHIFT as u8, MapId::A_PETROL_DOWNSHIFT as u8, 3]
-                }
-            },
-        };
-
-        let mut lock = self.server.lock().unwrap();
-        lock.set_diagnostic_session_mode(SessionType::ExtendedDiagnostics)?;
-
-        let mut bytes: Vec<u8> = Vec::new();
-        bytes.push(0x3B); // Write data by local ident
-        bytes.push(0x19); // Map editor
-        bytes.push(map_ids[0] as u8); // Upshift
-        bytes.push(((SHIFT_MAP_SIZE*2) >> 8) as u8);
-        bytes.push((SHIFT_MAP_SIZE*2) as u8);
-        for b in self.upshift_map_data.unwrap().0 {
-            bytes.push((b) as u8);
-            bytes.push((b >> 8) as u8);
+        raw_ui.checkbox(&mut self.showing_default, "Show flash defaults");
+        if self.data_modify != self.data_eeprom {
+            if raw_ui.button("Undo user changes").clicked() {}
+            if raw_ui.button("Write changes (To RAM)").clicked() {}
+            if raw_ui.button("Write changes (To EEPROM)").clicked() {}
         }
-        lock.send_byte_array_with_response(&bytes)?;
-        bytes.drain(5..);
-        bytes[2] = map_ids[1] as u8;
-        for b in self.downshift_map_data.unwrap().0 {
-            bytes.push((b) as u8);
-            bytes.push((b >> 8) as u8);
+        if self.data_modify != self.data_default {
+            if raw_ui.button("Reset to flash defaults").clicked() {}
         }
-        lock.send_byte_array_with_response(&bytes)?;
-
-        // Reload MAPS
-        bytes.clear();
-        bytes.push(0x3B); // Write data by local ident
-        bytes.push(0x19); // Map editor
-        bytes.push(0xFF); // RELOAD
-        bytes.push(map_ids[2]); // Reload profileID
-        lock.send_byte_array_with_response(&bytes)?;
-
-        Ok(())
-    }
-
-    pub fn read_maps(&mut self) {
-        let is_diesel = self.car_config.as_ref().unwrap().engine_type() == EngineType::Diesel;
-        let prof = self.current_grp;
-        let map_ids: [u8; 2] = match prof {
-            MapGroup::None => panic!("Cannot query with no maps!"),
-            MapGroup::Standard => {
-                if (is_diesel) { 
-                    [MapId::S_DIESEL_UPSHIFT as u8, MapId::S_DIESEL_DOWNSHIFT as u8] 
-                } else {
-                    [MapId::S_PETROL_UPSHIFT as u8, MapId::S_PETROL_DOWNSHIFT as u8]
-                }
-            },
-            MapGroup::Comfort => {
-                if (is_diesel) { 
-                    [MapId::C_DIESEL_UPSHIFT as u8, MapId::C_DIESEL_DOWNSHIFT as u8] 
-                } else {
-                    [MapId::C_PETROL_UPSHIFT as u8, MapId::C_PETROL_DOWNSHIFT as u8]
-                }
-            },
-            MapGroup::Agility => {
-                if (is_diesel) { 
-                    [MapId::A_DIESEL_UPSHIFT as u8, MapId::A_DIESEL_DOWNSHIFT as u8] 
-                } else {
-                    [MapId::A_PETROL_UPSHIFT as u8, MapId::A_PETROL_DOWNSHIFT as u8]
-                }
-            },
-        };
-
-        let mut lock = self.server.lock().unwrap();
-        println!("Querying maps in {:?}", prof);
-
-        let upshift = lock.send_byte_array_with_response(&[0x21, 0x19, map_ids[0]]).and_then(|x| Self::process_map_response(x));
-        let upshift_default = lock.send_byte_array_with_response(&[0x21, 0x19, map_ids[0] | 0x80]).and_then(|x| Self::process_map_response(x));
-
-        let downshift = lock.send_byte_array_with_response(&[0x21, 0x19, map_ids[1]]).and_then(|x| Self::process_map_response(x));
-        let downshift_default = lock.send_byte_array_with_response(&[0x21, 0x19, map_ids[1] | 0x80]).and_then(|x| Self::process_map_response(x));
-
-        if upshift.is_ok() && upshift_default.is_ok() && downshift.is_ok() && downshift_default.is_ok() {
-            self.upshift_map_data = Some((upshift.unwrap(), upshift_default.unwrap()));
-            self.downshift_map_data = Some((downshift.unwrap(), downshift_default.unwrap()));
-
-        } else {
-            self.downshift_map_data = None;
-            self.upshift_map_data = None;
-        }
-
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub struct MapData {
+    id: u8,
+    name: &'static str,
+    x_unit: &'static str,
+    y_unit: &'static str,
+    x_desc: &'static str,
+    y_desc: &'static str,
+    value_unit: &'static str,
+    x_replace: Option<&'static [&'static str]>,
+    y_replace: Option<&'static [&'static str]>,
+}
+
+impl MapData {
+    pub const fn new(
+        id: u8,
+        name: &'static str,
+        x_unit: &'static str,
+        y_unit: &'static str,
+        x_desc: &'static str,
+        y_desc: &'static str,
+        value_unit: &'static str,
+        x_replace: Option<&'static [&'static str]>,
+        y_replace: Option<&'static [&'static str]>,
+    ) -> Self {
+        Self {
+            id,
+            name,
+            x_unit,
+            y_unit,
+            x_desc,
+            y_desc,
+            value_unit,
+            x_replace,
+            y_replace,
+        }
+    }
+}
+
+const MAP_ARRAY: [MapData; 11] = [
+    MapData::new(
+        0x01,
+        "Upshift (A)",
+        "%",
+        "",
+        "Pedal position (%)",
+        "Gear shift",
+        "RPM",
+        None,
+        Some(&["1->2", "2->3", "3->4", "4->5"]),
+    ),
+    MapData::new(
+        0x02,
+        "Upshift (C)",
+        "%",
+        "",
+        "Pedal position (%)",
+        "Gear shift",
+        "RPM",
+        None,
+        Some(&["1->2", "2->3", "3->4", "4->5"]),
+    ),
+    MapData::new(
+        0x03,
+        "Upshift (S)",
+        "%",
+        "",
+        "Pedal position (%)",
+        "Gear shift",
+        "RPM",
+        None,
+        Some(&["1->2", "2->3", "3->4", "4->5"]),
+    ),
+    MapData::new(
+        0x04,
+        "Downshift (A)",
+        "%",
+        "",
+        "Pedal position (%)",
+        "Gear shift",
+        "RPM",
+        None,
+        Some(&["2->1", "3->2", "4->3", "5->4"]),
+    ),
+    MapData::new(
+        0x05,
+        "Downshift (C)",
+        "%",
+        "",
+        "Pedal position (%)",
+        "Gear shift",
+        "RPM",
+        None,
+        Some(&["2->1", "3->2", "4->3", "5->4"]),
+    ),
+    MapData::new(
+        0x06,
+        "Downshift (S)",
+        "%",
+        "",
+        "Pedal position (%)",
+        "Gear shift",
+        "RPM",
+        None,
+        Some(&["2->1", "3->2", "4->3", "5->4"]),
+    ),
+    MapData::new(
+        0x07,
+        "Working pressure",
+        "%",
+        "",
+        "Input torque (% of rated)",
+        "Gear",
+        "mBar",
+        None,
+        Some(&["P/N", "R1/R2", "1", "2", "3", "4", "5"]),
+    ),
+    MapData::new(
+        0x08,
+        "Pressure solenoid current",
+        "mBar",
+        "C",
+        "Working pressure",
+        "ATF Temperature",
+        "mA",
+        None,
+        None,
+    ),
+    MapData::new(
+        0x09,
+        "TCC solenoid Pwm",
+        "mBar",
+        "C",
+        "Converter pressure",
+        "ATF Temperature",
+        "/4096",
+        None,
+        None,
+    ),
+    MapData::new(
+        0x0A,
+        "Clutch filling time",
+        "C",
+        "",
+        "",
+        "Clutch",
+        "ms",
+        None,
+        Some(&["K1", "K2", "K3", "B1", "B2"]),
+    ),
+    MapData::new(
+        0x0B,
+        "Clutch filling pressure",
+        "C",
+        "",
+        "",
+        "Clutch",
+        "mBar",
+        None,
+        Some(&["K1", "K2", "K3", "B1", "B2"]),
+    ),
+];
+
+pub struct MapEditor {
+    bar: MainStatusBar,
+    server: Arc<Mutex<Kwp2000DiagnosticServer>>,
+    loaded_maps: HashMap<String, Map>,
+    error: Option<String>,
+}
+
+impl MapEditor {
+    pub fn new(server: Arc<Mutex<Kwp2000DiagnosticServer>>, bar: MainStatusBar) -> Self {
+        Self {
+            bar,
+            server,
+            loaded_maps: HashMap::new(),
+            error: None,
+        }
+    }
+}
 
 impl super::InterfacePage for MapEditor {
-    fn make_ui(&mut self, ui: &mut eframe::egui::Ui, frame: &eframe::Frame) -> crate::window::PageAction {
-        let mut show_notification: Option<(String, ToastKind)> = None;
-        if let Err(e) = &self.car_config {
-            ui.label(
-                format!("
-                A fatal error has occurred trying to load the map editor
-
-                Could not read vehicle information from the TCU:
-
-                Diagnostic error:
-
-                {}
-
-                Press try again to attempt to query the ECU again
-                ", e)
-            );
-            if ui.button("Try to query again").clicked() {
-                self.car_config = self.server.lock().unwrap().read_custom_local_identifier(0xFE)
-                .map(|b| TcmCoreConfig::from_bytes(b.try_into().unwrap()));
-            }
-        } else {
-            let mut current_group = self.current_grp;
-            egui::menu::bar(ui, |bar| {
-                bar.label("Select profile: ");
-                if bar.selectable_label(current_group == MapGroup::Standard, "Standard (S)").clicked() {
-                    current_group = MapGroup::Standard;
-                }
-                if bar.selectable_label(current_group == MapGroup::Comfort, "Comfort (C)").clicked() {
-                    current_group = MapGroup::Comfort;
-                }
-                if bar.selectable_label(current_group == MapGroup::Agility, "Agility (A)").clicked() {
-                    current_group = MapGroup::Agility;
-                }
-                if bar.button("Reset adaptation data").clicked() {
-                    match self.reset_adaptation_data() {
-                        Ok(_) => {
-                            show_notification = Some(("Adaptation reset OK".into(), ToastKind::Info));
-                        },
-                        Err(e) => {
-                            show_notification = Some((format!("Adaptation reset error: {}", e), ToastKind::Error));
+    fn make_ui(
+        &mut self,
+        ui: &mut eframe::egui::Ui,
+        frame: &eframe::Frame,
+    ) -> crate::window::PageAction {
+        for map in &MAP_ARRAY {
+            if ui.button(map.name).clicked() {
+                self.error = None;
+                match Map::new(map.id, self.server.clone(), map.clone()) {
+                    Ok(m) => {
+                        // Only if map is not already loaded
+                        if !self.loaded_maps.contains_key(&m.eeprom_key) {
+                            self.loaded_maps.insert(m.eeprom_key.clone(), m);
                         }
                     }
+                    Err(e) => self.error = Some(e.to_string()),
                 }
-            });
-
-            if self.current_grp != current_group {
-                // Query ECU
-                self.current_grp = current_group;
-                self.read_maps();
-            }
-
-            if self.current_grp == MapGroup::None {
-                ui.label("Nothing queried yet");
-            } else if self.upshift_map_data.is_none() || self.downshift_map_data.is_none() {
-                ui.label(
-                    "
-                    An error occurred trying to read map data from the ECU. Please try again.
-                    "
-                );
-                if ui.button("Try to query maps again").clicked() {
-                    self.read_maps();
-                }
-            } else {
-                // SHOW THE UI!
-                ui.checkbox(&mut self.show_default, "Show default maps");
-
-
-                let mut curr_display_mode = self.display_mode;
-
-                egui::ComboBox::new("DispMode", "Value representation")
-                    .selected_text(format!("{}", self.display_mode))
-                    .show_ui(ui, |menu| {
-                    menu.selectable_value(&mut curr_display_mode, TableCalc::InputRpm, format!("{}", TableCalc::InputRpm));
-                    menu.selectable_value(&mut curr_display_mode, TableCalc::OutputRpm, format!("{}", TableCalc::OutputRpm));
-                    // TODO Handle 4Matic configs
-                    if self.car_config.as_ref().unwrap().is_four_matic() == 0 {
-                        menu.selectable_value(&mut curr_display_mode, TableCalc::SpeedKmh, format!("{}", TableCalc::SpeedKmh));
-                        menu.selectable_value(&mut curr_display_mode, TableCalc::SpeedMph, format!("{}", TableCalc::SpeedMph));
-                    }
-                });
-                if (self.display_mode != curr_display_mode) {
-                    self.up_edit_idx = 999;
-                    self.up_edit_text = None;
-                    self.down_edit_idx = 999;
-                    self.down_edit_text = None;
-                    self.display_mode = curr_display_mode;
-                }
-
-
-                ui.heading("Upshift table");
-                self.upshift_map_data.as_mut().unwrap().0 = self.gen_shift_table(ui, true);
-
-                ui.heading("Downshift table");
-                self.downshift_map_data.as_mut().unwrap().0 = self.gen_shift_table(ui, false);
-
-                let redline = if self.car_config.as_ref().unwrap().engine_type() == EngineType::Diesel {
-                    self.car_config.as_ref().unwrap().red_line_dieselrpm()
-                } else {
-                    self.car_config.as_ref().unwrap().red_line_petrolrpm()
-                } as i16;
-
-
-                ui.horizontal(|row| {
-                    if row.button("Write maps to ECU").clicked() {
-                        if let Err(e) = self.write_maps() {
-                            show_notification = Some((format!("Error writing maps: {}", e), ToastKind::Error));
-                        } else {
-                            show_notification = Some((format!("Map write OK!"), ToastKind::Info));
-                        }
-                        self.read_maps();
-                    }
-                    if row.button("Reset to default (W/O write to ECU)").clicked() {
-                        if let Some(us) = self.upshift_map_data.borrow_mut() {
-                            us.0 = us.1;
-                        }
-                        if let Some(us) = self.downshift_map_data.borrow_mut() {
-                            us.0 = us.1;
-                        }
-                    }
-                });
-
-
-
-                let mut lines: Vec<Line> = Vec::new();
-
-                let cfg = self.car_config.as_ref().unwrap();
-                let upshift_data = self.upshift_map_data.map(|(x, d) | {
-                    if self.show_default { d } else {x}
-                }).unwrap();
-                
-                let downshift_data = self.downshift_map_data.map(|(x, d) | {
-                    if self.show_default { d } else {x}
-                }).unwrap();
-
-                for x in (0..4) {
-                    let mut points: Vec<[f64; 2]> = Vec::new();
-                    for ped in (0..=10).step_by(1) {
-                        points.push([10.0*ped as f64, self.display_mode.convert_input_rpm_to_parsed(upshift_data[x*11 + ped], (x+1) as u8, cfg) as f64]);
-                    }
-                    lines.push(Line::new(points).name(format!("Upshift {}-{}", x+1, x+2)))
-                }
-
-                for x in (0..4) {
-                    let mut points: Vec<[f64; 2]> = Vec::new();
-                    for ped in (0..=10).step_by(1) {
-                        points.push([10.0*ped as f64, self.display_mode.convert_input_rpm_to_parsed(downshift_data[x*11 + ped], (x+1) as u8, cfg) as f64]);
-                    }
-                    lines.push(Line::new(points).style(LineStyle::Dashed { length: 5.0 }).name(format!("Downshift {}-{}", x+2, x+1)))
-                }
-
-
-                egui::plot::Plot::new("Shift zones")
-                    .include_x(0)
-                    .include_y(0)
-                    .include_x(100)
-                    .legend(Legend::default())
-                    .show(ui, |plot_ui| {
-                        plot_ui.hline(HLine::new(self.display_mode.convert_input_rpm_to_parsed(redline, 5, &self.car_config.as_ref().unwrap())));
-                        for shift_line in lines {
-                            plot_ui.line(shift_line);
-                        }
-                    });           
             }
         }
-        if let Some(notification) = show_notification {
-            crate::window::PageAction::SendNotification { text: notification.0, kind: notification.1 }
-        } else {
-            crate::window::PageAction::None
+
+        let mut remove_list: Vec<String> = Vec::new();
+        for (key, map) in self.loaded_maps.iter_mut() {
+            let mut open = true;
+            egui::Window::new(map.meta.name)
+                .auto_sized()
+                .collapsible(true)
+                .open(&mut open)
+                .vscroll(false)
+                .default_size(vec2(800.0, 400.0))
+                .show(ui.ctx(), |window| {
+                    map.generate_window_ui(window);
+                });
+            if !open {
+                remove_list.push(key.clone())
+            }
         }
+        for key in remove_list {
+            self.loaded_maps.remove(&key);
+        }
+        PageAction::None
     }
 
     fn get_title(&self) -> &'static str {
