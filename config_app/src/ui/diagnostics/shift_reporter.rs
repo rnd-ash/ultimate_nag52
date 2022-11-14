@@ -1,14 +1,23 @@
-use std::{sync::{Arc, Mutex}};
+use std::sync::{Arc, Mutex};
 
-use ecu_diagnostics::{kwp2000::{Kwp2000DiagnosticServer, SessionType}, DiagnosticServer};
-use eframe::{egui::{plot::{Plot, Line, LinkedAxisGroup, VLine, Text, LineStyle, PlotUi, Corner, PlotPoint}, RichText}, epaint::{Stroke, Color32}};
-use serde::{Serialize, Deserialize};
+use ecu_diagnostics::{
+    kwp2000::{Kwp2000DiagnosticServer, SessionType},
+    DiagnosticServer,
+};
+use eframe::{
+    egui::{
+        plot::{Corner, Line, LineStyle, LinkedAxisGroup, Plot, PlotPoint, PlotUi, Text, VLine},
+        RichText,
+    },
+    epaint::{Color32, Stroke},
+};
+use serde::{Deserialize, Serialize};
 
-use crate::{ui::status_bar::MainStatusBar, window::PageAction};
 use crate::ui::egui::ComboBox;
+use crate::{ui::status_bar::MainStatusBar, window::PageAction};
 
 // Data structure for shift report
-pub const MAX_POINTS_PER_SR_ARRAY: usize = 6000/50;
+pub const MAX_POINTS_PER_SR_ARRAY: usize = 6000 / 50;
 pub const REPORT_LEN: usize = std::mem::size_of::<ShiftReport>();
 
 #[repr(packed)]
@@ -17,9 +26,8 @@ struct ShiftPhase {
     ramp_time: u16,
     hold_time: u16,
     spc_pressure: u16,
-    mpc_pressure: u16
+    mpc_pressure: u16,
 }
-
 
 #[repr(packed)]
 #[derive(Debug, Clone, Copy, Ord, PartialOrd, Eq, PartialEq)]
@@ -81,10 +89,10 @@ impl SerializedShiftReport {
             requested_torque: rpt.requested_torque,
             interval_points: rpt.interval_points,
             report_len: rpt.report_len,
-            engine_rpm: (&{rpt.engine_rpm}).to_vec(),
-            input_rpm: (&{rpt.input_rpm}).to_vec(),
-            output_rpm: (&{rpt.output_rpm}).to_vec(),
-            engine_torque: (&{rpt.engine_torque}).to_vec(),
+            engine_rpm: (&{ rpt.engine_rpm }).to_vec(),
+            input_rpm: (&{ rpt.input_rpm }).to_vec(),
+            output_rpm: (&{ rpt.output_rpm }).to_vec(),
+            engine_torque: (&{ rpt.engine_torque }).to_vec(),
             total_ms: rpt.total_ms,
             initial_mpc_pressure: rpt.initial_mpc_pressure,
             bleed_data: rpt.bleed_data,
@@ -139,20 +147,22 @@ impl SerializedShiftReport {
     }
 }
 
-
-pub struct ShiftReportPage{
+pub struct ShiftReportPage {
     bar: MainStatusBar,
     curr_report: Option<ShiftReport>,
     server: Arc<Mutex<Kwp2000DiagnosticServer>>,
     report_list: Vec<(u8, i32, u8, u8)>, // ID, ATF Temp, curr, target
     err: Option<String>,
     select_id: u32,
-    axis_group: LinkedAxisGroup
+    axis_group: LinkedAxisGroup,
 }
 
 impl ShiftReportPage {
     pub fn new(server: Arc<Mutex<Kwp2000DiagnosticServer>>, bar: MainStatusBar) -> Self {
-        server.lock().unwrap().set_diagnostic_session_mode(SessionType::ExtendedDiagnostics);
+        server
+            .lock()
+            .unwrap()
+            .set_diagnostic_session_mode(SessionType::ExtendedDiagnostics);
         Self {
             bar,
             curr_report: None,
@@ -160,7 +170,7 @@ impl ShiftReportPage {
             err: None,
             server,
             select_id: 0,
-            axis_group: LinkedAxisGroup::x()
+            axis_group: LinkedAxisGroup::x(),
         }
     }
     pub fn parse_error(&mut self, e: ecu_diagnostics::DiagError) {
@@ -173,24 +183,32 @@ impl ShiftReportPage {
                 } else {
                     self.err = Some(format!("Error ECU rejected the request: {}", e))
                 }
-            },
-            _ => self.err = Some(format!("Error querying ECU: {}", e))
+            }
+            _ => self.err = Some(format!("Error querying ECU: {}", e)),
         }
     }
 }
 
 impl crate::window::InterfacePage for ShiftReportPage {
-    fn make_ui(&mut self, ui: &mut eframe::egui::Ui, frame: &eframe::Frame) -> crate::window::PageAction {
+    fn make_ui(
+        &mut self,
+        ui: &mut eframe::egui::Ui,
+        frame: &eframe::Frame,
+    ) -> crate::window::PageAction {
         ui.heading("Shift report history");
 
         if ui.button("Query a list of available shifts").clicked() {
-            let rpt_query = self.server.lock().unwrap().send_byte_array_with_response(&[0x88, 0x00, 0x00]);
+            let rpt_query = self
+                .server
+                .lock()
+                .unwrap()
+                .send_byte_array_with_response(&[0x88, 0x00, 0x00]);
             match rpt_query {
                 Ok(mut res) => {
                     res.drain(0..1);
                     if res.len() % 4 != 0 {
                         self.err = Some(format!("Incorrect report length!"));
-                        return PageAction::None
+                        return PageAction::None;
                     }
                     self.report_list.clear();
                     for chunk in res.chunks(4) {
@@ -202,8 +220,8 @@ impl crate::window::InterfacePage for ShiftReportPage {
                             self.report_list.push((id, atf as i32, targ, curr))
                         }
                     }
-                },
-                Err(e) => self.parse_error(e)
+                }
+                Err(e) => self.parse_error(e),
             }
         }
 
@@ -211,22 +229,34 @@ impl crate::window::InterfacePage for ShiftReportPage {
             ui.label("No shift data available");
         } else {
             ComboBox::from_label("Select shift record")
-            .width(400.0)
-            .selected_text(format!("Shift ##{}", self.select_id))
-            .show_ui(ui, |cb_ui| {
-                for shift in &self.report_list {
-                    cb_ui.selectable_value(&mut self.select_id, shift.0 as u32, format!("Shift ##{}", shift.0));
-                }
-            });
+                .width(400.0)
+                .selected_text(format!("Shift ##{}", self.select_id))
+                .show_ui(ui, |cb_ui| {
+                    for shift in &self.report_list {
+                        cb_ui.selectable_value(
+                            &mut self.select_id,
+                            shift.0 as u32,
+                            format!("Shift ##{}", shift.0),
+                        );
+                    }
+                });
 
             if ui.button("Query shift").clicked() {
-                let rpt_query = self.server.lock().unwrap().send_byte_array_with_response(&[0x88, 0x01, self.select_id as u8]);
+                let rpt_query = self.server.lock().unwrap().send_byte_array_with_response(&[
+                    0x88,
+                    0x01,
+                    self.select_id as u8,
+                ]);
                 match rpt_query {
                     Ok(mut res) => {
                         res.drain(0..1);
                         if res.len() != REPORT_LEN {
-                            self.err = Some(format!("Incorrect report length. Want {} bytes, got {} bytes!", REPORT_LEN, res.len()));
-                            return PageAction::None
+                            self.err = Some(format!(
+                                "Incorrect report length. Want {} bytes, got {} bytes!",
+                                REPORT_LEN,
+                                res.len()
+                            ));
+                            return PageAction::None;
                         }
 
                         unsafe {
@@ -237,10 +267,12 @@ impl crate::window::InterfacePage for ShiftReportPage {
                             self.curr_report = Some(rpt)
                         }
                         let x = self.curr_report.clone().unwrap();
-                        println!("{} {} {}", &{x.total_ms}, &{x.transition_start}, &{x.transition_end});
-                    },
+                        println!("{} {} {}", &{ x.total_ms }, &{ x.transition_start }, &{
+                            x.transition_end
+                        });
+                    }
 
-                    Err(e) => self.parse_error(e)
+                    Err(e) => self.parse_error(e),
                 }
             }
         }
@@ -250,34 +282,45 @@ impl crate::window::InterfacePage for ShiftReportPage {
         }
 
         if let Some(report) = &self.curr_report {
-
             ui.heading("Shift stats:");
-            ui.label(format!("Gear {} to gear {}", report.targ_curr & 0xF, (report.targ_curr & 0xF0) >> 4));
-            ui.label(format!("ATF Temp: {}°C", &{report.atf_temp_c}));
+            ui.label(format!(
+                "Gear {} to gear {}",
+                report.targ_curr & 0xF,
+                (report.targ_curr & 0xF0) >> 4
+            ));
+            ui.label(format!("ATF Temp: {}°C", &{ report.atf_temp_c }));
 
-            ui.label(format!("Profile: {}", match report.profile { // Profiles.h
-                0 => "Standard",
-                1 => "Comfort",
-                2 => "Winter",
-                3 => "Agility",
-                4 => "Manual",
-                _ => "Unknown"
-            }));
-
-
-            ui.label(
-                if report.timeout == 0 {
-                    RichText::new(format!("Shift completed after {} ms", &{report.total_ms}))
-                } else {
-                    RichText::new(format!("Shift timed out after {} ms!", &{report.total_ms})).color(Color32::from_rgb(255, 0, 0))
+            ui.label(format!(
+                "Profile: {}",
+                match report.profile {
+                    // Profiles.h
+                    0 => "Standard",
+                    1 => "Comfort",
+                    2 => "Winter",
+                    3 => "Agility",
+                    4 => "Manual",
+                    _ => "Unknown",
                 }
-            );
+            ));
+
+            ui.label(if report.timeout == 0 {
+                RichText::new(format!("Shift completed after {} ms", &{ report.total_ms }))
+            } else {
+                RichText::new(format!("Shift timed out after {} ms!", &{
+                    report.total_ms
+                }))
+                .color(Color32::from_rgb(255, 0, 0))
+            });
             if report.timeout == 0 {
-                ui.label(format!("Gear transition period: {} ms", report.transition_end as i64 - report.transition_start as i64));
+                ui.label(format!(
+                    "Gear transition period: {} ms",
+                    report.transition_end as i64 - report.transition_start as i64
+                ));
             }
 
-
-            let time_axis: Vec<u16> = (0..=report.total_ms).step_by(report.interval_points as usize).collect();
+            let time_axis: Vec<u16> = (0..=report.total_ms)
+                .step_by(report.interval_points as usize)
+                .collect();
             let mut time: f64 = 0.0;
             // Add pressure line (Static)
             let mut pressure_spc_points: Vec<[f64; 2]> = Vec::new();
@@ -324,11 +367,15 @@ impl crate::window::InterfacePage for ShiftReportPage {
             pressure_spc_points.push([time, report.max_pressure_data.spc_pressure as f64]);
             pressure_mpc_points.push([time, report.max_pressure_data.mpc_pressure as f64]);
 
-
-            let mut rpm_max = *std::cmp::max(unsafe { report.engine_rpm }.iter().max().unwrap(), unsafe { report.input_rpm }.iter().max().unwrap()) as f64;
-            rpm_max = std::cmp::max(rpm_max as u16, *unsafe { report.output_rpm }.iter().max().unwrap()) as f64;
-            let trq_max = *unsafe { report.engine_torque}.iter().max().unwrap() as f64;
-
+            let mut rpm_max = *std::cmp::max(
+                unsafe { report.engine_rpm }.iter().max().unwrap(),
+                unsafe { report.input_rpm }.iter().max().unwrap(),
+            ) as f64;
+            rpm_max = std::cmp::max(
+                rpm_max as u16,
+                *unsafe { report.output_rpm }.iter().max().unwrap(),
+            ) as f64;
+            let trq_max = *unsafe { report.engine_torque }.iter().max().unwrap() as f64;
 
             for x in 0..report.report_len as usize {
                 engine_rpm_points.push([time_axis[x] as f64, report.engine_rpm[x] as f64]);
@@ -339,40 +386,63 @@ impl crate::window::InterfacePage for ShiftReportPage {
 
             // Add phase indication lines
 
-
             let spc_pressure_line = Line::new(pressure_spc_points).name("SPC Pressure (mBar)");
             let mpc_pressure_line = Line::new(pressure_mpc_points).name("MPC Pressure (mBar)");
             let engine_line = Line::new(engine_rpm_points).name("Engine (RPM)");
             let output_line = Line::new(output_rpm_points).name("Output shaft (RPM)");
             let input_line = Line::new(input_rpm_points).name("Input shaft (RPM)");
             let torque_line = Line::new(torque_points).name("Engine torque (Nm)");
-            
+
             time = 0.0;
-            time += (report.bleed_data.hold_time+report.bleed_data.ramp_time) as f64;
+            time += (report.bleed_data.hold_time + report.bleed_data.ramp_time) as f64;
             let bleed_end_time = time;
-            time += (report.fill_data.hold_time+report.fill_data.ramp_time) as f64;
+            time += (report.fill_data.hold_time + report.fill_data.ramp_time) as f64;
             let fill_end_time = time;
 
-            time += (report.torque_data.hold_time+report.torque_data.ramp_time) as f64;
+            time += (report.torque_data.hold_time + report.torque_data.ramp_time) as f64;
             let torque_end_time = time;
-            time += (report.overlap_data.hold_time+report.overlap_data.ramp_time) as f64;
+            time += (report.overlap_data.hold_time + report.overlap_data.ramp_time) as f64;
             let overlap_end_time = time;
-            time += (report.max_pressure_data.hold_time+report.max_pressure_data.ramp_time) as f64;
+            time +=
+                (report.max_pressure_data.hold_time + report.max_pressure_data.ramp_time) as f64;
             let max_p_end_time = time;
             // #27ae60
             let phase_colour = Color32::from_rgb(0x27, 0xae, 0x60);
             let ok_colour = Color32::from_rgb(0, 255, 0);
             let timeout_colour = Color32::from_rgb(255, 0, 0);
-            let height_per_chart = (ui.available_height()-50.0)/3.0;
+            let height_per_chart = (ui.available_height() - 50.0) / 3.0;
             let legand = eframe::egui::plot::Legend::default().position(Corner::RightBottom);
             let timeout = report.timeout != 0;
             let add_shift_regions = |plot_ui: &mut PlotUi| {
-                plot_ui.vline(VLine::new(bleed_end_time).style(LineStyle::dashed_loose()).color(phase_colour));
-                plot_ui.vline(VLine::new(fill_end_time).style(LineStyle::dashed_loose()).color(phase_colour));
-                plot_ui.vline(VLine::new(torque_end_time).style(LineStyle::dashed_loose()).color(phase_colour));
-                plot_ui.vline(VLine::new(overlap_end_time).style(LineStyle::dashed_loose()).color(phase_colour));
-                plot_ui.vline(VLine::new(max_p_end_time).style(LineStyle::dashed_loose()).color(phase_colour));
-                plot_ui.vline(VLine::new(report.total_ms).stroke(Stroke::new(2.0, if timeout {timeout_colour} else {ok_colour})));
+                plot_ui.vline(
+                    VLine::new(bleed_end_time)
+                        .style(LineStyle::dashed_loose())
+                        .color(phase_colour),
+                );
+                plot_ui.vline(
+                    VLine::new(fill_end_time)
+                        .style(LineStyle::dashed_loose())
+                        .color(phase_colour),
+                );
+                plot_ui.vline(
+                    VLine::new(torque_end_time)
+                        .style(LineStyle::dashed_loose())
+                        .color(phase_colour),
+                );
+                plot_ui.vline(
+                    VLine::new(overlap_end_time)
+                        .style(LineStyle::dashed_loose())
+                        .color(phase_colour),
+                );
+                plot_ui.vline(
+                    VLine::new(max_p_end_time)
+                        .style(LineStyle::dashed_loose())
+                        .color(phase_colour),
+                );
+                plot_ui.vline(VLine::new(report.total_ms).stroke(Stroke::new(
+                    2.0,
+                    if timeout { timeout_colour } else { ok_colour },
+                )));
             };
 
             let mut plot_pressure = Plot::new("SPC pressure")
@@ -384,15 +454,30 @@ impl crate::window::InterfacePage for ShiftReportPage {
                 .include_y(0)
                 .include_y(8000)
                 .link_axis(self.axis_group.clone())
-                .show(ui, |plot_ui| { 
+                .show(ui, |plot_ui| {
                     plot_ui.line(spc_pressure_line);
                     plot_ui.line(mpc_pressure_line);
                     add_shift_regions(plot_ui);
-                    plot_ui.text(Text::new(PlotPoint::new(bleed_end_time/2.0, 7700), "Bleed"));
-                    plot_ui.text(Text::new(PlotPoint::new((bleed_end_time+fill_end_time)/2.0, 7700), "Fill"));
-                    plot_ui.text(Text::new(PlotPoint::new((fill_end_time+torque_end_time)/2.0, 7700), "Torque"));
-                    plot_ui.text(Text::new(PlotPoint::new((torque_end_time+overlap_end_time)/2.0, 7700), "Overlap"));
-                    plot_ui.text(Text::new(PlotPoint::new((overlap_end_time+max_p_end_time)/2.0, 7700), "Max P"));
+                    plot_ui.text(Text::new(
+                        PlotPoint::new(bleed_end_time / 2.0, 7700),
+                        "Bleed",
+                    ));
+                    plot_ui.text(Text::new(
+                        PlotPoint::new((bleed_end_time + fill_end_time) / 2.0, 7700),
+                        "Fill",
+                    ));
+                    plot_ui.text(Text::new(
+                        PlotPoint::new((fill_end_time + torque_end_time) / 2.0, 7700),
+                        "Torque",
+                    ));
+                    plot_ui.text(Text::new(
+                        PlotPoint::new((torque_end_time + overlap_end_time) / 2.0, 7700),
+                        "Overlap",
+                    ));
+                    plot_ui.text(Text::new(
+                        PlotPoint::new((overlap_end_time + max_p_end_time) / 2.0, 7700),
+                        "Max P",
+                    ));
                 });
 
             let mut plot_rpm = Plot::new("Input/Engine RPM")
@@ -403,19 +488,32 @@ impl crate::window::InterfacePage for ShiftReportPage {
                 .include_x(report.total_ms as f32 * 1.2)
                 .include_y(rpm_max * 1.2)
                 .link_axis(self.axis_group.clone())
-                .show(ui, |plot_ui| { 
+                .show(ui, |plot_ui| {
                     plot_ui.line(engine_line);
                     plot_ui.line(input_line);
                     plot_ui.line(output_line);
                     // Show the User where the gear shift occurred
                     if report.timeout == 0 {
-                        plot_ui.vline(VLine::new(report.transition_start).style(LineStyle::dashed_loose()).color(Color32::from_rgb(255, 192, 203)));
-                        plot_ui.vline(VLine::new(report.transition_end).style(LineStyle::dashed_loose()).color(Color32::from_rgb(255, 192, 203)));
-                        plot_ui.text(Text::new(PlotPoint::new((report.transition_start+report.transition_end)/2, rpm_max * 0.9), "SHIFT"));
+                        plot_ui.vline(
+                            VLine::new(report.transition_start)
+                                .style(LineStyle::dashed_loose())
+                                .color(Color32::from_rgb(255, 192, 203)),
+                        );
+                        plot_ui.vline(
+                            VLine::new(report.transition_end)
+                                .style(LineStyle::dashed_loose())
+                                .color(Color32::from_rgb(255, 192, 203)),
+                        );
+                        plot_ui.text(Text::new(
+                            PlotPoint::new(
+                                (report.transition_start + report.transition_end) / 2,
+                                rpm_max * 0.9,
+                            ),
+                            "SHIFT",
+                        ));
                     }
                     add_shift_regions(plot_ui)
                 });
-                
 
             let mut plot_torque = Plot::new("Engine torque")
                 .legend(legand)
@@ -425,7 +523,7 @@ impl crate::window::InterfacePage for ShiftReportPage {
                 .include_x(report.total_ms as f32 * 1.2)
                 .include_y(trq_max * 1.2)
                 .link_axis(self.axis_group.clone())
-                .show(ui, |plot_ui| { 
+                .show(ui, |plot_ui| {
                     plot_ui.line(torque_line);
                     add_shift_regions(plot_ui);
                 });

@@ -1,35 +1,49 @@
-use std::sync::{Arc, Mutex, mpsc};
+use std::sync::{mpsc, Arc, Mutex};
 
 use ecu_diagnostics::{
-    kwp2000::{Kwp2000DiagnosticServer, Kwp2000ServerOptions, Kwp2000VoidHandler}, channel::IsoTPChannel,
+    channel::IsoTPChannel,
+    kwp2000::{Kwp2000DiagnosticServer, Kwp2000ServerOptions, Kwp2000VoidHandler},
 };
 use eframe::egui;
 use eframe::Frame;
 
 use crate::{
-    usb_hw::{diag_usb::{EspLogMessage}, KwpEventLevel, KwpEventHandler},
+    usb_hw::{diag_usb::EspLogMessage, KwpEventHandler, KwpEventLevel},
     window::{InterfacePage, PageAction},
 };
 
-use super::{firmware_update::FwUpdateUI, status_bar::MainStatusBar, configuration::ConfigPage, crashanalyzer::CrashAnalyzerUI, diagnostics::{solenoids::SolenoidPage, shift_reporter::ShiftReportPage}, io_maipulator::IoManipulatorPage, routine_tests::RoutinePage, map_editor::MapEditor, };
+use super::{
+    configuration::ConfigPage,
+    crashanalyzer::CrashAnalyzerUI,
+    diagnostics::{shift_reporter::ShiftReportPage, solenoids::SolenoidPage},
+    firmware_update::FwUpdateUI,
+    io_maipulator::IoManipulatorPage,
+    map_editor::MapEditor,
+    routine_tests::RoutinePage,
+    status_bar::MainStatusBar,
+};
 use crate::ui::diagnostics::DiagnosticsPage;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 struct DevInfo {
     pub compat_mode: String,
     pub fw_version: String,
-    pub fw_date: String
+    pub fw_date: String,
 }
 
 pub struct MainPage {
     bar: MainStatusBar,
     show_about_ui: bool,
     diag_server: Arc<Mutex<Kwp2000DiagnosticServer>>,
-    dev_info: DevInfo
+    dev_info: DevInfo,
 }
 
 impl MainPage {
-    pub fn new(mut channel: Box<dyn IsoTPChannel>, logger: Option<mpsc::Receiver<EspLogMessage>>, hw_name: String) -> Self {
+    pub fn new(
+        mut channel: Box<dyn IsoTPChannel>,
+        logger: Option<mpsc::Receiver<EspLogMessage>>,
+        hw_name: String,
+    ) -> Self {
         let channel_cfg = ecu_diagnostics::channel::IsoTPSettings {
             block_size: 0,
             st_min: 0,
@@ -46,7 +60,7 @@ impl MainPage {
             global_tp_id: 0,
             tester_present_interval_ms: 2000,
             tester_present_require_response: true,
-            global_session_control: false
+            global_session_control: false,
         };
         let (evt_sender, evt_receiver) = mpsc::channel::<(KwpEventLevel, String)>();
         let kwp = Kwp2000DiagnosticServer::new_over_iso_tp(
@@ -54,25 +68,24 @@ impl MainPage {
             channel,
             channel_cfg,
             KwpEventHandler::new(evt_sender),
-        ).unwrap();
-
-        
+        )
+        .unwrap();
 
         Self {
             bar: MainStatusBar::new(evt_receiver, hw_name),
             show_about_ui: false,
             diag_server: Arc::new(Mutex::new(kwp)),
-            dev_info: DevInfo { compat_mode: "UNKNOWN".into(), fw_version: "UNKNOWN".into(), fw_date: "UNKNOWN".into() }
+            dev_info: DevInfo {
+                compat_mode: "UNKNOWN".into(),
+                fw_version: "UNKNOWN".into(),
+                fw_date: "UNKNOWN".into(),
+            },
         }
     }
 }
 
 impl InterfacePage for MainPage {
-    fn make_ui(
-        &mut self,
-        ui: &mut egui::Ui,
-        frame: &Frame,
-    ) -> crate::window::PageAction {
+    fn make_ui(&mut self, ui: &mut egui::Ui, frame: &Frame) -> crate::window::PageAction {
         // UI context menu
         egui::menu::bar(ui, |bar_ui| {
             bar_ui.menu_button("File", |x| {
@@ -81,14 +94,27 @@ impl InterfacePage for MainPage {
                 }
                 if x.button("About").clicked() {
                     // Query info (Update it)
-                    if let Ok (info) = self.diag_server.lock().unwrap().read_daimler_mmc_identification() {
-                        self.dev_info = DevInfo { 
-                            compat_mode: if info.supplier == 7 { "EGS52".into() } else { "EGS53".into() }, 
-                            fw_version: info.sw_version, 
-                            fw_date: "UNKNOWN".into() 
+                    if let Ok(info) = self
+                        .diag_server
+                        .lock()
+                        .unwrap()
+                        .read_daimler_mmc_identification()
+                    {
+                        self.dev_info = DevInfo {
+                            compat_mode: if info.supplier == 7 {
+                                "EGS52".into()
+                            } else {
+                                "EGS53".into()
+                            },
+                            fw_version: info.sw_version,
+                            fw_date: "UNKNOWN".into(),
                         };
                     } else {
-                        self.dev_info = DevInfo { compat_mode: "UNKNOWN".into(), fw_version: "UNKNOWN".into(), fw_date: "UNKNOWN".into() };
+                        self.dev_info = DevInfo {
+                            compat_mode: "UNKNOWN".into(),
+                            fw_version: "UNKNOWN".into(),
+                            fw_date: "UNKNOWN".into(),
+                        };
                     }
                     self.show_about_ui = true;
                 }
@@ -98,33 +124,63 @@ impl InterfacePage for MainPage {
         let mut create_page = None;
         ui.vertical(|v| {
             v.heading("Utilities");
-            if v.button("Firmware updater").on_disabled_hover_ui(|u| {u.label("Broken, will be added soon!");}).clicked() {
-                create_page = Some(PageAction::Add(Box::new(FwUpdateUI::new(self.diag_server.clone()))));
+            if v.button("Firmware updater")
+                .on_disabled_hover_ui(|u| {
+                    u.label("Broken, will be added soon!");
+                })
+                .clicked()
+            {
+                create_page = Some(PageAction::Add(Box::new(FwUpdateUI::new(
+                    self.diag_server.clone(),
+                ))));
             }
             if v.button("Crash analyzer").clicked() {
-                create_page = Some(PageAction::Add(Box::new(CrashAnalyzerUI::new(self.diag_server.clone()))));
+                create_page = Some(PageAction::Add(Box::new(CrashAnalyzerUI::new(
+                    self.diag_server.clone(),
+                ))));
             }
             if v.button("Diagnostics").clicked() {
-                create_page = Some(PageAction::Add(Box::new(DiagnosticsPage::new(self.diag_server.clone(), self.bar.clone()))));
+                create_page = Some(PageAction::Add(Box::new(DiagnosticsPage::new(
+                    self.diag_server.clone(),
+                    self.bar.clone(),
+                ))));
             }
             if v.button("Solenoid live view").clicked() {
-                create_page = Some(PageAction::Add(Box::new(SolenoidPage::new(self.diag_server.clone(), self.bar.clone()))));
+                create_page = Some(PageAction::Add(Box::new(SolenoidPage::new(
+                    self.diag_server.clone(),
+                    self.bar.clone(),
+                ))));
             }
             if v.button("Shift report history viewer").clicked() {
-                create_page = Some(PageAction::Add(Box::new(ShiftReportPage::new(self.diag_server.clone(), self.bar.clone()))));
+                create_page = Some(PageAction::Add(Box::new(ShiftReportPage::new(
+                    self.diag_server.clone(),
+                    self.bar.clone(),
+                ))));
             }
             if v.button("IO Manipulator").clicked() {
-                create_page = Some(PageAction::Add(Box::new(IoManipulatorPage::new(self.diag_server.clone(), self.bar.clone()))));
+                create_page = Some(PageAction::Add(Box::new(IoManipulatorPage::new(
+                    self.diag_server.clone(),
+                    self.bar.clone(),
+                ))));
             }
             if v.button("Diagnostic routine executor").clicked() {
-                create_page = Some(PageAction::Add(Box::new(RoutinePage::new(self.diag_server.clone(), self.bar.clone()))));
+                create_page = Some(PageAction::Add(Box::new(RoutinePage::new(
+                    self.diag_server.clone(),
+                    self.bar.clone(),
+                ))));
             }
             if v.button("Map tuner").clicked() {
-                create_page = Some(PageAction::Add(Box::new(MapEditor::new(self.diag_server.clone(), self.bar.clone()))));
+                create_page = Some(PageAction::Add(Box::new(MapEditor::new(
+                    self.diag_server.clone(),
+                    self.bar.clone(),
+                ))));
             }
             if v.button("Configure drive profiles").clicked() {}
             if v.button("Configure vehicle / gearbox").clicked() {
-                create_page = Some(PageAction::Add(Box::new(ConfigPage::new(self.diag_server.clone(), self.bar.clone()))));
+                create_page = Some(PageAction::Add(Box::new(ConfigPage::new(
+                    self.diag_server.clone(),
+                    self.bar.clone(),
+                ))));
             }
         });
         if let Some(page) = create_page {
@@ -143,9 +199,15 @@ impl InterfacePage for MainPage {
                             "Configuration app version: {}",
                             env!("CARGO_PKG_VERSION")
                         ));
-                        about_cols.label(format!("TCM firmware version: {}", self.dev_info.fw_version));
+                        about_cols.label(format!(
+                            "TCM firmware version: {}",
+                            self.dev_info.fw_version
+                        ));
                         about_cols.label(format!("TCM firmware build: {}", self.dev_info.fw_date));
-                        about_cols.label(format!("TCM EGS compatibility mode: {}", self.dev_info.compat_mode));
+                        about_cols.label(format!(
+                            "TCM EGS compatibility mode: {}",
+                            self.dev_info.compat_mode
+                        ));
                         about_cols.separator();
                         about_cols.heading("Open source");
                         about_cols.add(egui::Hyperlink::from_label_and_url(

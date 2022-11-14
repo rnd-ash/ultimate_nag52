@@ -1,7 +1,5 @@
 use std::{fs::File, io::Read};
 
-
-
 #[repr(C, packed)]
 // Derrived from https://github.com/espressif/esp-idf/blob/8fbb63c2a701c22ccf4ce249f43aded73e134a34/components/bootloader_support/include/esp_image_format.h#L97
 #[derive(Debug, Clone, Copy)]
@@ -15,7 +13,7 @@ pub struct FirmwareHeader {
     date: [u8; 16],
     idf_ver: [u8; 32],
     app_elf_sha: [u8; 32],
-    reserv2: [u32; 20]
+    reserv2: [u32; 20],
 }
 
 impl FirmwareHeader {
@@ -39,7 +37,7 @@ impl FirmwareHeader {
 #[derive(Debug, Clone)]
 pub struct Firmware {
     pub raw: Vec<u8>,
-    pub header: FirmwareHeader
+    pub header: FirmwareHeader,
 }
 
 const HEADER_MAGIC: [u8; 4] = [0x32, 0x54, 0xCD, 0xAB];
@@ -49,7 +47,7 @@ assert_eq_size!([u8; HEADER_SIZE], FirmwareHeader);
 pub enum FirmwareLoadError {
     InvalidHeader,
     NotValid(String), // Reason
-    IoError(std::io::Error)
+    IoError(std::io::Error),
 }
 
 impl From<std::io::Error> for FirmwareLoadError {
@@ -70,8 +68,6 @@ impl std::fmt::Display for FirmwareLoadError {
 
 pub type FirwmareLoadResult<T> = std::result::Result<T, FirmwareLoadError>;
 
-
-
 pub fn load_binary(path: String) -> FirwmareLoadResult<Firmware> {
     let mut f = File::open(path)?;
     let mut buf = Vec::new();
@@ -81,23 +77,23 @@ pub fn load_binary(path: String) -> FirwmareLoadResult<Firmware> {
     loop {
         let tmp = &buf[header_start_idx..];
         if tmp.len() < HEADER_MAGIC.len() || header_start_idx > 50 {
-            return Err(FirmwareLoadError::NotValid("Could not find header magic".into()))
+            return Err(FirmwareLoadError::NotValid(
+                "Could not find header magic".into(),
+            ));
         }
         if tmp[..HEADER_MAGIC.len()] == HEADER_MAGIC {
             break; // Found!
         }
-        header_start_idx+=1;
+        header_start_idx += 1;
     }
-    
+
     if buf[header_start_idx..].len() < HEADER_SIZE {
-        return Err(FirmwareLoadError::NotValid("Could not find header magic".into()))
+        return Err(FirmwareLoadError::NotValid(
+            "Could not find header magic".into(),
+        ));
     }
     // Ok, read the header
-    let header: FirmwareHeader = unsafe { std::ptr::read(buf[header_start_idx..].as_ptr() as *const _ ) };
-    Ok(
-        Firmware {
-            raw: buf,
-            header,
-        }
-    )
+    let header: FirmwareHeader =
+        unsafe { std::ptr::read(buf[header_start_idx..].as_ptr() as *const _) };
+    Ok(Firmware { raw: buf, header })
 }

@@ -1,25 +1,29 @@
 use std::{
     fs::File,
     io::Write,
-    sync::{
-        Arc, Mutex, RwLock,
-    }, ops::DerefMut,
+    ops::DerefMut,
+    sync::{Arc, Mutex, RwLock},
 };
 
-use ecu_diagnostics::{kwp2000::{Kwp2000DiagnosticServer, SessionType}, DiagServerResult, DiagnosticServer, DiagError};
+use ecu_diagnostics::{
+    kwp2000::{Kwp2000DiagnosticServer, SessionType},
+    DiagError, DiagServerResult, DiagnosticServer,
+};
 use eframe::egui::{self, *};
 
-use crate::{
-    window::{InterfacePage, PageAction},
-};
+use crate::window::{InterfacePage, PageAction};
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum ReadState {
     None,
     Prepare,
-    ReadingBlock { id: u32, out_of: u32, bytes_written: u32 },
+    ReadingBlock {
+        id: u32,
+        out_of: u32,
+        bytes_written: u32,
+    },
     Completed,
-    Aborted(String)
+    Aborted(String),
 }
 
 impl ReadState {
@@ -27,7 +31,11 @@ impl ReadState {
         match self {
             ReadState::None => true,
             ReadState::Prepare => false,
-            ReadState::ReadingBlock { id, out_of, bytes_written } => false,
+            ReadState::ReadingBlock {
+                id,
+                out_of,
+                bytes_written,
+            } => false,
             ReadState::Completed => true,
             ReadState::Aborted(_) => true,
         }
@@ -40,7 +48,7 @@ pub struct CrashAnalyzerUI {
 }
 
 impl CrashAnalyzerUI {
-    pub fn new(server:Arc<Mutex<Kwp2000DiagnosticServer>>) -> Self {
+    pub fn new(server: Arc<Mutex<Kwp2000DiagnosticServer>>) -> Self {
         Self {
             server,
             read_state: Arc::new(RwLock::new(ReadState::None)),
@@ -58,12 +66,12 @@ fn init_flash_mode(server: &mut Kwp2000DiagnosticServer) -> DiagServerResult<(u3
     // First request coredump info
     let mut res = server.read_custom_local_identifier(0x24)?;
     if res.len() != 8 {
-        return Err(DiagError::InvalidResponseLength)
+        return Err(DiagError::InvalidResponseLength);
     }
     let address = u32::from_le_bytes(res[0..4].try_into().unwrap());
     let size = u32::from_le_bytes(res[4..8].try_into().unwrap());
     if size == 0 {
-        return Ok((0,0,0));
+        return Ok((0, 0, 0));
     }
     let mut upload_req = vec![0x35, 0x31, 0x00, 0x00, 0x00];
     upload_req.push((size >> 16) as u8);
@@ -71,7 +79,7 @@ fn init_flash_mode(server: &mut Kwp2000DiagnosticServer) -> DiagServerResult<(u3
     upload_req.push((size >> 0) as u8);
     res = server.send_byte_array_with_response(&upload_req)?;
     if res.len() != 3 {
-        return Err(DiagError::InvalidResponseLength)
+        return Err(DiagError::InvalidResponseLength);
     }
     let bs: u32 = ((res[1] as u32) << 8) | res[2] as u32;
     Ok((address, size, bs))
@@ -84,11 +92,7 @@ fn on_flash_end(server: &mut Kwp2000DiagnosticServer, read: Vec<u8>) -> DiagServ
 }
 
 impl InterfacePage for CrashAnalyzerUI {
-    fn make_ui(
-        &mut self,
-        ui: &mut egui::Ui,
-        frame: &eframe::Frame,
-    ) -> crate::window::PageAction {
+    fn make_ui(&mut self, ui: &mut egui::Ui, frame: &eframe::Frame) -> crate::window::PageAction {
         ui.heading("Crash Analyzer");
         ui.label(
             RichText::new("Caution! Only use when car is off").color(Color32::from_rgb(255, 0, 0)),
@@ -98,13 +102,16 @@ impl InterfacePage for CrashAnalyzerUI {
             if ui.button("Read coredump ELF").clicked() {
                 let c = self.server.clone();
                 let state_c = self.read_state.clone();
-                std::thread::spawn(move|| {
+                std::thread::spawn(move || {
                     let mut lock = c.lock().unwrap();
                     *state_c.write().unwrap() = ReadState::Prepare;
                     match init_flash_mode(&mut lock.deref_mut()) {
                         Err(e) => {
-                            *state_c.write().unwrap() = ReadState::Aborted(format!("ECU rejected flash programming mode: {}", e))
-                        },
+                            *state_c.write().unwrap() = ReadState::Aborted(format!(
+                                "ECU rejected flash programming mode: {}",
+                                e
+                            ))
+                        }
                         Ok(size) => {
                             println!("OK {:?}", size);
                             if size.1 == 0x00 {
@@ -116,14 +123,23 @@ impl InterfacePage for CrashAnalyzerUI {
                                 let mut data: Vec<u8> = Vec::with_capacity(size.1 as usize);
                                 let mut i = 0;
                                 while (data.len() as u32) < size.1 {
-                                    match lock.send_byte_array_with_response(&[0x36, ((i+1) & 0xFF) as u8]) {
+                                    match lock.send_byte_array_with_response(&[
+                                        0x36,
+                                        ((i + 1) & 0xFF) as u8,
+                                    ]) {
                                         Ok(p) => {
                                             data.extend_from_slice(&p[2..]);
-                                            i+=1;
-                                            *state_c.write().unwrap() = ReadState::ReadingBlock { id: i+1, out_of: block_count, bytes_written: data.len() as u32 };
-                                        },
+                                            i += 1;
+                                            *state_c.write().unwrap() = ReadState::ReadingBlock {
+                                                id: i + 1,
+                                                out_of: block_count,
+                                                bytes_written: data.len() as u32,
+                                            };
+                                        }
                                         Err(e) => {
-                                            *state_c.write().unwrap() = ReadState::Aborted(format!("ECU rejected transfer data: {}", e));
+                                            *state_c.write().unwrap() = ReadState::Aborted(
+                                                format!("ECU rejected transfer data: {}", e),
+                                            );
                                             return;
                                         }
                                     }
@@ -142,21 +158,39 @@ impl InterfacePage for CrashAnalyzerUI {
         }
 
         match &state {
-            ReadState::None => {},
+            ReadState::None => {}
             ReadState::Prepare => {
-                egui::widgets::ProgressBar::new(0.0).show_percentage().animate(true).desired_width(300.0).ui(ui);
+                egui::widgets::ProgressBar::new(0.0)
+                    .show_percentage()
+                    .animate(true)
+                    .desired_width(300.0)
+                    .ui(ui);
                 ui.label("Preparing ECU...");
-            },
-            ReadState::ReadingBlock { id, out_of, bytes_written } => {
-                egui::widgets::ProgressBar::new((*id as f32) / (*out_of as f32)).show_percentage().animate(true).desired_width(300.0).ui(ui);
+            }
+            ReadState::ReadingBlock {
+                id,
+                out_of,
+                bytes_written,
+            } => {
+                egui::widgets::ProgressBar::new((*id as f32) / (*out_of as f32))
+                    .show_percentage()
+                    .animate(true)
+                    .desired_width(300.0)
+                    .ui(ui);
                 ui.label(format!("Bytes read: {}", bytes_written));
-            },
+            }
             ReadState::Completed => {
-                ui.label(RichText::new("Coredump ELF saved as dump.elf!").color(Color32::from_rgb(0, 255, 0)));
-            },
+                ui.label(
+                    RichText::new("Coredump ELF saved as dump.elf!")
+                        .color(Color32::from_rgb(0, 255, 0)),
+                );
+            }
             ReadState::Aborted(r) => {
-                ui.label(RichText::new(format!("Coredump read ABORTED! Reason: {}", r)).color(Color32::from_rgb(255, 0, 0)));
-            },
+                ui.label(
+                    RichText::new(format!("Coredump read ABORTED! Reason: {}", r))
+                        .color(Color32::from_rgb(255, 0, 0)),
+                );
+            }
         }
         return PageAction::SetBackButtonState(true);
     }

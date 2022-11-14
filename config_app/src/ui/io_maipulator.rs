@@ -1,11 +1,19 @@
-use std::{sync::{Arc, Mutex, atomic::{AtomicBool, Ordering, AtomicU64}, RwLock}, thread, time::{Duration, Instant}, char::MAX};
+use std::{
+    char::MAX,
+    sync::{
+        atomic::{AtomicBool, AtomicU64, Ordering},
+        Arc, Mutex, RwLock,
+    },
+    thread,
+    time::{Duration, Instant},
+};
 
 use ecu_diagnostics::kwp2000::{Kwp2000DiagnosticServer, SessionType};
-use eframe::egui::plot::{Plot, Legend, Line};
+use eframe::egui::plot::{Legend, Line, Plot};
 
 use crate::{ui::status_bar::MainStatusBar, window::PageAction};
 
-use rli::{DataSolenoids, RecordIdents, LocalRecordData};
+use rli::{DataSolenoids, LocalRecordData, RecordIdents};
 
 use super::diagnostics::rli;
 
@@ -16,7 +24,7 @@ pub struct IoManipulatorPage {
     query_ecu: Arc<AtomicBool>,
     curr_solenoid_values: Arc<RwLock<Option<DataSolenoids>>>,
     time_since_launch: Instant,
-    show_ui: bool
+    show_ui: bool,
 }
 
 impl IoManipulatorPage {
@@ -35,33 +43,38 @@ impl IoManipulatorPage {
 
         let last_update = Arc::new(AtomicU64::new(0));
         let last_update_t = last_update.clone();
-        thread::spawn(move|| {
-            let _ = server.lock().unwrap().set_diagnostic_session_mode(SessionType::Normal);
+        thread::spawn(move || {
+            let _ = server
+                .lock()
+                .unwrap()
+                .set_diagnostic_session_mode(SessionType::Normal);
             while run_t.load(Ordering::Relaxed) {
                 let start = Instant::now();
-                if let Ok(r) = RecordIdents::SolenoidStatus.query_ecu(&mut *server.lock().unwrap()) {
+                if let Ok(r) = RecordIdents::SolenoidStatus.query_ecu(&mut *server.lock().unwrap())
+                {
                     if let LocalRecordData::Solenoids(s) = r {
                         let curr = *store_t.read().unwrap();
                         *store_old_t.write().unwrap() = curr;
                         *store_t.write().unwrap() = Some(s);
-                        last_update_t.store(launch_time_t.elapsed().as_millis() as u64, Ordering::Relaxed);
+                        last_update_t.store(
+                            launch_time_t.elapsed().as_millis() as u64,
+                            Ordering::Relaxed,
+                        );
                     }
                 }
                 let taken = start.elapsed().as_millis() as u64;
                 if taken < UPDATE_DELAY_MS {
-                    std::thread::sleep(Duration::from_millis(UPDATE_DELAY_MS-taken));
+                    std::thread::sleep(Duration::from_millis(UPDATE_DELAY_MS - taken));
                 }
             }
         });
-
-
 
         Self {
             bar,
             query_ecu: run,
             curr_solenoid_values: store,
             time_since_launch: launch_time,
-            show_ui: false
+            show_ui: false,
         }
     }
 }
@@ -69,16 +82,17 @@ impl IoManipulatorPage {
 const GRAPH_TIME_MS: u16 = 100;
 const MAX_DUTY: u16 = 0xFFF; // 12bit pwm (4096)
 
-const VOLTAGE_HIGH: u16  = 12;
+const VOLTAGE_HIGH: u16 = 12;
 const VOLTAGE_LOW: u16 = 0;
 
-
 impl crate::window::InterfacePage for IoManipulatorPage {
-
-
-    fn make_ui(&mut self, ui: &mut eframe::egui::Ui, frame: &eframe::Frame) -> crate::window::PageAction {
+    fn make_ui(
+        &mut self,
+        ui: &mut eframe::egui::Ui,
+        frame: &eframe::Frame,
+    ) -> crate::window::PageAction {
         ui.heading("IO Manipulator");
-        
+
         ui.label("
             This UI is only intended for debugging the TCM on a test bench. It is to NEVER be used whilst the TCM is inside a vehicle.
 
@@ -90,9 +104,7 @@ impl crate::window::InterfacePage for IoManipulatorPage {
         if !self.show_ui {
             let mut btn_action = None;
             ui.horizontal(|row| {
-                if row.button("I understand").clicked() {
-
-                }
+                if row.button("I understand").clicked() {}
                 if row.button("Take me to safety").clicked() {
                     btn_action = Some(PageAction::Destroy);
                 }
@@ -101,8 +113,6 @@ impl crate::window::InterfacePage for IoManipulatorPage {
                 return req;
             }
         }
-        
-
 
         PageAction::None
     }
@@ -117,7 +127,5 @@ impl crate::window::InterfacePage for IoManipulatorPage {
 }
 
 impl Drop for IoManipulatorPage {
-    fn drop(&mut self) {
-        
-    }
+    fn drop(&mut self) {}
 }

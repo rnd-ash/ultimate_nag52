@@ -1,4 +1,4 @@
-use std::sync::{Mutex, Arc};
+use std::sync::{Arc, Mutex};
 
 use ecu_diagnostics::kwp2000::Kwp2000DiagnosticServer;
 
@@ -10,7 +10,6 @@ use super::status_bar::MainStatusBar;
 
 pub mod solenoid_test;
 
-
 pub struct RoutinePage {
     bar: MainStatusBar,
     server: Arc<Mutex<Kwp2000DiagnosticServer>>,
@@ -18,30 +17,32 @@ pub struct RoutinePage {
 
 impl RoutinePage {
     pub fn new(server: Arc<Mutex<Kwp2000DiagnosticServer>>, bar: MainStatusBar) -> Self {
-        Self {
-            bar,
-            server
-        }
+        Self { bar, server }
     }
 }
 
-
 impl crate::window::InterfacePage for RoutinePage {
-
-
-    fn make_ui(&mut self, ui: &mut eframe::egui::Ui, frame: &eframe::Frame) -> crate::window::PageAction {
+    fn make_ui(
+        &mut self,
+        ui: &mut eframe::egui::Ui,
+        frame: &eframe::Frame,
+    ) -> crate::window::PageAction {
         ui.heading("Diagnostic routines");
-        
-        ui.label("
+
+        ui.label(
+            "
             Select test routine to run
-        ");
+        ",
+        );
 
         let mut page_action = PageAction::None;
 
         if ui.button("Solenoid test").clicked() {
-            page_action = PageAction::Add(Box::new(SolenoidTestPage::new(self.server.clone(), self.bar.clone())));
+            page_action = PageAction::Add(Box::new(SolenoidTestPage::new(
+                self.server.clone(),
+                self.bar.clone(),
+            )));
         }
-        
 
         page_action
     }

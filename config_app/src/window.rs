@@ -1,8 +1,19 @@
-use std::{borrow::BorrowMut, collections::VecDeque, time::{Instant, Duration}, ops::Add};
+use std::{
+    borrow::BorrowMut,
+    collections::VecDeque,
+    ops::Add,
+    time::{Duration, Instant},
+};
 
-use crate::ui::{status_bar::{self}, main};
-use eframe::{egui::{self, Direction}, epaint::Pos2};
-use egui_toast::{Toasts, Toast, ToastOptions, ToastKind};
+use crate::ui::{
+    main,
+    status_bar::{self},
+};
+use eframe::{
+    egui::{self, Direction},
+    epaint::Pos2,
+};
+use egui_toast::{Toast, ToastKind, ToastOptions, Toasts};
 
 pub struct MainWindow {
     pages: VecDeque<Box<dyn InterfacePage>>,
@@ -17,7 +28,7 @@ impl MainWindow {
             pages: VecDeque::new(),
             curr_title: "OpenVehicleDiag".into(),
             bar: None,
-            show_back: true
+            show_back: true,
         }
     }
     pub fn add_new_page(&mut self, p: Box<dyn InterfacePage>) {
@@ -42,25 +53,27 @@ impl eframe::App for MainWindow {
         if stack_size > 0 {
             let mut pop_page = false;
             if let Some(status_bar) = self.bar.borrow_mut() {
-                egui::TopBottomPanel::bottom("NAV")
-                    .show(ctx, |nav| {
-                        nav.horizontal(|row| {
-                            status_bar.draw(row, ctx);
-                            if stack_size > 1 && self.show_back {
-                                if row.button("Back").clicked() {
-                                    pop_page = true;
-                                }
+                egui::TopBottomPanel::bottom("NAV").show(ctx, |nav| {
+                    nav.horizontal(|row| {
+                        status_bar.draw(row, ctx);
+                        if stack_size > 1 && self.show_back {
+                            if row.button("Back").clicked() {
+                                pop_page = true;
                             }
-                        });
-                        s_bar_height = nav.available_height()
+                        }
                     });
+                    s_bar_height = nav.available_height()
+                });
             }
             if pop_page {
                 self.pop_page();
             }
 
             let mut toasts = Toasts::new(ctx)
-                .anchor(Pos2::new(5.0, ctx.available_rect().height()-s_bar_height - 5.0))
+                .anchor(Pos2::new(
+                    5.0,
+                    ctx.available_rect().height() - s_bar_height - 5.0,
+                ))
                 .align_to_end(false)
                 .direction(Direction::BottomUp);
 
@@ -76,13 +89,17 @@ impl eframe::App for MainWindow {
                     PageAction::RePaint => ctx.request_repaint(),
                     PageAction::SetBackButtonState(state) => {
                         self.show_back = state;
-                    },
+                    }
                     PageAction::SendNotification { text, kind } => {
                         println!("Pushing notification {}", text);
-                        toasts.add(text, kind, ToastOptions {
-                            show_icon: true,
-                            expires_at: Some(Instant::now().add(Duration::from_secs(5))),
-                        });
+                        toasts.add(
+                            text,
+                            kind,
+                            ToastOptions {
+                                show_icon: true,
+                                expires_at: Some(Instant::now().add(Duration::from_secs(5))),
+                            },
+                        );
                     }
                 }
             });
