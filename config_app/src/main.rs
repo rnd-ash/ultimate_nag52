@@ -1,8 +1,8 @@
 #[macro_use]
 extern crate static_assertions;
 
-use std::{iter, env};
-use eframe::{NativeOptions, Renderer, IconData, epaint::Vec2};
+use eframe::{epaint::Vec2, IconData, NativeOptions, Renderer};
+use std::{env, iter};
 use ui::launcher::Launcher;
 use window::MainWindow;
 
@@ -17,7 +17,9 @@ compile_error!("Windows can ONLY be built using the i686-pc-windows-msvc target!
 fn main() {
     env_logger::init();
 
-    let icon = image::load_from_memory(include_bytes!("../logo.png")).unwrap().to_rgba8();
+    let icon = image::load_from_memory(include_bytes!("../logo.png"))
+        .unwrap()
+        .to_rgba8();
     let (icon_w, icon_h) = icon.dimensions();
 
     #[cfg(unix)]
@@ -26,7 +28,7 @@ fn main() {
     let mut app = window::MainWindow::new();
     app.add_new_page(Box::new(Launcher::new()));
     let mut native_options = NativeOptions::default();
-    native_options.icon_data = Some(IconData{
+    native_options.icon_data = Some(IconData {
         rgba: icon.into_raw(),
         width: icon_w,
         height: icon_h,
@@ -36,7 +38,9 @@ fn main() {
     {
         native_options.renderer = Renderer::Wgpu;
     }
-    eframe::run_native("Ultimate NAG52 config suite", native_options, Box::new(|cc| {
-        Box::new(app)
-    }));
+    eframe::run_native(
+        "Ultimate NAG52 config suite",
+        native_options,
+        Box::new(|cc| Box::new(app)),
+    );
 }

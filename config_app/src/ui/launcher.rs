@@ -1,15 +1,27 @@
-use std::{sync::{Arc, Mutex, mpsc}, ops::RangeInclusive};
+use std::{
+    ops::RangeInclusive,
+    sync::{mpsc, Arc, Mutex},
+};
 
-use ecu_diagnostics::{hardware::{HardwareResult, HardwareScanner, passthru::{PassthruScanner, PassthruDevice}, Hardware}, channel::IsoTPChannel};
-use eframe::egui::*;
+use ecu_diagnostics::{
+    channel::IsoTPChannel,
+    hardware::{
+        passthru::{PassthruDevice, PassthruScanner},
+        Hardware, HardwareResult, HardwareScanner,
+    },
+};
 use eframe::egui;
+use eframe::egui::*;
 
 #[cfg(unix)]
-use ecu_diagnostics::hardware::socketcan::{SocketCanScanner, SocketCanDevice};
+use ecu_diagnostics::hardware::socketcan::{SocketCanDevice, SocketCanScanner};
 
 use crate::{
     ui::main::MainPage,
-    usb_hw::{diag_usb::{Nag52USB, EspLogMessage}, scanner::Nag52UsbScanner},
+    usb_hw::{
+        diag_usb::{EspLogMessage, Nag52USB},
+        scanner::Nag52UsbScanner,
+    },
     window::{InterfacePage, PageAction},
 };
 
@@ -26,7 +38,7 @@ pub struct Launcher {
     #[cfg(unix)]
     scan_scanner: SocketCanScanner,
     selected_device: String,
-    curr_api_type: DeviceType
+    curr_api_type: DeviceType,
 }
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
@@ -34,21 +46,21 @@ pub enum DeviceType {
     Passthru,
     #[cfg(unix)]
     SocketCan,
-    Usb
+    Usb,
 }
 
 pub enum DynamicDevice {
     Passthru(Arc<Mutex<PassthruDevice>>),
     Usb(Arc<Mutex<Nag52USB>>),
     #[cfg(unix)]
-    SocketCAN(Arc<Mutex<SocketCanDevice>>)
+    SocketCAN(Arc<Mutex<SocketCanDevice>>),
 }
 
 impl DynamicDevice {
     pub fn get_logger(&mut self) -> Option<mpsc::Receiver<EspLogMessage>> {
         match self {
             DynamicDevice::Usb(usb) => usb.lock().unwrap().get_logger_receiver(),
-            _ => None
+            _ => None,
         }
     }
 
@@ -57,14 +69,10 @@ impl DynamicDevice {
             DynamicDevice::Passthru(pt) => {
                 PassthruDevice::toggle_sw_channel_raw(pt, true);
                 Hardware::create_iso_tp_channel(pt.clone())
-            },
-            DynamicDevice::Usb(usb) => {
-                Hardware::create_iso_tp_channel(usb.clone())
-            },
+            }
+            DynamicDevice::Usb(usb) => Hardware::create_iso_tp_channel(usb.clone()),
             #[cfg(unix)]
-            DynamicDevice::SocketCAN(s) => {
-                Hardware::create_iso_tp_channel(s.clone())
-            },
+            DynamicDevice::SocketCAN(s) => Hardware::create_iso_tp_channel(s.clone()),
         }
     }
 }
@@ -80,7 +88,7 @@ impl Launcher {
             #[cfg(unix)]
             scan_scanner: SocketCanScanner::new(),
             selected_device: String::new(),
-            curr_api_type: DeviceType::Usb
+            curr_api_type: DeviceType::Usb,
         }
     }
 }
@@ -93,14 +101,21 @@ impl Launcher {
         }
         println!("Opening '{}'", tmp);
         Ok(match self.curr_api_type {
-            DeviceType::Passthru => DynamicDevice::Passthru(self.pt_scanner.open_device_by_name(&tmp)?),
+            DeviceType::Passthru => {
+                DynamicDevice::Passthru(self.pt_scanner.open_device_by_name(&tmp)?)
+            }
             #[cfg(unix)]
-            DeviceType::SocketCan => DynamicDevice::SocketCAN(self.scan_scanner.open_device_by_name(&tmp)?),
+            DeviceType::SocketCan => {
+                DynamicDevice::SocketCAN(self.scan_scanner.open_device_by_name(&tmp)?)
+            }
             DeviceType::Usb => DynamicDevice::Usb(self.usb_scanner.open_device_by_name(&tmp)?),
         })
     }
 
-    pub fn get_device_list<T, X: Hardware>(scanner: &T) -> Vec<String> where T: HardwareScanner<X> {
+    pub fn get_device_list<T, X: Hardware>(scanner: &T) -> Vec<String>
+    where
+        T: HardwareScanner<X>,
+    {
         return scanner
             .list_devices()
             .iter()
@@ -118,13 +133,23 @@ impl Launcher {
 impl InterfacePage for Launcher {
     fn make_ui(&mut self, ui: &mut Ui, frame: &eframe::Frame) -> crate::window::PageAction {
         ui.label("Ultimate-Nag52 configuration utility!");
-        ui.label("Please plug in your TCM via USB and select the correct port, or select another API");
+        ui.label(
+            "Please plug in your TCM via USB and select the correct port, or select another API",
+        );
 
         ui.radio_value(&mut self.curr_api_type, DeviceType::Usb, "USB connection");
-        ui.radio_value(&mut self.curr_api_type, DeviceType::Passthru, "Passthru OBD adapter");
+        ui.radio_value(
+            &mut self.curr_api_type,
+            DeviceType::Passthru,
+            "Passthru OBD adapter",
+        );
         #[cfg(unix)]
         {
-            ui.radio_value(&mut self.curr_api_type, DeviceType::SocketCan, "SocketCAN device");
+            ui.radio_value(
+                &mut self.curr_api_type,
+                DeviceType::SocketCan,
+                "SocketCAN device",
+            );
         }
         ui.heading("Devices");
 
@@ -151,7 +176,11 @@ impl InterfacePage for Launcher {
             match self.open_device(&self.selected_device) {
                 Ok(mut dev) => {
                     if let Ok(channel) = dev.create_isotp_channel() {
-                        return PageAction::Overwrite(Box::new(MainPage::new(channel, dev.get_logger(), self.selected_device.clone())));
+                        return PageAction::Overwrite(Box::new(MainPage::new(
+                            channel,
+                            dev.get_logger(),
+                            self.selected_device.clone(),
+                        )));
                     }
                 }
                 Err(e) => self.launch_err = Some(format!("Cannot open device: {}", e)),

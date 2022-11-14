@@ -2,21 +2,22 @@
 //! using the USB connection directly to the ESP32 chip
 //! The USB endpoint ONLY supports sending fakes ISO-TP messages
 
+use ecu_diagnostics::{
+    channel::{ChannelError, IsoTPChannel, PayloadChannel},
+    hardware::{HardwareError, HardwareInfo, HardwareResult},
+};
+use serial_rs::{FlowControl, PortInfo, SerialPort, SerialPortSettings};
+use std::fmt::Write as SWrite;
 use std::{
     io::{BufRead, BufReader, BufWriter, Write},
+    panic::catch_unwind,
     sync::{
         atomic::{AtomicBool, Ordering},
         mpsc::{self},
         Arc,
     },
-    time::{Instant, Duration}, panic::catch_unwind,
+    time::{Duration, Instant},
 };
-use std::fmt::Write as SWrite;
-use ecu_diagnostics::{
-    channel::{IsoTPChannel, PayloadChannel, ChannelError},
-    hardware::{HardwareInfo, HardwareResult,  HardwareError},
-};
-use serial_rs::{SerialPort, PortInfo, SerialPortSettings, FlowControl};
 
 #[derive(Debug, Clone, Copy)]
 pub enum EspLogLevel {
@@ -43,7 +44,7 @@ pub struct Nag52USB {
     is_running: Arc<AtomicBool>,
     tx_id: u32,
     rx_id: u32,
-    legacy_tx_mode: bool
+    legacy_tx_mode: bool,
 }
 
 unsafe impl Sync for Nag52USB {}
@@ -51,15 +52,20 @@ unsafe impl Send for Nag52USB {}
 
 impl Nag52USB {
     pub fn new(path: &str, info: PortInfo, legacy_tx_mode: bool) -> HardwareResult<Self> {
-        let mut port = serial_rs::new_from_path(path, Some(SerialPortSettings::default()
-            .baud(921600)
-            .read_timeout(Some(100))
-            .write_timeout(Some(100))
-            .set_flow_control(FlowControl::None)))
-            .map_err(|e| HardwareError::APIError {
-                code: 99,
-                desc: e.to_string(),
-            })?;
+        let mut port = serial_rs::new_from_path(
+            path,
+            Some(
+                SerialPortSettings::default()
+                    .baud(921600)
+                    .read_timeout(Some(100))
+                    .write_timeout(Some(100))
+                    .set_flow_control(FlowControl::None),
+            ),
+        )
+        .map_err(|e| HardwareError::APIError {
+            code: 99,
+            desc: e.to_string(),
+        })?;
 
         let (read_tx_log, read_rx_log) = mpsc::channel::<EspLogMessage>();
         let (read_tx_diag, read_rx_diag) = mpsc::channel::<(u32, Vec<u8>)>();
@@ -78,9 +84,11 @@ impl Nag52USB {
                 let mut line = String::new();
                 loop {
                     line.clear();
-                    if reader.read_line(&mut line).is_ok() {      
+                    if reader.read_line(&mut line).is_ok() {
                         line.pop();
-                        if line.is_empty() {continue;}
+                        if line.is_empty() {
+                            continue;
+                        }
                         //println!("LINE: {}", line);
                         if line.starts_with("#") || line.starts_with("07E9") {
                             // First char is #, diag message
@@ -92,7 +100,7 @@ impl Nag52USB {
                                 eprintln!("Discarding invalid diag msg '{}'", line);
                             } else {
                                 let can_id = u32::from_str_radix(&line[0..4], 16).unwrap();
-                                if let Ok(p) = catch_unwind(||{
+                                if let Ok(p) = catch_unwind(|| {
                                     let payload: Vec<u8> = (4..line.len())
                                         .step_by(2)
                                         .map(|i| u8::from_str_radix(&line[i..i + 2], 16).unwrap())
@@ -103,7 +111,7 @@ impl Nag52USB {
                                 }
                             }
                         } else {
-                            println!("{}", line );
+                            println!("{}", line);
                             //read_tx_log.send(msg);
                         }
                         line.clear();
@@ -137,7 +145,7 @@ impl Nag52USB {
             rx_log: Some(read_rx_log),
             tx_id: 0,
             rx_id: 0,
-            legacy_tx_mode
+            legacy_tx_mode,
         })
     }
 
@@ -235,23 +243,25 @@ impl PayloadChannel for Nag52USB {
         match self.port.as_mut() {
             Some(p) => {
                 if self.legacy_tx_mode {
-                let mut buf = String::with_capacity(buffer.len()*2 + 6);
-                write!(buf, "#{:04X}", addr);
-                for x in buffer {
-                    write!(buf, "{:02X}", x);
+                    let mut buf = String::with_capacity(buffer.len() * 2 + 6);
+                    write!(buf, "#{:04X}", addr);
+                    for x in buffer {
+                        write!(buf, "{:02X}", x);
+                    }
+                    write!(buf, "\n");
+                    p.write_all(buf.as_bytes())
+                        .map_err(|e| ChannelError::IOError(e))?;
+                } else {
+                    let mut to_write = Vec::with_capacity(buffer.len() + 4);
+                    let size: u16 = (buffer.len() + 2) as u16;
+                    to_write.push((size >> 8) as u8);
+                    to_write.push((size & 0xFF) as u8);
+                    to_write.push((addr >> 8) as u8);
+                    to_write.push((addr & 0xFF) as u8);
+                    to_write.extend_from_slice(&buffer);
+                    p.write_all(&to_write)
+                        .map_err(|e| ChannelError::IOError(e))?;
                 }
-                write!(buf, "\n");
-                p.write_all(buf.as_bytes()).map_err(|e| ChannelError::IOError(e))?;
-            } else {
-                let mut to_write = Vec::with_capacity(buffer.len()+4);
-                let size: u16 = (buffer.len()+2) as u16;
-                to_write.push((size >> 8) as u8);
-                to_write.push((size & 0xFF) as u8);
-                to_write.push((addr >> 8) as u8);
-                to_write.push((addr & 0xFF) as u8);
-                to_write.extend_from_slice(&buffer);
-                p.write_all(&to_write).map_err(|e| ChannelError::IOError(e))?;
-            }
                 Ok(())
             }
             None => Err(ChannelError::InterfaceNotOpen),

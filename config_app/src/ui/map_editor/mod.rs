@@ -15,7 +15,7 @@ use eframe::{
     egui::{
         self,
         plot::{Bar, BarChart, CoordinatesFormatter, HLine, Legend, Line, LineStyle, PlotPoints},
-        Layout, TextEdit, RichText,
+        Layout, TextEdit, RichText, Response,
     },
     epaint::{vec2, Color32, Stroke, FontId, TextShape},
 };
@@ -57,8 +57,10 @@ pub struct Map {
     data_eeprom: Vec<i16>,
     data_default: Vec<i16>,
     data_modify: Vec<i16>,
+    data_loaded: Vec<i16>,
     showing_default: bool,
     ecu_ref: Arc<Mutex<Kwp2000DiagnosticServer>>,
+    curr_edit_cell: Option<(usize, String, Response)>,
 }
 
 fn read_i16(a: &[u8]) -> DiagServerResult<(&[u8], i16)> {
@@ -170,12 +172,60 @@ impl Map {
             y_values: y_elements,
             eeprom_key: key,
             data_eeprom: current.clone(),
+            data_loaded: current.clone(),
             data_default: default,
             data_modify: current,
             meta,
             showing_default: false,
             ecu_ref: server,
+            curr_edit_cell: None
+
         })
+    }
+
+    fn data_to_byte_array(&self, data: &Vec<i16>) -> Vec<u8> {
+        let mut ret = Vec::new();
+        ret.extend_from_slice(&((data.len()*2) as u16).to_le_bytes());
+        for point in data {
+            ret.extend_from_slice(&point.to_le_bytes());
+        }
+        ret
+    }
+
+    pub fn write_to_ram(&self) -> DiagServerResult<()> {
+        let mut payload: Vec<u8> = vec![
+            KWP2000Command::WriteDataByLocalIdentifier.into(), 
+            0x19, 
+            self.meta.id,
+            MapCmd::Write as u8,
+        ];
+        payload.extend_from_slice(&self.data_to_byte_array(&self.data_modify));
+        self.ecu_ref.lock().unwrap().send_byte_array_with_response(&payload)?;
+        Ok(())
+    }
+
+    pub fn save_to_eeprom(&self) -> DiagServerResult<()> {
+        let payload: Vec<u8> = vec![
+            KWP2000Command::WriteDataByLocalIdentifier.into(), 
+            0x19, 
+            self.meta.id,
+            MapCmd::Burn as u8,
+            0x00, 0x00
+        ];
+        self.ecu_ref.lock().unwrap().send_byte_array_with_response(&payload)?;
+        Ok(())
+    }
+
+    pub fn undo_changes(&self) -> DiagServerResult<()> {
+        let payload: Vec<u8> = vec![
+            KWP2000Command::WriteDataByLocalIdentifier.into(), 
+            0x19, 
+            self.meta.id,
+            MapCmd::Undo as u8,
+            0x00, 0x00
+        ];
+        self.ecu_ref.lock().unwrap().send_byte_array_with_response(&payload)?;
+        Ok(())
     }
 
     fn get_x_label(&self, idx: usize) -> String {
@@ -195,62 +245,94 @@ impl Map {
     }
 
     fn gen_edit_table(&mut self, raw_ui: &mut egui::Ui, showing_default: bool) {
-        let hash = if showing_default { &self.data_default } else { &self.data_eeprom };
-        let color = raw_ui.visuals().faint_bg_color;
-        
+        let hash = if showing_default { &self.data_default } else { &self.data_loaded };
+        let header_color = raw_ui.visuals().warn_fg_color;
+        let cell_edit_color = raw_ui.visuals().error_fg_color;
+        if !self.meta.x_desc.is_empty() {
+            raw_ui.label(format!("X: {}", self.meta.x_desc));
+        }
+        if !self.meta.y_desc.is_empty() {
+            raw_ui.label(format!("Y: {}", self.meta.y_desc));
+        }
+        if !self.meta.v_desc.is_empty() {
+            raw_ui.label(format!("Values: {}", self.meta.v_desc));
+        }
+        let mut copy = self.clone();
         let resp = raw_ui.push_id(&hash, |ui| {
             let mut table_builder = egui_extras::TableBuilder::new(ui)
                 .striped(true)
                 .scroll(false)
                 .cell_layout(Layout::left_to_right(egui::Align::Center).with_cross_align(egui::Align::Center))
                 .column(Size::initial(60.0).at_least(60.0));
-            for _ in 0..self.x_values.len() {
-                table_builder = table_builder.column(Size::initial(60.0).at_least(70.0));
+            for _ in 0..copy.x_values.len() {
+                table_builder = table_builder.column(Size::initial(70.0).at_least(70.0));
             }
             table_builder.header(15.0, |mut header | {
-                header.col(|u| {}); // Nothing in corner cell
-                for v in &self.x_values {
-                    header.col(|u| {
-                        u.label(RichText::new(format!("{}", v)).color(color));
-                    });
+                header.col(|_| {}); // Nothing in corner cell
+                if copy.x_values.len() == 1 {
+                    header.col(|_|{});
+                } else {
+                    for v in 0..copy.x_values.len() {
+                        header.col(|u| {
+                            u.label(RichText::new(format!("{}", copy.get_x_label(v))).color(header_color));
+                        });
+                    }
                 }
             }).body(|body| {
-                body.rows(18.0, self.y_values.len(), |row_id, mut row| {
-                    if let Some(replace) = self.meta.y_replace {
-                        row.col(|x| { x.label(format!("{}", replace.get(row_id).unwrap_or(&"ERROR"))); });
-                    } else {
-                        row.col(|x| { x.label(format!("{}{}", self.y_values[row_id], self.meta.y_unit)); });
-                    }
-                    for x_pos in 0..self.x_values.len() {
+                body.rows(15.0, copy.y_values.len(), |row_id, mut row| {
+                    // Header column
+                    row.col(|c| { c.label(RichText::new(format!("{}", copy.get_y_label(row_id))).color(header_color));});
+                        
+                    // Data columns
+                    for x_pos in 0..copy.x_values.len() {
                         row.col(|cell| {
-
-                            let value = match showing_default {
-                                true => self.data_default.get((row_id*self.x_values.len())+x_pos).unwrap_or(&30000),
-                                false => self.data_eeprom.get((row_id*self.x_values.len())+x_pos).unwrap_or(&30000)
-                            };
-                                // Add X values
-                            cell.label(format!("{}", value));
+                            match showing_default {
+                                true => {
+                                    cell.label(format!("{}", copy.data_default[(row_id*copy.x_values.len())+x_pos]));
+                                },
+                                false => {
+                                    let map_idx = (row_id*copy.x_values.len())+x_pos;
+                                    let mut value = format!("{}", copy.data_modify[map_idx]);
+                                    if let Some((curr_edit_idx, current_edit_txt, resp)) = &copy.curr_edit_cell {
+                                        if *curr_edit_idx == map_idx {
+                                            println!("Editing current cell {}", current_edit_txt);
+                                            value = current_edit_txt.clone();
+                                        }
+                                    }
+                                    let changed_value = value != format!("{}", copy.data_eeprom[map_idx]);
+                                    let mut edit = TextEdit::singleline(&mut value);
+                                    if changed_value {
+                                        edit = edit.text_color(cell_edit_color);
+                                    }
+                                    let mut response = cell.add(edit);
+                                    if changed_value {
+                                        response = response.on_hover_text(format!("Original: {}", copy.data_loaded[map_idx]));
+                                    }
+                                    if response.lost_focus() || cell.ctx().input().key_pressed(egui::Key::Enter) {
+                                        println!("Cell ({},{}) lost focus, editing done", row_id, x_pos);
+                                        if let Ok(new_v) = i16::from_str_radix(&value, 10) {
+                                            copy.data_modify[map_idx] = new_v;
+                                        }
+                                        copy.curr_edit_cell = None;
+                                    } else if response.gained_focus() || response.has_focus() {
+                                        if let Some((curr_edit_idx, current_edit_txt, _resp)) = &copy.curr_edit_cell {
+                                            if let Ok(new_v) = i16::from_str_radix(&current_edit_txt, 10) {
+                                                copy.data_modify[*curr_edit_idx] = new_v;
+                                            }
+                                        }
+                                        copy.curr_edit_cell = Some((map_idx, value, response));
+                                    }
+                                }
+                            }
                         });
                     }
                 })
             });
         });
-
-        let line_visuals = raw_ui.visuals().text_color();
-        let size = resp.response.rect;
-       
-        //raw_ui.painter().add(TextShape {
-        //    pos: (size.left()-galley_y.size().x, size.bottom()).into(),
-        //    galley: galley_y,
-        //    underline: Stroke::none(),
-        //    override_text_color: None,
-        //    angle: -1.5708,
-        //});
-
-
+        *self = copy;
     }
 
-    fn generate_window_ui(&mut self, raw_ui: &mut egui::Ui) {
+    fn generate_window_ui(&mut self, raw_ui: &mut egui::Ui) -> Option<PageAction> {
         raw_ui.label(format!("EEPROM key: {}", self.eeprom_key));
         raw_ui.label(format!(
             "Map has {} elements",
@@ -296,6 +378,7 @@ impl Map {
                 .allow_scroll(false)
                 .allow_zoom(false)
                 .height(150.0)
+                .width(raw_ui.available_width())
                 .show(raw_ui, |plot_ui| {
                     for l in lines {
                         plot_ui.line(l);
@@ -304,14 +387,45 @@ impl Map {
 
         }
         raw_ui.checkbox(&mut self.showing_default, "Show flash defaults");
-        if self.data_modify != self.data_eeprom {
-            if raw_ui.button("Undo user changes").clicked() {}
-            if raw_ui.button("Write changes (To RAM)").clicked() {}
-            if raw_ui.button("Write changes (To EEPROM)").clicked() {}
+        if self.data_modify != self.data_loaded {
+            if raw_ui.button("Undo user changes").clicked() {
+                return match self.undo_changes() {
+                    Ok(_) => {
+                        self.data_modify = self.data_loaded.clone();
+                        Some(PageAction::SendNotification { text: format!("Map {} undo OK!", self.eeprom_key), kind: ToastKind::Success })
+                    },
+                    Err(e) => Some(PageAction::SendNotification { text: format!("Map {} undo failed! {}", self.eeprom_key, e), kind: ToastKind::Error })
+                }
+            }
+            if raw_ui.button("Write changes (To RAM)").clicked() {
+                return match self.write_to_ram() {
+                    Ok(_) => {
+                        self.data_loaded = self.data_modify.clone();
+                        Some(PageAction::SendNotification { text: format!("Map {} RAM write OK!", self.eeprom_key), kind: ToastKind::Success })
+                    },
+                    Err(e) => Some(PageAction::SendNotification { text: format!("Map {} RAM write failed! {}", self.eeprom_key, e), kind: ToastKind::Error })
+                }
+            }
+        }
+        if self.data_loaded != self.data_eeprom {
+            if raw_ui.button("Write changes (To EEPROM)").clicked() {
+                return match self.save_to_eeprom() {
+                    Ok(_) => {
+                        if let Ok(new_data) = Self::new(self.meta.id, self.ecu_ref.clone(), self.meta) {
+                            *self = new_data;
+                        }
+                        Some(PageAction::SendNotification { text: format!("Map {} EEPROM save OK!", self.eeprom_key), kind: ToastKind::Success })
+                    },
+                    Err(e) => Some(PageAction::SendNotification { text: format!("Map {} EEPROM save failed! {}", self.eeprom_key, e), kind: ToastKind::Error })
+                }
+            }
         }
         if self.data_modify != self.data_default {
-            if raw_ui.button("Reset to flash defaults").clicked() {}
+            if raw_ui.button("Reset to flash defaults").clicked() {
+                self.data_modify = self.data_default.clone();
+            }
         }
+        None
     }
 }
 
@@ -323,6 +437,7 @@ pub struct MapData {
     y_unit: &'static str,
     x_desc: &'static str,
     y_desc: &'static str,
+    v_desc: &'static str,
     value_unit: &'static str,
     x_replace: Option<&'static [&'static str]>,
     y_replace: Option<&'static [&'static str]>,
@@ -336,6 +451,7 @@ impl MapData {
         y_unit: &'static str,
         x_desc: &'static str,
         y_desc: &'static str,
+        v_desc: &'static str,
         value_unit: &'static str,
         x_replace: Option<&'static [&'static str]>,
         y_replace: Option<&'static [&'static str]>,
@@ -347,6 +463,7 @@ impl MapData {
             y_unit,
             x_desc,
             y_desc,
+            v_desc,
             value_unit,
             x_replace,
             y_replace,
@@ -362,6 +479,7 @@ const MAP_ARRAY: [MapData; 11] = [
         "",
         "Pedal position (%)",
         "Gear shift",
+        "Upshift RPM threshold",
         "RPM",
         None,
         Some(&["1->2", "2->3", "3->4", "4->5"]),
@@ -373,6 +491,7 @@ const MAP_ARRAY: [MapData; 11] = [
         "",
         "Pedal position (%)",
         "Gear shift",
+        "Upshift RPM threshold",
         "RPM",
         None,
         Some(&["1->2", "2->3", "3->4", "4->5"]),
@@ -384,6 +503,7 @@ const MAP_ARRAY: [MapData; 11] = [
         "",
         "Pedal position (%)",
         "Gear shift",
+        "Upshift RPM threshold",
         "RPM",
         None,
         Some(&["1->2", "2->3", "3->4", "4->5"]),
@@ -395,6 +515,7 @@ const MAP_ARRAY: [MapData; 11] = [
         "",
         "Pedal position (%)",
         "Gear shift",
+        "Downshift RPM threshold",
         "RPM",
         None,
         Some(&["2->1", "3->2", "4->3", "5->4"]),
@@ -406,6 +527,7 @@ const MAP_ARRAY: [MapData; 11] = [
         "",
         "Pedal position (%)",
         "Gear shift",
+        "Downshift RPM threshold",
         "RPM",
         None,
         Some(&["2->1", "3->2", "4->3", "5->4"]),
@@ -417,6 +539,7 @@ const MAP_ARRAY: [MapData; 11] = [
         "",
         "Pedal position (%)",
         "Gear shift",
+        "Downshift RPM threshold",
         "RPM",
         None,
         Some(&["2->1", "3->2", "4->3", "5->4"]),
@@ -428,6 +551,7 @@ const MAP_ARRAY: [MapData; 11] = [
         "",
         "Input torque (% of rated)",
         "Gear",
+        "Downshift RPM threshold",
         "mBar",
         None,
         Some(&["P/N", "R1/R2", "1", "2", "3", "4", "5"]),
@@ -439,6 +563,7 @@ const MAP_ARRAY: [MapData; 11] = [
         "C",
         "Working pressure",
         "ATF Temperature",
+        "Solenoid current (mA)",
         "mA",
         None,
         None,
@@ -450,6 +575,7 @@ const MAP_ARRAY: [MapData; 11] = [
         "C",
         "Converter pressure",
         "ATF Temperature",
+        "Solenoid PWM duty (4096 = 100% on)",
         "/4096",
         None,
         None,
@@ -459,8 +585,9 @@ const MAP_ARRAY: [MapData; 11] = [
         "Clutch filling time",
         "C",
         "",
-        "",
+        "ATF Temperature",
         "Clutch",
+        "filling time in millseconds",
         "ms",
         None,
         Some(&["K1", "K2", "K3", "B1", "B2"]),
@@ -472,6 +599,7 @@ const MAP_ARRAY: [MapData; 11] = [
         "",
         "",
         "Clutch",
+        "filling pressure in millibar",
         "mBar",
         None,
         Some(&["K1", "K2", "K3", "B1", "B2"]),
@@ -487,6 +615,7 @@ pub struct MapEditor {
 
 impl MapEditor {
     pub fn new(server: Arc<Mutex<Kwp2000DiagnosticServer>>, bar: MainStatusBar) -> Self {
+        server.lock().unwrap().set_diagnostic_session_mode(SessionType::ExtendedDiagnostics);
         Self {
             bar,
             server,
@@ -518,6 +647,7 @@ impl super::InterfacePage for MapEditor {
         }
 
         let mut remove_list: Vec<String> = Vec::new();
+        let mut action = None;
         for (key, map) in self.loaded_maps.iter_mut() {
             let mut open = true;
             egui::Window::new(map.meta.name)
@@ -527,7 +657,7 @@ impl super::InterfacePage for MapEditor {
                 .vscroll(false)
                 .default_size(vec2(800.0, 400.0))
                 .show(ui.ctx(), |window| {
-                    map.generate_window_ui(window);
+                    action = map.generate_window_ui(window);
                 });
             if !open {
                 remove_list.push(key.clone())
@@ -535,6 +665,9 @@ impl super::InterfacePage for MapEditor {
         }
         for key in remove_list {
             self.loaded_maps.remove(&key);
+        }
+        if let Some(act) = action {
+            return act;
         }
         PageAction::None
     }
