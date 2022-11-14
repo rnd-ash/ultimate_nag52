@@ -46,6 +46,14 @@ pub enum MapCmd {
     ResetToFlash = 0x05,
     Undo = 0x06,
     ReadMeta = 0x07,
+    ReadEEPROM = 0x08
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub enum MapViewType {
+    EEPROM,
+    Default,
+    Modify,
 }
 
 #[derive(Debug, Clone)]
@@ -54,13 +62,18 @@ pub struct Map {
     x_values: Vec<i16>,
     y_values: Vec<i16>,
     eeprom_key: String,
+    /// EEPROM data
     data_eeprom: Vec<i16>,
-    data_default: Vec<i16>,
+    /// Map data in memory NOW
+    data_memory: Vec<i16>,
+    /// Program default map
+    data_program: Vec<i16>,
+    /// User editing map
     data_modify: Vec<i16>,
-    data_loaded: Vec<i16>,
     showing_default: bool,
     ecu_ref: Arc<Mutex<Kwp2000DiagnosticServer>>,
     curr_edit_cell: Option<(usize, String, Response)>,
+    view_type: MapViewType
 }
 
 fn read_i16(a: &[u8]) -> DiagServerResult<(&[u8], i16)> {
@@ -121,6 +134,7 @@ impl Map {
 
         let mut default: Vec<i16> = Vec::new();
         let mut current: Vec<i16> = Vec::new();
+        let mut eeprom : Vec<i16> = Vec::new();
 
         // Read current data
         let ecu_response = &s.send_byte_array_with_response(&[
@@ -150,7 +164,6 @@ impl Map {
             0x00,
             0x00,
         ])?[1..];
-        drop(s); // Drop Mutex lock
         let (mut d_data, d_arr_size) = read_u16(ecu_response)?;
         if d_data.len() != d_arr_size as usize {
             return Err(DiagError::InvalidResponseLength);
@@ -160,25 +173,39 @@ impl Map {
             default.push(v);
             d_data = d;
         }
-        println!(
-            "({}x{}) Default len {}, current len {}",
-            x_element_count,
-            y_element_count,
-            default.len(),
-            current.len()
-        );
+        
+        let ecu_response = &s.send_byte_array_with_response(&[
+            KWP2000Command::ReadDataByLocalIdentifier.into(),
+            0x19,
+            map_id,
+            MapCmd::ReadEEPROM as u8,
+            0x00,
+            0x00,
+        ])?[1..];
+        drop(s); // Drop Mutex lock
+        let (mut e_data, e_arr_size) = read_u16(ecu_response)?;
+        if e_data.len() != e_arr_size as usize {
+            return Err(DiagError::InvalidResponseLength);
+        }
+        for _ in 0..(e_arr_size / 2) {
+            let (d, v) = read_i16(e_data)?;
+            eeprom.push(v);
+            e_data = d;
+        }
+
         Ok(Self {
             x_values: x_elements,
             y_values: y_elements,
             eeprom_key: key,
-            data_eeprom: current.clone(),
-            data_loaded: current.clone(),
-            data_default: default,
+            data_eeprom: eeprom,
+            data_memory: current.clone(),
+            data_program: default,
             data_modify: current,
             meta,
             showing_default: false,
             ecu_ref: server,
-            curr_edit_cell: None
+            curr_edit_cell: None,
+            view_type: MapViewType::Modify
 
         })
     }
@@ -244,8 +271,12 @@ impl Map {
         }
     }
 
-    fn gen_edit_table(&mut self, raw_ui: &mut egui::Ui, showing_default: bool) {
-        let hash = if showing_default { &self.data_default } else { &self.data_loaded };
+    fn gen_edit_table(&mut self, raw_ui: &mut egui::Ui) {
+        let hash = match self.view_type {
+            MapViewType::EEPROM => &self.data_eeprom,
+            MapViewType::Default => &self.data_program,
+            MapViewType::Modify => &self.data_modify,
+        };
         let header_color = raw_ui.visuals().warn_fg_color;
         let cell_edit_color = raw_ui.visuals().error_fg_color;
         if !self.meta.x_desc.is_empty() {
@@ -286,11 +317,14 @@ impl Map {
                     // Data columns
                     for x_pos in 0..copy.x_values.len() {
                         row.col(|cell| {
-                            match showing_default {
-                                true => {
-                                    cell.label(format!("{}", copy.data_default[(row_id*copy.x_values.len())+x_pos]));
+                            match self.view_type {
+                                MapViewType::EEPROM => {
+                                    cell.label(format!("{}", copy.data_eeprom[(row_id*copy.x_values.len())+x_pos]));
                                 },
-                                false => {
+                                MapViewType::Default => {
+                                    cell.label(format!("{}", copy.data_program[(row_id*copy.x_values.len())+x_pos]));
+                                },
+                                MapViewType::Modify => {
                                     let map_idx = (row_id*copy.x_values.len())+x_pos;
                                     let mut value = format!("{}", copy.data_modify[map_idx]);
                                     if let Some((curr_edit_idx, current_edit_txt, resp)) = &copy.curr_edit_cell {
@@ -306,7 +340,7 @@ impl Map {
                                     }
                                     let mut response = cell.add(edit);
                                     if changed_value {
-                                        response = response.on_hover_text(format!("Original: {}", copy.data_loaded[map_idx]));
+                                        response = response.on_hover_text(format!("Current in EEPROM: {}", copy.data_eeprom[map_idx]));
                                     }
                                     if response.lost_focus() || cell.ctx().input().key_pressed(egui::Key::Enter) {
                                         println!("Cell ({},{}) lost focus, editing done", row_id, x_pos);
@@ -338,17 +372,17 @@ impl Map {
             "Map has {} elements",
             self.x_values.len() * self.y_values.len()
         ));
-        self.gen_edit_table(raw_ui, self.showing_default);
+        self.gen_edit_table(raw_ui);
         // Generate display chart
         if self.x_values.len() == 1 {
             // Bar chart
             let mut bars = Vec::new();
             for x in 0..self.y_values.len() {
                 // Distinct points
-                let value = if self.showing_default {
-                    self.data_default[x]
-                } else {
-                    self.data_modify[x]
+                let value = match self.view_type {
+                    MapViewType::Default => self.data_program[x],
+                    MapViewType::EEPROM => self.data_eeprom[x],
+                    MapViewType::Modify => self.data_modify[x]
                 };
                 let key = self.get_y_label(x);
                 bars.push(Bar::new(x as f64, value as f64).name(key))
@@ -366,7 +400,12 @@ impl Map {
             for (y_idx, key) in self.y_values.iter().enumerate() {
                 let mut points : Vec<[f64;2]> = Vec::new();
                 for (x_idx, key) in self.x_values.iter().enumerate() {
-                    let data = self.data_modify[(y_idx*self.x_values.len())+x_idx];
+                    let map_idx = (y_idx*self.x_values.len())+x_idx;
+                    let data = match self.view_type {
+                        MapViewType::Default => self.data_program[map_idx],
+                        MapViewType::EEPROM => self.data_eeprom[map_idx],
+                        MapViewType::Modify => self.data_modify[map_idx]
+                    };
                     points.push([*key as f64, data as f64]);
                 }
                 lines.push(
@@ -386,12 +425,17 @@ impl Map {
                 });
 
         }
-        raw_ui.checkbox(&mut self.showing_default, "Show flash defaults");
-        if self.data_modify != self.data_loaded {
+        raw_ui.label("View mode:");
+        raw_ui.horizontal(|row| {
+            row.selectable_value(&mut self.view_type, MapViewType::Modify, "User changes");
+            row.selectable_value(&mut self.view_type, MapViewType::EEPROM, "EEPROM");
+            row.selectable_value(&mut self.view_type, MapViewType::Default, "TCU default");
+        });
+        if self.data_modify != self.data_eeprom {
             if raw_ui.button("Undo user changes").clicked() {
                 return match self.undo_changes() {
                     Ok(_) => {
-                        self.data_modify = self.data_loaded.clone();
+                        self.data_modify = self.data_eeprom.clone();
                         Some(PageAction::SendNotification { text: format!("Map {} undo OK!", self.eeprom_key), kind: ToastKind::Success })
                     },
                     Err(e) => Some(PageAction::SendNotification { text: format!("Map {} undo failed! {}", self.eeprom_key, e), kind: ToastKind::Error })
@@ -400,14 +444,14 @@ impl Map {
             if raw_ui.button("Write changes (To RAM)").clicked() {
                 return match self.write_to_ram() {
                     Ok(_) => {
-                        self.data_loaded = self.data_modify.clone();
+                        self.data_memory = self.data_modify.clone();
                         Some(PageAction::SendNotification { text: format!("Map {} RAM write OK!", self.eeprom_key), kind: ToastKind::Success })
                     },
                     Err(e) => Some(PageAction::SendNotification { text: format!("Map {} RAM write failed! {}", self.eeprom_key, e), kind: ToastKind::Error })
                 }
             }
         }
-        if self.data_loaded != self.data_eeprom {
+        if self.data_memory != self.data_eeprom {
             if raw_ui.button("Write changes (To EEPROM)").clicked() {
                 return match self.save_to_eeprom() {
                     Ok(_) => {
@@ -420,9 +464,9 @@ impl Map {
                 }
             }
         }
-        if self.data_modify != self.data_default {
+        if self.data_modify != self.data_program {
             if raw_ui.button("Reset to flash defaults").clicked() {
-                self.data_modify = self.data_default.clone();
+                self.data_modify = self.data_program.clone();
             }
         }
         None
