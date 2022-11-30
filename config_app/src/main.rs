@@ -34,6 +34,8 @@ fn main() {
         height: icon_h,
     });
     native_options.initial_window_size = Some(Vec2::new(1280.0, 720.0));
+    //native_options.initial_window_size = Some(Vec2::new(1024.0, 768.0));
+    //native_options.fullscreen = true;
     #[cfg(windows)]
     {
         native_options.renderer = Renderer::Wgpu;

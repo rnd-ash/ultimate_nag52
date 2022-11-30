@@ -4,11 +4,11 @@ use std::{
         Arc, Mutex, RwLock,
     },
     thread,
-    time::{Duration, Instant},
+    time::{Duration, Instant}, ops::RangeInclusive,
 };
 
 use ecu_diagnostics::kwp2000::{Kwp2000DiagnosticServer, SessionType};
-use eframe::egui::plot::{Legend, Line, Plot, PlotPoints};
+use eframe::egui::plot::{Legend, Line, Plot, PlotPoints, Bar, BarChart};
 
 use crate::{ui::status_bar::MainStatusBar, window::PageAction};
 
@@ -23,6 +23,13 @@ pub struct SolenoidPage {
     curr_values: Arc<RwLock<Option<DataSolenoids>>>,
     prev_values: Arc<RwLock<Option<DataSolenoids>>>,
     time_since_launch: Instant,
+    view_type: ViewType
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub enum ViewType {
+    Pwm,
+    Current
 }
 
 impl SolenoidPage {
@@ -74,6 +81,7 @@ impl SolenoidPage {
             last_update_time: last_update,
             prev_values: store_old,
             time_since_launch: launch_time,
+            view_type: ViewType::Pwm
         }
     }
 }
@@ -84,40 +92,12 @@ const MAX_DUTY: u16 = 0xFFF; // 12bit pwm (4096)
 const VOLTAGE_HIGH: f64 = 12.0;
 const VOLTAGE_LOW: f64 = 0.0;
 
-fn make_line_duty_pwm(duty: f32, freq: u16, x_off: f64, y_off: f64) -> PlotPoints {
-    let num_pulses = freq / GRAPH_TIME_MS as u16;
-    let pulse_width = GRAPH_TIME_MS as f64 / num_pulses as f64;
-    let pulse_on_width = (duty as f64 / 4096.0) * pulse_width;
-    let pulse_off_width = pulse_width - pulse_on_width;
+fn make_pwm_bar(idx: usize, duty: f32) -> Bar {
+    return Bar::new(idx as f64, (duty as f64 / 4096.0) * 100.0);
+}
 
-    let mut points: Vec<[f64; 2]> = Vec::new();
-    let mut curr_x_pos = 0f64;
-
-    // Shortcut
-    if duty as u16 == MAX_DUTY {
-        points.push([0.0, VOLTAGE_LOW]);
-        points.push([GRAPH_TIME_MS, VOLTAGE_LOW]);
-    } else if duty as u16 == 0 {
-        points.push([0.0, VOLTAGE_HIGH]);
-        points.push([GRAPH_TIME_MS, VOLTAGE_HIGH]);
-    } else {
-        for i in 0..num_pulses {
-            // Start at 12V (High - Solenoid off)
-            points.push([curr_x_pos, VOLTAGE_HIGH]); // High, left
-            curr_x_pos += pulse_off_width;
-            points.push([curr_x_pos, VOLTAGE_HIGH]); // High, right
-                                                     // Now vertical line
-            points.push([curr_x_pos, VOLTAGE_LOW]);
-            curr_x_pos += pulse_on_width;
-            points.push([curr_x_pos, VOLTAGE_LOW]);
-            // Now draw at 0V (Low - Solenoid on)
-        }
-    }
-    for p in points.iter_mut() {
-        p[0] += x_off;
-        p[1] += y_off;
-    }
-    points.into()
+fn make_current_bar(idx: usize, c: f32) -> Bar {
+    return Bar::new(idx as f64, c as f64);
 }
 
 impl crate::window::InterfacePage for SolenoidPage {
@@ -127,9 +107,14 @@ impl crate::window::InterfacePage for SolenoidPage {
         frame: &eframe::Frame,
     ) -> crate::window::PageAction {
         ui.heading("Solenoid live view");
+        ui.horizontal(|row| {
+            row.label("Showing: ");
+            row.selectable_value(&mut self.view_type, ViewType::Pwm, "PWM");
+            row.selectable_value(&mut self.view_type, ViewType::Current, "Current");
+        });
 
-        let mut curr = self.curr_values.read().unwrap().clone().unwrap_or_default();
-        let mut prev = self.prev_values.read().unwrap().clone().unwrap_or_default();
+        let curr = self.curr_values.read().unwrap().clone().unwrap_or_default();
+        let prev = self.prev_values.read().unwrap().clone().unwrap_or_default();
 
         let ms_since_update = std::cmp::min(
             UPDATE_DELAY_MS,
@@ -139,7 +124,6 @@ impl crate::window::InterfacePage for SolenoidPage {
 
         let mut proportion_curr: f32 = (ms_since_update as f32) / UPDATE_DELAY_MS as f32; // Percentage of old value to use
         let mut proportion_prev: f32 = 1.0 - proportion_curr; // Percentage of curr value to use
-
         if ms_since_update == 0 {
             proportion_prev = 0.5;
             proportion_curr = 0.5;
@@ -147,93 +131,97 @@ impl crate::window::InterfacePage for SolenoidPage {
             proportion_prev = 0.5;
             proportion_curr = 0.5;
         }
-        let mut lines = Vec::new();
+
+        let mut bars = Vec::new();
         let mut legend = Legend::default();
-        let c_height = (ui.available_height() - 50.0) / 6.0;
+        let x_fmt = |y, _range: &RangeInclusive<f64>| {
+            match y as usize {
+                1 => "MPC",
+                2 => "SPC",
+                3 => "TCC",
+                4 => "Y3",
+                5 => "Y4",
+                6 => "Y5",
+                _ => ""
+            }.to_string()
+        };
 
-        lines.push((
-            "MPC",
-            Line::new(make_line_duty_pwm(
-                (curr.mpc_pwm() as f32 * proportion_curr)
-                    + (prev.mpc_pwm() as f32 * proportion_prev),
-                1000,
-                0.0,
-                0.0,
-            ))
-            .name("MPC")
-            .width(2.0),
-        ));
-        lines.push((
-            "SPC",
-            Line::new(make_line_duty_pwm(
-                (curr.spc_pwm() as f32 * proportion_curr)
-                    + (prev.spc_pwm() as f32 * proportion_prev),
-                1000,
-                0.0,
-                0.0,
-            ))
-            .name("SPC")
-            .width(2.0),
-        ));
-        lines.push((
-            "TCC",
-            Line::new(make_line_duty_pwm(
-                (curr.tcc_pwm() as f32 * proportion_curr)
-                    + (prev.tcc_pwm() as f32 * proportion_prev),
-                1000,
-                0.0,
-                0.0,
-            ))
-            .name("TCC")
-            .width(2.0),
-        ));
+        let mut plot = Plot::new("Solenoid data")
+            .allow_drag(false)
+            .include_y(0)
+            .legend(legend.clone())
+            .x_axis_formatter(x_fmt)
+            .allow_zoom(false)
+            .allow_boxed_zoom(false)
+            .allow_scroll(false)
+            .allow_drag(false);
 
-        lines.push((
-            "Y3",
-            Line::new(make_line_duty_pwm(
-                (curr.y3_pwm() as f32 * proportion_curr) + (prev.y3_pwm() as f32 * proportion_prev),
-                1000,
-                0.0,
-                0.0,
-            ))
-            .name("Y3")
-            .width(2.0),
-        ));
-        lines.push((
-            "Y4",
-            Line::new(make_line_duty_pwm(
-                (curr.y4_pwm() as f32 * proportion_curr) + (prev.y4_pwm() as f32 * proportion_prev),
-                1000,
-                0.0,
-                0.0,
-            ))
-            .name("Y4")
-            .width(2.0),
-        ));
-        lines.push((
-            "Y5",
-            Line::new(make_line_duty_pwm(
-                (curr.y5_pwm() as f32 * proportion_curr) + (prev.y5_pwm() as f32 * proportion_prev),
-                1000,
-                0.0,
-                0.0,
-            ))
-            .name("Y5")
-            .width(2.0),
-        ));
-
-        for line in lines {
-            let mut plot = Plot::new(format!("Solenoid {}", line.0))
-                .allow_drag(false)
-                .height(c_height)
-                .legend(legend.clone());
-            plot = plot.include_y(13);
-            plot = plot.include_y(-1);
-
-            plot = plot.include_x(0);
-            plot = plot.include_x(100);
-            plot.show(ui, |plot_ui| plot_ui.line(line.1));
+        if self.view_type == ViewType::Pwm {
+            bars.push(
+                make_pwm_bar(1, (curr.mpc_pwm() as f32 * proportion_curr)
+                + (prev.mpc_pwm() as f32 * proportion_prev)).name("MPC")
+            );
+            bars.push(
+                make_pwm_bar(2, (curr.spc_pwm() as f32 * proportion_curr)
+                + (prev.spc_pwm() as f32 * proportion_prev)).name("SPC")
+            );
+            bars.push(
+                make_pwm_bar(3, (curr.tcc_pwm() as f32 * proportion_curr)
+                + (prev.tcc_pwm() as f32 * proportion_prev)).name("TCC")
+            );
+            bars.push(
+                make_pwm_bar(4, (curr.y3_pwm() as f32 * proportion_curr)
+                + (prev.y3_pwm() as f32 * proportion_prev)).name("Y3")
+            );
+            bars.push(
+                make_pwm_bar(5, (curr.y4_pwm() as f32 * proportion_curr)
+                + (prev.y4_pwm() as f32 * proportion_prev)).name("Y4")
+            );
+            bars.push(
+                make_pwm_bar(6, (curr.y5_pwm() as f32 * proportion_curr)
+                + (prev.y5_pwm() as f32 * proportion_prev)).name("Y5")
+            );
+            let mut y_fmt_pwm = |x, _range: &RangeInclusive<f64>| {
+                format!("{} %", x)
+            };
+            plot = plot.y_axis_formatter( y_fmt_pwm);
+            plot = plot.include_y(100);
+        } else {
+            bars.push(
+                make_current_bar(1, (curr.mpc_current() as f32 * proportion_curr)
+                + (prev.mpc_current() as f32 * proportion_prev)).name("MPC")
+            );
+            bars.push(
+                make_current_bar(2, (curr.spc_current() as f32 * proportion_curr)
+                + (prev.spc_current() as f32 * proportion_prev)).name("SPC")
+            );
+            bars.push(
+                make_current_bar(3, (curr.tcc_current() as f32 * proportion_curr)
+                + (prev.tcc_current() as f32 * proportion_prev)).name("TCC")
+            );
+            bars.push(
+                make_current_bar(4, (curr.y3_current() as f32 * proportion_curr)
+                + (prev.y3_current() as f32 * proportion_prev)).name("Y3")
+            );
+            bars.push(
+                make_current_bar(5, (curr.y4_current() as f32 * proportion_curr)
+                + (prev.y4_current() as f32 * proportion_prev)).name("Y4")
+            );
+            bars.push(
+                make_current_bar(6, (curr.y5_current() as f32 * proportion_curr)
+                + (prev.y5_current() as f32 * proportion_prev)).name("Y5")
+            );
+            let mut y_fmt_current = |x, _range: &RangeInclusive<f64>| {
+                format!("{} mA", x)
+            };
+            plot = plot.y_axis_formatter( y_fmt_current);
+            plot = plot.include_y(2000);
         }
+        plot.show(ui, |plot_ui| {
+            for bar in bars {
+                plot_ui.bar_chart(BarChart::new(vec![bar]))
+            }
+        });
         ui.ctx().request_repaint();
         PageAction::None
     }
