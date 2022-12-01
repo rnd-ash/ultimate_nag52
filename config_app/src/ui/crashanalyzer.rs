@@ -2,7 +2,7 @@ use std::{
     fs::File,
     io::Write,
     ops::DerefMut,
-    sync::{Arc, Mutex, RwLock},
+    sync::{Arc, Mutex, RwLock}, path::PathBuf,
 };
 
 use ecu_diagnostics::{
@@ -45,6 +45,7 @@ impl ReadState {
 pub struct CrashAnalyzerUI {
     server: Arc<Mutex<Kwp2000DiagnosticServer>>,
     read_state: Arc<RwLock<ReadState>>,
+    save_path: Arc<RwLock<Option<String>>>
 }
 
 impl CrashAnalyzerUI {
@@ -52,6 +53,7 @@ impl CrashAnalyzerUI {
         Self {
             server,
             read_state: Arc::new(RwLock::new(ReadState::None)),
+            save_path: Arc::new(RwLock::new(None)),
         }
     }
 }
@@ -85,9 +87,11 @@ fn init_flash_mode(server: &mut Kwp2000DiagnosticServer) -> DiagServerResult<(u3
     Ok((address, size, bs))
 }
 
-fn on_flash_end(server: &mut Kwp2000DiagnosticServer, read: Vec<u8>) -> DiagServerResult<()> {
+fn on_flash_end(path: &str, server: &mut Kwp2000DiagnosticServer, read: Vec<u8>) -> DiagServerResult<()> {
     server.send_byte_array_with_response(&[0x37])?;
-    File::create("dump.elf").unwrap().write_all(&read[20..]); // First 20 bytes are header of partition. We don't need it
+    let mut p = PathBuf::from(path);
+    p.push("dump.elf");
+    File::create(p).unwrap().write_all(&read[20..]); // First 20 bytes are header of partition. We don't need it
     Ok(())
 }
 
@@ -100,8 +104,23 @@ impl InterfacePage for CrashAnalyzerUI {
         let state = self.read_state.read().unwrap().clone();
         if state.is_done() {
             if ui.button("Read coredump ELF").clicked() {
+                match nfd::open_pick_folder(None) {
+                    Ok(f) => {
+                        if let nfd::Response::Okay(path) = f {
+                            *self.save_path.write().unwrap() = Some(path);
+                        } else {
+                            *self.read_state.write().unwrap() = ReadState::Aborted("User did not select a save path for coredump".to_string());
+                            return PageAction::None;
+                        }
+                    }
+                    Err(_) => {
+                        *self.read_state.write().unwrap() = ReadState::Aborted("User did not select a save path for coredump".to_string());
+                        return PageAction::None;
+                    }
+                }
                 let c = self.server.clone();
                 let state_c = self.read_state.clone();
+                let save_c = self.save_path.read().unwrap().clone();
                 std::thread::spawn(move || {
                     let mut lock = c.lock().unwrap();
                     *state_c.write().unwrap() = ReadState::Prepare;
@@ -144,7 +163,7 @@ impl InterfacePage for CrashAnalyzerUI {
                                         }
                                     }
                                 }
-                                on_flash_end(&mut lock.deref_mut(), data);
+                                on_flash_end(&save_c.unwrap(), &mut lock.deref_mut(), data);
                             }
                             *state_c.write().unwrap() = ReadState::Completed;
                         }
@@ -180,8 +199,9 @@ impl InterfacePage for CrashAnalyzerUI {
                 ui.label(format!("Bytes read: {}", bytes_written));
             }
             ReadState::Completed => {
+                let saved= self.save_path.read().unwrap().clone().unwrap();
                 ui.label(
-                    RichText::new("Coredump ELF saved as dump.elf!")
+                    RichText::new(format!("Coredump ELF saved as {}dump.elf!", saved))
                         .color(Color32::from_rgb(0, 255, 0)),
                 );
             }
