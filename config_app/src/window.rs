@@ -10,7 +10,7 @@ use crate::ui::{
     status_bar::{self},
 };
 use eframe::{
-    egui::{self, Direction},
+    egui::{self, Direction, WidgetText, RichText},
     epaint::Pos2,
 };
 use egui_toast::{Toast, ToastKind, ToastOptions, Toasts};
@@ -69,7 +69,7 @@ impl eframe::App for MainWindow {
                 self.pop_page();
             }
 
-            let mut toasts = Toasts::new(ctx)
+            let mut toasts = Toasts::new()
                 .anchor(Pos2::new(
                     5.0,
                     ctx.available_rect().height() - s_bar_height - 5.0,
@@ -92,18 +92,18 @@ impl eframe::App for MainWindow {
                     }
                     PageAction::SendNotification { text, kind } => {
                         println!("Pushing notification {}", text);
-                        toasts.add(
-                            text,
+                        toasts.add(Toast {
                             kind,
-                            ToastOptions {
+                            text: WidgetText::RichText(RichText::new(text)),
+                            options: ToastOptions {
                                 show_icon: true,
                                 expires_at: Some(Instant::now().add(Duration::from_secs(5))),
-                            },
-                        );
+                            }
+                        });
                     }
                 }
             });
-            toasts.show();
+            toasts.show(&ctx);
         }
         ctx.request_repaint();
     }

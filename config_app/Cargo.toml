@@ -10,11 +10,10 @@ name = "config_app"
 path = "src/main.rs"
 
 [dependencies]
-serde_json = { version = "1.0.79" }
-serde = { version = "1.0.137", features = ["derive"] }
-ecu_diagnostics="0.90.51"
-#ecu_diagnostics = {path="../../ecu_diagnostics"}
-image = "0.24.1"
+serde_json = { version = "1.0.89" }
+serde = { version = "1.0.148", features = ["derive"] }
+ecu_diagnostics="0.90.52"
+image = "0.24.5"
 serial-rs = {git="https://github.com/rnd-ash/serial-rs"}
 nfd="0.0.4"
 pollster = "0.2.5"
@@ -22,7 +21,7 @@ eframe = {version="0.19.0", features=["wgpu"]}
 egui_extras = "0.19.0"
 modular-bitfield = "0.11.2"
 static_assertions = "1.1.0"
-env_logger="0.9.0"
-egui-toast="0.3.0"
+env_logger="0.10.0"
+egui-toast="0.4.0"
 chrono = "0.4.23"
 nom="7.1.1"

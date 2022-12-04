@@ -23,10 +23,12 @@ use egui_extras::{Size, Table, TableBuilder};
 use egui_toast::ToastKind;
 use nom::number::complete::le_u16;
 mod map_widget;
-
+mod help_view;
+mod map_list;
+use map_list::MAP_ARRAY;
 use crate::window::PageAction;
 
-use self::map_widget::MapWidget;
+use self::{map_widget::MapWidget, help_view::HelpView};
 
 use super::{
     configuration::{
@@ -329,7 +331,6 @@ impl Map {
                                     let mut value = format!("{}", copy.data_modify[map_idx]);
                                     if let Some((curr_edit_idx, current_edit_txt, resp)) = &copy.curr_edit_cell {
                                         if *curr_edit_idx == map_idx {
-                                            println!("Editing current cell {}", current_edit_txt);
                                             value = current_edit_txt.clone();
                                         }
                                     }
@@ -343,7 +344,6 @@ impl Map {
                                         response = response.on_hover_text(format!("Current in EEPROM: {}", copy.data_eeprom[map_idx]));
                                     }
                                     if response.lost_focus() || cell.ctx().input().key_pressed(egui::Key::Enter) {
-                                        println!("Cell ({},{}) lost focus, editing done", row_id, x_pos);
                                         if let Ok(new_v) = i16::from_str_radix(&value, 10) {
                                             copy.data_modify[map_idx] = new_v;
                                         }
@@ -455,7 +455,7 @@ impl Map {
             if raw_ui.button("Write changes (To EEPROM)").clicked() {
                 return match self.save_to_eeprom() {
                     Ok(_) => {
-                        if let Ok(new_data) = Self::new(self.meta.id, self.ecu_ref.clone(), self.meta) {
+                        if let Ok(new_data) = Self::new(self.meta.id, self.ecu_ref.clone(), self.meta.clone()) {
                             *self = new_data;
                         }
                         Some(PageAction::SendNotification { text: format!("Map {} EEPROM save OK!", self.eeprom_key), kind: ToastKind::Success })
@@ -473,7 +473,7 @@ impl Map {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone)]
 pub struct MapData {
     id: u8,
     name: &'static str,
@@ -485,6 +485,7 @@ pub struct MapData {
     value_unit: &'static str,
     x_replace: Option<&'static [&'static str]>,
     y_replace: Option<&'static [&'static str]>,
+    show_help: bool
 }
 
 impl MapData {
@@ -498,7 +499,7 @@ impl MapData {
         v_desc: &'static str,
         value_unit: &'static str,
         x_replace: Option<&'static [&'static str]>,
-        y_replace: Option<&'static [&'static str]>,
+        y_replace: Option<&'static [&'static str]>
     ) -> Self {
         Self {
             id,
@@ -511,144 +512,10 @@ impl MapData {
             value_unit,
             x_replace,
             y_replace,
+            show_help: false
         }
     }
 }
-
-const MAP_ARRAY: [MapData; 11] = [
-    MapData::new(
-        0x01,
-        "Upshift (A)",
-        "%",
-        "",
-        "Pedal position (%)",
-        "Gear shift",
-        "Upshift RPM threshold",
-        "RPM",
-        None,
-        Some(&["1->2", "2->3", "3->4", "4->5"]),
-    ),
-    MapData::new(
-        0x02,
-        "Upshift (C)",
-        "%",
-        "",
-        "Pedal position (%)",
-        "Gear shift",
-        "Upshift RPM threshold",
-        "RPM",
-        None,
-        Some(&["1->2", "2->3", "3->4", "4->5"]),
-    ),
-    MapData::new(
-        0x03,
-        "Upshift (S)",
-        "%",
-        "",
-        "Pedal position (%)",
-        "Gear shift",
-        "Upshift RPM threshold",
-        "RPM",
-        None,
-        Some(&["1->2", "2->3", "3->4", "4->5"]),
-    ),
-    MapData::new(
-        0x04,
-        "Downshift (A)",
-        "%",
-        "",
-        "Pedal position (%)",
-        "Gear shift",
-        "Downshift RPM threshold",
-        "RPM",
-        None,
-        Some(&["2->1", "3->2", "4->3", "5->4"]),
-    ),
-    MapData::new(
-        0x05,
-        "Downshift (C)",
-        "%",
-        "",
-        "Pedal position (%)",
-        "Gear shift",
-        "Downshift RPM threshold",
-        "RPM",
-        None,
-        Some(&["2->1", "3->2", "4->3", "5->4"]),
-    ),
-    MapData::new(
-        0x06,
-        "Downshift (S)",
-        "%",
-        "",
-        "Pedal position (%)",
-        "Gear shift",
-        "Downshift RPM threshold",
-        "RPM",
-        None,
-        Some(&["2->1", "3->2", "4->3", "5->4"]),
-    ),
-    MapData::new(
-        0x07,
-        "Working pressure",
-        "%",
-        "",
-        "Input torque (% of rated)",
-        "Gear",
-        "Downshift RPM threshold",
-        "mBar",
-        None,
-        Some(&["P/N", "R1/R2", "1", "2", "3", "4", "5"]),
-    ),
-    MapData::new(
-        0x08,
-        "Pressure solenoid current",
-        "mBar",
-        "C",
-        "Working pressure",
-        "ATF Temperature",
-        "Solenoid current (mA)",
-        "mA",
-        None,
-        None,
-    ),
-    MapData::new(
-        0x09,
-        "TCC solenoid Pwm",
-        "mBar",
-        "C",
-        "Converter pressure",
-        "ATF Temperature",
-        "Solenoid PWM duty (4096 = 100% on)",
-        "/4096",
-        None,
-        None,
-    ),
-    MapData::new(
-        0x0A,
-        "Clutch filling time",
-        "C",
-        "",
-        "ATF Temperature",
-        "Clutch",
-        "filling time in millseconds",
-        "ms",
-        None,
-        Some(&["K1", "K2", "K3", "B1", "B2"]),
-    ),
-    MapData::new(
-        0x0B,
-        "Clutch filling pressure",
-        "C",
-        "",
-        "",
-        "Clutch",
-        "filling pressure in millibar",
-        "mBar",
-        None,
-        Some(&["K1", "K2", "K3", "B1", "B2"]),
-    ),
-];
 
 pub struct MapEditor {
     bar: MainStatusBar,
@@ -675,7 +542,7 @@ impl super::InterfacePage for MapEditor {
         ui: &mut eframe::egui::Ui,
         frame: &eframe::Frame,
     ) -> crate::window::PageAction {
-        for map in &MAP_ARRAY {
+        for map in MAP_ARRAY {
             if ui.button(map.name).clicked() {
                 self.error = None;
                 match Map::new(map.id, self.server.clone(), map.clone()) {
