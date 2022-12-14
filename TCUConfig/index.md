@@ -22,8 +22,6 @@ This vehicle would be a `203` chassis, with `007` variant. This denotes what spe
 
 ```warning
 A lot of chassis have crossover (Depending on year built, it might have a different CAN layer!)
-
-This document might have a lot of duplicates. The duplicates will be removed over time
 ```
 
 # EGS51 CAN Layer vehicles
