@@ -2,3 +2,6 @@ title: Ultimate-NAG52 docs
 
 # Build settings
 remote_theme: rundocs/jekyll-rtd-theme
+markdown: kramdown
+
+include: ['TCUConfig']
