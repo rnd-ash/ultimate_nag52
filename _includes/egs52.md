@@ -1,4 +1,6 @@
-# EGS52
+
+    
+## W211
 
 | Variant | Differential ratio | Engine | Engine Inertia (Nm) | Rear tyre size (mm) | 4Matic? | 4Matic high ratio | 4Matic low ratio |
 |---|---|---|---|---|---|---|---|
@@ -318,6 +320,11 @@
 |211.616|2.82|OM647|44|1995|No|||
 |211.616|2.82|OM647|44|1995|No|||
 |211.616|2.82|OM647|44|1995|No|||
+    
+## W221
+
+| Variant | Differential ratio | Engine | Engine Inertia (Nm) | Rear tyre size (mm) | 4Matic? | 4Matic high ratio | 4Matic low ratio |
+|---|---|---|---|---|---|---|---|
 |221.176|2.65|für|40|2000|No|||
 |221.176|2.65|M275|40|2150|No|||
 |221.176|2.82|M275|40|2138|No|||
@@ -357,6 +364,11 @@
 |221.179|2.65|M275E60LA|40|2150|No|||
 |221.179|2.65|M275E60LA|40|2150|Yes|1.0|1.0|
 |221.179|2.65|M275E60LA|40|2150|Yes|1.0|1.0|
+    
+## W216
+
+| Variant | Differential ratio | Engine | Engine Inertia (Nm) | Rear tyre size (mm) | 4Matic? | 4Matic high ratio | 4Matic low ratio |
+|---|---|---|---|---|---|---|---|
 |216.376|2.65|M275|40|2150|No|||
 |216.376|2.65|M275|40|2150|No|||
 |216.376|2.65|M275E55LA|40|2150|No|||
@@ -376,6 +388,11 @@
 |216.379|2.65|M275E60LA|40|2150|No|||
 |216.379|2.65|M275E60LA|40|2150|Yes|1.0|1.0|
 |216.379|2.65|M275E60LA|40|2150|Yes|1.0|1.0|
+    
+## W230
+
+| Variant | Differential ratio | Engine | Engine Inertia (Nm) | Rear tyre size (mm) | 4Matic? | 4Matic high ratio | 4Matic low ratio |
+|---|---|---|---|---|---|---|---|
 |230.465|3.27|M112|32|1990|No|||
 |230.465|3.27|M112|32|2020|No|||
 |230.467|3.27|M112|38|2020|No|||
@@ -476,6 +493,11 @@
 |230.479|2.65|M275E60LA|40|2145|Yes|1.0|1.0|
 |230.479|2.65|M275|40|2005|No|||
 |230.479|2.65|M275|40|2005|No|||
+    
+## W204
+
+| Variant | Differential ratio | Engine | Engine Inertia (Nm) | Rear tyre size (mm) | 4Matic? | 4Matic high ratio | 4Matic low ratio |
+|---|---|---|---|---|---|---|---|
 |204.001|2.47|OM651DE22LA|39|1950|Yes|1.0|1.0|
 |204.001|2.47|OM651DE22LA|39|1950|Yes|1.0|1.0|
 |204.001|2.47|OM651DE22LA|39|1950|Yes|1.0|1.0|
@@ -754,6 +776,11 @@
 |204.249|3.07|M271DE18LA|29|1950|Yes|1.0|1.0|
 |204.249|3.07|M271DE18LA|29|1950|Yes|1.0|1.0|
 |204.249|3.07|M271DE18LA|29|1950|Yes|1.0|1.0|
+    
+## W207
+
+| Variant | Differential ratio | Engine | Engine Inertia (Nm) | Rear tyre size (mm) | 4Matic? | 4Matic high ratio | 4Matic low ratio |
+|---|---|---|---|---|---|---|---|
 |207.302|2.65|OM651DE22LA|37|1960|Yes|1.0|1.0|
 |207.302|2.65|OM651DE22LA|37|1960|Yes|1.0|1.0|
 |207.302|2.47|OM651DE22LA|37|1960|Yes|1.0|1.0|
@@ -834,6 +861,11 @@
 |207.448|3.07|M271DE18LA|29|1960|Yes|1.0|1.0|
 |207.448|3.07|M271DE18LA|29|1960|Yes|1.0|1.0|
 |207.448|3.07|M271DE18LA|29|1960|Yes|1.0|1.0|
+    
+## W212
+
+| Variant | Differential ratio | Engine | Engine Inertia (Nm) | Rear tyre size (mm) | 4Matic? | 4Matic high ratio | 4Matic low ratio |
+|---|---|---|---|---|---|---|---|
 |212.002|2.65|OM651DE22LA|37|1995|Yes|1.0|1.0|
 |212.002|2.65|OM651DE22LA|37|1995|Yes|1.0|1.0|
 |212.002|2.65|OM651DE22LA|37|1995|Yes|1.0|1.0|
@@ -894,6 +926,11 @@
 |212.248|3.46|M271DE18LA|29|1990|Yes|1.0|1.0|
 |212.248|3.46|M271DE18LA|29|1990|Yes|1.0|1.0|
 |212.248|3.46|M271DE18LA|29|1990|Yes|1.0|1.0|
+    
+## W171
+
+| Variant | Differential ratio | Engine | Engine Inertia (Nm) | Rear tyre size (mm) | 4Matic? | 4Matic high ratio | 4Matic low ratio |
+|---|---|---|---|---|---|---|---|
 |171.442|3.46|M271E18ML|29|1930|Yes|1.0|1.0|
 |171.442|3.46|M271E18ML|29|1930|Yes|1.0|1.0|
 |171.442|3.46|M271E18ML|29|1930|Yes|1.0|1.0|
@@ -921,6 +958,11 @@
 |171.445|3.27|M271E18ML|29|1930|Yes|1.0|1.0|
 |171.445|3.27|M271E18ML|29|1930|Yes|1.0|1.0|
 |171.473|3.27|M113E55|45|1960|No|||
+    
+## W463
+
+| Variant | Differential ratio | Engine | Engine Inertia (Nm) | Rear tyre size (mm) | 4Matic? | 4Matic high ratio | 4Matic low ratio |
+|---|---|---|---|---|---|---|---|
 |463.243|4.375|M113|45|2354|Yes|0.87|2.16|
 |463.243|4.375|M113|45|2354|Yes|0.87|2.16|
 |463.243|4.375|M113|45|2354|Yes|0.87|2.16|
@@ -1042,6 +1084,11 @@
 |463.333|4.11|OM628DE40LA|47|2354|Yes|0.87|2.16|
 |463.333|4.11|OM628DE40LA|47|2354|Yes|0.87|2.16|
 |463.333|4.11|OM628DE40LA|47|2354|Yes|0.87|2.16|
+    
+## W240
+
+| Variant | Differential ratio | Engine | Engine Inertia (Nm) | Rear tyre size (mm) | 4Matic? | 4Matic high ratio | 4Matic low ratio |
+|---|---|---|---|---|---|---|---|
 |240.078|2.82|M285E55LA|40|2315|No|||
 |240.078|3.06|M285E55LA|40|2315|No|||
 |240.078|2.82|M285E55LA|40|2315|No|||
@@ -1138,6 +1185,11 @@
 |240.179|3.06|M285E60LA|40|2315|No|||
 |240.179|2.82|M285|40|2315|No|||
 |240.179|3.06|M285|40|2315|No|||
+    
+## W461
+
+| Variant | Differential ratio | Engine | Engine Inertia (Nm) | Rear tyre size (mm) | 4Matic? | 4Matic high ratio | 4Matic low ratio |
+|---|---|---|---|---|---|---|---|
 |461.301|4.375|OM612|44|2229|Yes|0.87|2.16|
 |461.301|4.375|OM612|44|2475|Yes|0.87|2.16|
 |461.301|4.857|OM612|44|2229|Yes|0.87|2.16|
@@ -1206,6 +1258,11 @@
 |461.370|5.285|OM642DE30LA|45|2620|No|||
 |461.390|5.285|OM642DE30LA|45|2475|No|||
 |461.390|5.285|OM642DE30LA|45|2620|No|||
+    
+## W209
+
+| Variant | Differential ratio | Engine | Engine Inertia (Nm) | Rear tyre size (mm) | 4Matic? | 4Matic high ratio | 4Matic low ratio |
+|---|---|---|---|---|---|---|---|
 |209.308|2.82|OM646DE22LA|37|1930|Yes|1.0|1.0|
 |209.308|2.82|OM646DE22LA|37|1930|Yes|1.0|1.0|
 |209.308|2.82|OM646|37|1930|No|||
@@ -1282,6 +1339,11 @@
 |209.476|3.06|M113|45|1915|No|||
 |209.476|3.06|M113|45|1915|No|||
 |209.476|3.06|M113E55|45|1915|No|||
+    
+## W203
+
+| Variant | Differential ratio | Engine | Engine Inertia (Nm) | Rear tyre size (mm) | 4Matic? | 4Matic high ratio | 4Matic low ratio |
+|---|---|---|---|---|---|---|---|
 |203.004|2.87|OM611|37|1935|No|||
 |203.004|2.87|OM611|37|1935|No|||
 |203.006|2.87|OM611|37|1935|No|||
@@ -1684,8 +1746,18 @@
 |203.764|3.27|M112|32|1930|No|||
 |203.764|3.27|M112|32|1930|No|||
 |203.764|3.27|M112|32|1930|No|||
+    
+## W172
+
+| Variant | Differential ratio | Engine | Engine Inertia (Nm) | Rear tyre size (mm) | 4Matic? | 4Matic high ratio | 4Matic low ratio |
+|---|---|---|---|---|---|---|---|
 |172.447|3.27|M271DE18LA|29|1930|Yes|1.0|1.0|
 |172.447|3.27|M271DE18LA|29|1930|Yes|1.0|1.0|
+    
+## W220
+
+| Variant | Differential ratio | Engine | Engine Inertia (Nm) | Rear tyre size (mm) | 4Matic? | 4Matic high ratio | 4Matic low ratio |
+|---|---|---|---|---|---|---|---|
 |220.025|2.65|OM648DE32LA|54|2060|No|||
 |220.026|2.65|OM613DE32LA|54|2060|No|||
 |220.028|2.47|OM628DE40LA|47|2060|No|||
@@ -1726,20 +1798,45 @@
 |220.875|2.82|M113E50|45|2095|No|||
 |220.876|2.65|M275E55LA|40|2040|No|||
 |220.878|2.82|M137E58|48|2095|No|||
+    
+## W215
+
+| Variant | Differential ratio | Engine | Engine Inertia (Nm) | Rear tyre size (mm) | 4Matic? | 4Matic high ratio | 4Matic low ratio |
+|---|---|---|---|---|---|---|---|
 |215.374|2.65|M113E55ML|45|2060|No|||
 |215.375|2.82|M113E50|45|2075|No|||
 |215.376|2.65|M275E55LA|40|2040|No|||
 |215.378|2.82|M137E58|48|2075|No|||
 |215.379|2.65|M275E60LA|40|2040|No|||
+    
+## W163
+
+| Variant | Differential ratio | Engine | Engine Inertia (Nm) | Rear tyre size (mm) | 4Matic? | 4Matic high ratio | 4Matic low ratio |
+|---|---|---|---|---|---|---|---|
 |163.113|3.46|OM612DE27LA|44|2260|Yes|1.0|2.64|
 |163.128|3.09|OM628DE40LA|47|2260|Yes|1.0|2.64|
 |163.154|3.7|M112E32|32|2260|Yes|1.0|2.64|
 |163.157|3.7|M112E37|38|2260|Yes|1.0|2.64|
 |163.172|3.46|M113E43|42|2260|Yes|1.0|2.64|
 |163.175|3.7|M113E50|45|2260|Yes|1.0|2.64|
+    
+## W199
+
+| Variant | Differential ratio | Engine | Engine Inertia (Nm) | Rear tyre size (mm) | 4Matic? | 4Matic high ratio | 4Matic low ratio |
+|---|---|---|---|---|---|---|---|
 |199.376|3.06|Rear|45|2070|No|||
+    
+## W193
+
+| Variant | Differential ratio | Engine | Engine Inertia (Nm) | Rear tyre size (mm) | 4Matic? | 4Matic high ratio | 4Matic low ratio |
+|---|---|---|---|---|---|---|---|
 |193.365|3.27|M112E32|32|2015|No|||
 |193.366|3.07|M112E32MLAMG|36|2015|No|||
 |193.465|3.27|M112E32|32|2015|No|||
 |193.466|3.07|M112E32MLAMG|36|2015|No|||
+    
+## W219
+
+| Variant | Differential ratio | Engine | Engine Inertia (Nm) | Rear tyre size (mm) | 4Matic? | 4Matic high ratio | 4Matic low ratio |
+|---|---|---|---|---|---|---|---|
 |219.376|2.65|M113E55ML|45|1990|No|||
