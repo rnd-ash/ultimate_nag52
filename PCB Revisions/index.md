@@ -19,6 +19,6 @@ This section outlies the various PCB versions that have been in development duri
 * Switched buck converters to more modern circuity
 * Removed all electrolytic capacitors in favour of Tantalum ones
 
-## V1.1 (12/12/22)
+## V1.1 (12/12/21)
 ![PCB 1.1](images/pcb11.png)
 * Initial PCB made publicly available for testing
