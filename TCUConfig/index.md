@@ -31,4 +31,4 @@ A lot of chassis have crossover (Depending on year built, it might have a differ
 {% include egs52.md %}
 
 # EGS53 CAN Layer vehicles
-TBA
+{% include egs53.md %}
