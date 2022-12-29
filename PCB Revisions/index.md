@@ -15,10 +15,10 @@ This section outlies the various PCB versions that have been in development duri
 
 ### Schematic and build files
 
-* [Schematic PDF - TBA](/404.html)
-* [Gerber - TBA](/404.html)
-* [BOM - TBA](/404.html)
-* [Pick and place - TBA](/404.html)
+* [Schematics](https://github.com/rnd-ash/ultimate_nag52/blob/main/PCB/v1.3/schematics_1.3.pdf)
+* [Gerber](https://github.com/rnd-ash/ultimate_nag52/blob/main/PCB/v1.3/gerber_1.3.zip)
+* [BOM](https://github.com/rnd-ash/ultimate_nag52/blob/main/PCB/v1.3/BOM_1.3.csv)
+* [Pick and place](https://github.com/rnd-ash/ultimate_nag52/blob/main/PCB/v1.3/P%26P_1.3.csv)
 
 ## V1.2 (07/07/22)
 ![PCB 1.2](images/pcb12.png)
